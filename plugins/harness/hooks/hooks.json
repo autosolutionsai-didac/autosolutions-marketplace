@@ -1,0 +1,29 @@
+{
+  "description": "AutoSolutions harness: delegation context at session start, and a cheap decision gate (Jev or OpenAI Decisions) when a turn that changed files ends. The gate is silent until a key is configured.",
+  "hooks": {
+    "SessionStart": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node",
+            "args": ["${CLAUDE_PLUGIN_ROOT}/scripts/session-context.mjs"],
+            "timeout": 10
+          }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node",
+            "args": ["${CLAUDE_PLUGIN_ROOT}/scripts/decision-gate.mjs"],
+            "timeout": 25
+          }
+        ]
+      }
+    ]
+  }
+}

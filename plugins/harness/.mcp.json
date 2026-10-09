@@ -1,0 +1,12 @@
+{
+  "mcpServers": {
+    "openai-judge": {
+      "command": "node",
+      "args": ["${CLAUDE_PLUGIN_ROOT}/scripts/openai-judge-mcp.mjs"],
+      "env": {
+        "OPENAI_API_KEY_FROM_PLUGIN": "${user_config.openai_api_key}",
+        "OPENAI_JUDGE_MODEL_FROM_PLUGIN": "${user_config.openai_judge_model}"
+      }
+    }
+  }
+}

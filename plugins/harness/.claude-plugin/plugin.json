@@ -1,0 +1,52 @@
+{
+  "name": "harness",
+  "displayName": "AutoSolutions Harness",
+  "version": "1.0.0",
+  "description": "Opus plans, Haiku scouts, Sonnet builds, Opus tries to break it, Fable signs off. Role-based subagents, ship/review/audit workflows, and optional gates from other model families.",
+  "author": {
+    "name": "AutoSolutions.ai",
+    "email": "didac@autosolutions.ai",
+    "url": "https://autosolutions.ai"
+  },
+  "homepage": "https://github.com/autosolutionsai-didac/autosolutions-marketplace/tree/main/plugins/harness",
+  "repository": "https://github.com/autosolutionsai-didac/autosolutions-marketplace",
+  "license": "MIT",
+  "keywords": [
+    "multi-agent",
+    "orchestration",
+    "subagents",
+    "workflows",
+    "code-review",
+    "quality-gate"
+  ],
+  "userConfig": {
+    "decision_gate": {
+      "type": "string",
+      "title": "Decision gate",
+      "description": "Cheap 'is this really done?' check when a turn that changed files ends. 'auto' runs when a Jev or OpenAI key is available, 'off' never runs it.",
+      "options": [
+        "auto",
+        "off"
+      ],
+      "default": "auto"
+    },
+    "openai_api_key": {
+      "type": "string",
+      "title": "OpenAI API key (optional)",
+      "description": "Enables the GPT second-opinion reviewer and, if no Jev key is set, the OpenAI Decisions gate. Leave empty to use the OPENAI_API_KEY environment variable or skip OpenAI entirely.",
+      "sensitive": true
+    },
+    "openai_judge_model": {
+      "type": "string",
+      "title": "OpenAI reviewer model",
+      "description": "Model the GPT second-opinion reviewer uses. gpt-6-sol is the cost-efficient high-end tier; gpt-6-astra is the flagship at 5x the price.",
+      "default": "gpt-6-sol"
+    },
+    "typesafe_api_key": {
+      "type": "string",
+      "title": "TypeSafe (Jev) API key (optional)",
+      "description": "Enables the Jev decision gate. Leave empty to use TYPESAFE_API_KEY or OPENROUTER_API_KEY from the environment, or to skip Jev.",
+      "sensitive": true
+    }
+  }
+}

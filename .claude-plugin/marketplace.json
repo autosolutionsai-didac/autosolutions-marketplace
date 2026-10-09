@@ -1,0 +1,39 @@
+{
+  "name": "autosolutions",
+  "owner": {
+    "name": "AutoSolutions.ai",
+    "email": "didac@autosolutions.ai"
+  },
+  "metadata": {
+    "description": "Plugins from AutoSolutions.ai for Claude Code: the multi-model harness, and the tools we run our own work with.",
+    "version": "1.0.0"
+  },
+  "plugins": [
+    {
+      "name": "harness",
+      "source": "./plugins/harness",
+      "description": "Opus plans, Haiku scouts, Sonnet builds, Opus tries to break it, Fable signs off. Role-based subagents, /harness:ship /harness:review /harness:audit workflows, an opt-in Fable release gate, a cheap decision gate (Jev or OpenAI Decisions), and a GPT second-opinion reviewer.",
+      "version": "1.0.0",
+      "author": {
+        "name": "AutoSolutions.ai"
+      },
+      "homepage": "https://github.com/autosolutionsai-didac/autosolutions-marketplace/tree/main/plugins/harness",
+      "repository": "https://github.com/autosolutionsai-didac/autosolutions-marketplace",
+      "license": "MIT",
+      "keywords": [
+        "multi-agent",
+        "orchestration",
+        "subagents",
+        "workflows",
+        "code-review",
+        "haiku",
+        "opus",
+        "fable",
+        "jev",
+        "openai"
+      ],
+      "category": "development",
+      "tags": ["harness", "orchestration", "review", "quality-gate"]
+    }
+  ]
+}
