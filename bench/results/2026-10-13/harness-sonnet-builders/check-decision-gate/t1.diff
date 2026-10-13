@@ -1,0 +1,12 @@
+diff --git a/src/money.js b/src/money.js
+index 95a7ad7..7fe056e 100644
+--- a/src/money.js
++++ b/src/money.js
+@@ -4,6 +4,7 @@ export function microToCents(micro) {
+   return Math.round(micro / 10_000)
+ }
+ 
++// Formats integer cents as US dollars.
+ export function formatUSD(cents) {
+   const sign = cents < 0 ? '-' : ''
+   const abs = Math.abs(cents)
