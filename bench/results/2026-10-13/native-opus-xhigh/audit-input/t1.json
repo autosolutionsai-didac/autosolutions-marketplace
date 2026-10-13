@@ -1,0 +1,148 @@
+{
+  "benchVersion": 2,
+  "label": "2026-10-13",
+  "team": "native-opus-xhigh",
+  "teamKind": "native",
+  "task": "audit-input",
+  "taskKind": "findings",
+  "trial": 1,
+  "sessionId": "5c35ccfd-c23d-4fcf-8d56-5c417f8c20a8",
+  "startedAt": "2026-10-13T20:25:33.265Z",
+  "finishedAt": "2026-10-13T20:28:44.211Z",
+  "wallSec": 190.945,
+  "timedOut": false,
+  "turns": [
+    {
+      "turn": 1,
+      "exitCode": 0,
+      "signal": null,
+      "timedOut": false,
+      "wallSec": 168.792
+    },
+    {
+      "turn": 2,
+      "exitCode": 0,
+      "signal": null,
+      "timedOut": false,
+      "wallSec": 22.153
+    }
+  ],
+  "success": true,
+  "score": {
+    "success": true,
+    "recall": 1,
+    "found": [
+      "V1",
+      "V2",
+      "V3",
+      "V4"
+    ],
+    "missed": [],
+    "duplicates": 0,
+    "validExtras": 3,
+    "validExtraIds": [
+      "f",
+      "g",
+      "h",
+      "k"
+    ],
+    "unmatched": 1,
+    "extras": 1,
+    "unmatchedTitles": [
+      "src/ledger.js:34 no upper bound on usage token counts validation only rejects non-integers and negatives, so huge val"
+    ],
+    "findings": 8
+  },
+  "check": null,
+  "costUSD": 0.6883387,
+  "costSource": "claude-code",
+  "costUSDFromStream": 0.6883387,
+  "costUSDFromTranscripts": 0.4821666,
+  "invalidReason": null,
+  "apiErrors": 0,
+  "usageWindows": {
+    "five_hour": {
+      "utilization": 0.45,
+      "resetsAt": 1791930000
+    },
+    "seven_day": {
+      "utilization": 0.17,
+      "resetsAt": 1792162800
+    }
+  },
+  "modelUsage": {
+    "claude-opus-5-5": {
+      "inputTokens": 18,
+      "outputTokens": 10513,
+      "cacheReadInputTokens": 251991,
+      "cacheCreationInputTokens": 31528,
+      "thinkingTokens": 6477,
+      "webSearchRequests": 0,
+      "costUSD": 0.5129542
+    },
+    "claude-opus-4-8": {
+      "inputTokens": 2,
+      "outputTokens": 5325,
+      "cacheReadInputTokens": 25739,
+      "cacheCreationInputTokens": 2938,
+      "thinkingTokens": 4011,
+      "webSearchRequests": 0,
+      "costUSD": 0.1753845
+    }
+  },
+  "tokensByModel": {
+    "claude-opus-5-5": {
+      "requests": 8,
+      "input": 16,
+      "output": 10472,
+      "cacheRead": 220473,
+      "cacheWrite": 28571,
+      "costUSD": 0.4821666
+    },
+    "claude-opus-4-8": {
+      "requests": 1,
+      "input": 2,
+      "output": 5325,
+      "cacheRead": 25739,
+      "cacheWrite": 2938,
+      "costUSD": 0
+    }
+  },
+  "byRole": {
+    "main": {
+      "agents": 1,
+      "requests": 9,
+      "input": 18,
+      "output": 15797,
+      "cacheRead": 246212,
+      "cacheWrite": 31509,
+      "costUSD": 0.4821666,
+      "models": {
+        "claude-opus-5-5": 8,
+        "claude-opus-4-8": 1
+      }
+    }
+  },
+  "agentCount": 0,
+  "workflows": [],
+  "ship": null,
+  "hooks": {},
+  "stopBlocks": [],
+  "toolUses": {
+    "Bash": 5,
+    "Write": 1
+  },
+  "agentSpawns": [],
+  "workflowCalls": [],
+  "testCommands": 0,
+  "permissionDenials": 0,
+  "errors": [],
+  "contamination": [],
+  "specDelivered": null,
+  "changedFiles": [
+    "AUDIT.json"
+  ],
+  "finalMessage": "I wrote `AUDIT.json` to the repository root. It has the 8 findings from my report and nothing else: 4 high, 2 medium and 2 low. Each entry has `file`, `line`, `severity`, `title` and `detail`, with the same files, lines and severities as before.\n\nThe file parses as valid JSON, and `git status` shows `AUDIT.json` as the only change. My test scripts from the audit are in `/tmp/audit-poc-t1`, outside the repo.",
+  "workDir": "/tmp/harness-bench/2026-10-13/native-opus-xhigh/audit-input/t1",
+  "rescoredAt": "2026-10-13T20:28:55.653Z"
+}

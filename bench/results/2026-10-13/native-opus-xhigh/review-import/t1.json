@@ -125,5 +125,5 @@
   ],
   "finalMessage": "I wrote all 10 findings to `REVIEW.json` in the repository root: 2 blocking, 4 major and 4 minor, in the same order and with the same severities as my review. The file parses as valid JSON, and it's the only change in the working tree; no other files were touched.\n\nEach table row became one entry, with two small adjustments:\n- **Key-spoofing bug:** I gave it the single line `src/importer.js:30`. The detail text still mentions the call at `src/server.js:41`.\n- **Shared-options bug:** I used line 4, where `DEFAULT_OPTIONS` is defined. The detail text mentions line 10, where it gets changed.",
   "workDir": "/tmp/harness-bench/2026-10-13/native-opus-xhigh/review-import/t1",
-  "rescoredAt": "2026-10-13T20:25:53.280Z"
+  "rescoredAt": "2026-10-13T20:28:58.251Z"
 }
