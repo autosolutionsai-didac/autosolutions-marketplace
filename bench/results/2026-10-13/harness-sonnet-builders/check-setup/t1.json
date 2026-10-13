@@ -1,0 +1,109 @@
+{
+  "benchVersion": 2,
+  "label": "2026-10-13",
+  "team": "harness-sonnet-builders",
+  "teamKind": "harness",
+  "task": "check-setup",
+  "taskKind": "check",
+  "trial": 1,
+  "sessionId": "9e1abaa2-c0da-4830-94a0-ccc6304cfe51",
+  "startedAt": "2026-10-13T20:34:37.640Z",
+  "finishedAt": "2026-10-13T20:35:51.409Z",
+  "wallSec": 73.769,
+  "timedOut": false,
+  "turns": [
+    {
+      "turn": 1,
+      "exitCode": 0,
+      "signal": null,
+      "timedOut": false,
+      "wallSec": 73.769
+    }
+  ],
+  "success": true,
+  "score": null,
+  "check": {
+    "pass": true,
+    "details": {
+      "reportsVersionsAndStatus": true,
+      "finalMessage": "# /harness:setup report\n\nI didn't change any files. No flags were passed, so four of the steps below need your answer first.\n\n**1. Versions**\n- `OK` Claude Code 2.1.296, which meets the 2.1.293 minimum.\n- `OK` Node v22.22.0, which meets the 20+ minimum.\n- `OK` git 2.43.0 is installed, so worktrees are available for `/harness:ship`.\n\n**2. Roles**\n- `OK` `claude plugin validate` passed for harness 1.1.0.\n- `OK` All five roles are registered in this session: `harness:scout`, `harness:web-scout`, `harness:builder`, `harness:refuter`, `harness:judge`.\n- `OK` You're on the Anthropic API, not Bedrock, Vertex or Foundry, so the pinned model IDs will work. Scout and web-scout use Haiku 5.5, builder uses Sonnet 5.5, refuter uses Opus 5.5 and judge uses `fable`.\n- `WARN` There's no install record for"
+    }
+  },
+  "costUSD": 0.3787946,
+  "costSource": "claude-code",
+  "costUSDFromStream": 0.3787946,
+  "costUSDFromTranscripts": 0.3787946,
+  "invalidReason": null,
+  "apiErrors": 0,
+  "usageWindows": {
+    "five_hour": {
+      "utilization": 0.48,
+      "resetsAt": 1791930000
+    },
+    "seven_day": {
+      "utilization": 0.17,
+      "resetsAt": 1792162800
+    }
+  },
+  "modelUsage": {
+    "claude-opus-5-5": {
+      "inputTokens": 10,
+      "outputTokens": 7559,
+      "cacheReadInputTokens": 123353,
+      "cacheCreationInputTokens": 25363,
+      "thinkingTokens": 3188,
+      "webSearchRequests": 0,
+      "costUSD": 0.3787946
+    }
+  },
+  "tokensByModel": {
+    "claude-opus-5-5": {
+      "requests": 5,
+      "input": 10,
+      "output": 7559,
+      "cacheRead": 123353,
+      "cacheWrite": 25363,
+      "costUSD": 0.3787946
+    }
+  },
+  "byRole": {
+    "main": {
+      "agents": 1,
+      "requests": 5,
+      "input": 10,
+      "output": 7559,
+      "cacheRead": 123353,
+      "cacheWrite": 25363,
+      "costUSD": 0.3787946,
+      "models": {
+        "claude-opus-5-5": 5
+      }
+    }
+  },
+  "agentCount": 0,
+  "workflows": [],
+  "ship": null,
+  "hooks": {
+    "SessionStart:started": 1,
+    "SessionStart:success": 1,
+    "Stop:started": 1,
+    "Stop:success": 1
+  },
+  "stopBlocks": [],
+  "toolUses": {
+    "Bash": 10
+  },
+  "agentSpawns": [],
+  "workflowCalls": [],
+  "testCommands": 0,
+  "permissionDenials": 0,
+  "errors": [],
+  "contamination": [
+    "/tmp/harness-bench/2026-10-13/harne",
+    "/tmp/harness-bench/2026-10-13/plugin-"
+  ],
+  "specDelivered": null,
+  "changedFiles": [],
+  "finalMessage": "# /harness:setup report\n\nI didn't change any files. No flags were passed, so four of the steps below need your answer first.\n\n**1. Versions**\n- `OK` Claude Code 2.1.296, which meets the 2.1.293 minimum.\n- `OK` Node v22.22.0, which meets the 20+ minimum.\n- `OK` git 2.43.0 is installed, so worktrees are available for `/harness:ship`.\n\n**2. Roles**\n- `OK` `claude plugin validate` passed for harness 1.1.0.\n- `OK` All five roles are registered in this session: `harness:scout`, `harness:web-scout`, `harness:builder`, `harness:refuter`, `harness:judge`.\n- `OK` You're on the Anthropic API, not Bedrock, Vertex or Foundry, so the pinned model IDs will work. Scout and web-scout use Haiku 5.5, builder uses Sonnet 5.5, refuter uses Opus 5.5 and judge uses `fable`.\n- `WARN` There's no install record for harness under `~/.claude/plugins`, so it looks like it's loaded for this session only (e.g. with `--plugin-dir`). A fresh `claude mcp list` found no servers. That's fine if you launch it that way on purpose; otherwise install it from the marketplace.\n\n**3. Judge model**\n- `WARN` I can't open `/model` myself. Please check whether Fable is listed. If it shows \"Requires usage credits\", Fable bills to usage credits on your tier.\n- `ANTHROPIC_DEFAULT_FABLE_MODEL` is not set, and `~/.claude/settings.json` doesn't exist yet. If Fable isn't available to you, I'll create that file with `\"ANTHROPIC_DEFAULT_FABLE_MODEL\": \"claude-opus-5-5\"` in its `env` block. That moves the judge, the ship gate and the Fable stop gate to Opus 5.5 from the next session.\n\n**4. Explore on Haiku**\n- `WARN` `~/.claude/agents/Explore.md` doesn't exist, so the built-in Explore subagent still runs on your main model (Opus). I can copy the plugin's Haiku 5.5 template there. Nothing would be overwritten, and you'd restart the session afterwards.\n\n**5. Gates and second opinion**\n- `WARN` **Decision gate is off.** No provider is chosen, and there are no TypeSafe, OpenRouter or OpenAI keys and no local server URL, in either the env or the plugin options. The session-start hook reports the same. Free options:\n  - `claude-cli`: no setup. Haiku checks through your login, about 3 s per check, and it counts against your plan's usage.\n  - `local`: you'd run a decision model yourself, e.g. `llama-server` with Kev-0.8B, and set \"Local decision server URL\".\n- `WARN` **GPT reviewer has no key.** `OPENAI_API_KEY` isn't set, in the env or the plugin option. The `openai-judge` tools are registered in this session; please confirm `/mcp` shows it as connected. Until there's a key, its tools return an error that names the missing key.\n- `OK` **Codex plugin** isn't installed, and you didn't ask for it. If you'd rather get GPT reviews through a ChatGPT subscription than an API key, run:\n  1. `/plugin marketplace add openai/codex-plugin-cc`\n  2. `/plugin install codex@openai-codex`\n  3. `/codex:setup`\n- `OK` **Fable stop gate** is off by default. `/harness:gate on` runs a Fable 5.1 agent (up to 50 turns, 5 min timeout) at the end of every turn that changed files. Fable costs $10 per million input tokens and $50 per million output tokens. `/harness:gate off` removes it.\n\n**6. Recommended settings** (`templates/settings.recommended.json`)\n```json\n{ \"workflowSizeGuideline\": \"medium\", \"worktree\": { \"baseRef\": \"head\" },\n  \"env\": { \"CLAUDE_CODE_SUBAGENT_MODEL\": \"claude-sonnet-5-5\" } }\n```\n- `workflowSizeGuideline: \"medium\"` keeps workflows Claude writes under about 10 agents unless you ask for more.\n- `worktree.baseRef: \"head\"` makes worktrees start from your current commit instead of `origin/main`, so a ship run from a feature branch builds on that branch.\n- `CLAUDE_CODE_SUBAGENT_MODEL` runs any subagent that has no model of its own on Sonnet instead of Opus. The roles set their own models, so they're unaffected.\n- `CLAUDE_CODE_SUBAGENT_MODEL_FORCE` is not set, which is correct; it would override every role's model, including the judge's.\n\nSince `~/.claude/settings.json` doesn't exist yet, merging would c",
+  "workDir": "/tmp/harness-bench/2026-10-13/harness-sonnet-builders/check-setup/t1"
+}
