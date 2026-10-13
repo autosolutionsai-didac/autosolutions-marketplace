@@ -60,7 +60,7 @@
       "answerKey": "defects.json",
       "findingsFile": "REVIEW.json",
       "findingsWhat": "review",
-      "tolerance": 3,
+      "tolerance": 4,
       "turns": {
         "harness": [
           "/harness:review {\"base\": \"main\"}",
@@ -81,7 +81,7 @@
       "answerKey": "vulns.json",
       "findingsFile": "AUDIT.json",
       "findingsWhat": "audit",
-      "tolerance": 5,
+      "tolerance": 4,
       "turns": {
         "harness": [
           "/harness:audit {\"concern\": \"security vulnerabilities an attacker can reach through the HTTP API\", \"path\": \"src\"}",

@@ -14,6 +14,9 @@ const DROP = [
   /^CLAUDE_CODE_ARTIFACT_/,
   // Keys that would switch on optional harness modules. A run only gets them when its task asks.
   /^(OPENAI_API_KEY|TYPESAFE_API_KEY|OPENROUTER_API_KEY|HARNESS_[A-Z_]+|ANTHROPIC_DEFAULT_[A-Z_]+_MODEL)$/,
+  // Settings that change how the models think or which model serves a role. A run must use the team's
+  // model and effort as a user would get them (adaptive thinking), not the host session's overrides.
+  /^(MAX_THINKING_TOKENS|CLAUDE_AUTOCOMPACT_PCT_OVERRIDE|CLAUDE_CODE_MAX_OUTPUT_TOKENS|CLAUDE_CODE_WORKFLOW_SUBAGENT_MODEL|ANTHROPIC_MODEL|ANTHROPIC_SMALL_FAST_MODEL|CLAUDE_CODE_AUTO_MODE_MODEL|CLAUDE_CODE_DISABLE_THINKING|CLAUDE_CODE_DISABLE_ADAPTIVE_THINKING|CLAUDE_CODE_DISABLE_BACKGROUND_TASKS|DISABLE_INTERLEAVED_THINKING)$/,
 ]
 
 export function childEnv({ configDir, extra = {} }) {

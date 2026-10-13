@@ -80,35 +80,65 @@ function normalizeFinding(f) {
   }
 }
 
-// Each finding is assigned to at most one seeded defect: one in the same file whose lines are within
-// `tolerance`, or whose keywords appear in the finding. Keyword hits beat line proximity.
-export function matchFindings(findings, defects, tolerance = 3) {
-  const found = new Map()
-  const extras = []
-  for (const f of findings) {
-    let best = null
-    for (const d of defects) {
-      for (const loc of d.locations) {
-        if (!f.file || path.basename(f.file) !== path.basename(loc.file)) continue
-        if (f.file.includes('/') && loc.file.includes('/') && !f.file.endsWith(loc.file) && !loc.file.endsWith(f.file)) continue
-        const dist = f.line == null ? Infinity : f.line < loc.lines[0] ? loc.lines[0] - f.line : f.line > loc.lines[1] ? f.line - loc.lines[1] : 0
-        const kw = d.keywords.some((k) => f.text.includes(k.toLowerCase()))
-        if (dist > tolerance && !kw) continue
-        const score = (kw ? 10 : 0) + (dist <= tolerance ? 5 - Math.min(dist, 4) : 0)
-        if (!best || score > best.score) best = { id: d.id, score }
-      }
-    }
-    if (best) found.set(best.id, (found.get(best.id) || 0) + 1)
-    else extras.push(f)
+// A finding can be credited to a defect only with all three: one of the defect's files, a line within
+// `tolerance` of one of its ranges (or no line at all), and one of its keywords. Keywords of up to five
+// letters match as whole words ("dos" must not match "does"). Each defect is then credited to at most one
+// finding through a maximum matching, so one finding cannot count twice and two defects that share a
+// location cannot steal each other's finding. Leftover eligible findings are duplicates; findings that
+// fit a known unseeded defect are valid extras; the rest are unmatched (not necessarily wrong).
+function keywordHit(text, keywords) {
+  return keywords.some((k) => {
+    const kw = k.toLowerCase()
+    if (/^[a-z0-9]{1,5}$/.test(kw)) return new RegExp(`\\b${kw}\\b`).test(text)
+    return text.includes(kw)
+  })
+}
+
+function eligible(f, d, tolerance) {
+  if (!f.file) return false
+  for (const loc of d.locations) {
+    if (path.basename(f.file) !== path.basename(loc.file)) continue
+    if (f.file.includes('/') && !f.file.endsWith(loc.file) && !loc.file.endsWith(f.file)) continue
+    const dist = f.line == null ? 0 : f.line < loc.lines[0] ? loc.lines[0] - f.line : f.line > loc.lines[1] ? f.line - loc.lines[1] : 0
+    if (dist <= tolerance && keywordHit(f.text, d.keywords)) return true
   }
+  return false
+}
+
+function maxMatching(findings, defects, tolerance) {
+  const edges = defects.map((d) => findings.map((f, i) => (eligible(f, d, tolerance) ? i : -1)).filter((i) => i >= 0))
+  const owner = new Map() // finding index -> defect index
+  const tryAssign = (di, seen) => {
+    for (const fi of edges[di]) {
+      if (seen.has(fi)) continue
+      seen.add(fi)
+      if (!owner.has(fi) || tryAssign(owner.get(fi), seen)) { owner.set(fi, di); return true }
+    }
+    return false
+  }
+  defects.forEach((_, di) => tryAssign(di, new Set()))
+  return { owner, edges }
+}
+
+export function matchFindings(findings, defects, tolerance = 3, knownOther = []) {
+  const { owner, edges } = maxMatching(findings, defects, tolerance)
+  const foundIdx = new Set(owner.values())
+  const eligibleAny = new Set(edges.flat())
+  const duplicates = [...eligibleAny].filter((fi) => !owner.has(fi)).length
+  const rest = findings.map((f, i) => ({ f, i })).filter(({ i }) => !eligibleAny.has(i))
+  const validExtras = rest.filter(({ f }) => knownOther.some((k) => eligible(f, k, tolerance)))
+  const unmatched = rest.filter(({ f }) => !knownOther.some((k) => eligible(f, k, tolerance)))
   const ids = defects.map((d) => d.id)
   return {
-    recall: ids.filter((id) => found.has(id)).length / ids.length,
-    found: ids.filter((id) => found.has(id)),
-    missed: ids.filter((id) => !found.has(id)),
-    duplicates: [...found.values()].reduce((a, n) => a + n - 1, 0),
-    extras: extras.length,
-    extraTitles: extras.slice(0, 15).map((e) => `${e.file}:${e.line} ${e.text.slice(0, 100)}`),
+    recall: foundIdx.size / ids.length,
+    found: ids.filter((_, di) => foundIdx.has(di)),
+    missed: ids.filter((_, di) => !foundIdx.has(di)),
+    duplicates,
+    validExtras: validExtras.length,
+    validExtraIds: [...new Set(validExtras.flatMap(({ f }) => knownOther.filter((k) => eligible(f, k, tolerance)).map((k) => k.id)))],
+    unmatched: unmatched.length,
+    extras: unmatched.length,
+    unmatchedTitles: unmatched.slice(0, 15).map(({ f }) => `${f.file}:${f.line} ${f.text.slice(0, 100)}`),
     findings: findings.length,
   }
 }
@@ -116,8 +146,8 @@ export function matchFindings(findings, defects, tolerance = 3) {
 export function scoreFindingsTask(repo, task, taskDir) {
   const key = JSON.parse(readFileSync(path.join(taskDir, task.answerKey), 'utf8'))
   const loaded = loadFindings(path.join(repo, task.findingsFile))
-  if (!loaded.ok) return { success: false, error: loaded.error, recall: 0, found: [], missed: key.defects.map((d) => d.id), extras: 0, findings: 0 }
-  const m = matchFindings(loaded.findings, key.defects, task.tolerance || 3)
+  if (!loaded.ok) return { success: false, error: loaded.error, recall: 0, found: [], missed: key.defects.map((d) => d.id), duplicates: 0, validExtras: 0, unmatched: 0, extras: 0, findings: 0 }
+  const m = matchFindings(loaded.findings, key.defects, task.tolerance || 3, key.knownOther || [])
   return { success: m.recall === 1, ...m }
 }
 

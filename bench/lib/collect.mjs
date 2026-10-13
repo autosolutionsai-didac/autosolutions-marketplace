@@ -43,6 +43,8 @@ export function summarizeStreams(streamFiles) {
     permissionDenials: 0,
     finalMessage: '',
     errors: [],
+    rateLimited: false,
+    usageWindows: null,
   }
   for (const file of streamFiles) {
     const rows = readJsonl(file)
@@ -69,6 +71,11 @@ export function summarizeStreams(streamFiles) {
       s.permissionDenials += (last.permission_denials || []).length
     }
     for (const r of rows) {
+      if (r.type === 'rate_limit_event' && r.rate_limit_info) {
+        if (r.rate_limit_info.status && r.rate_limit_info.status !== 'allowed') s.rateLimited = true
+        if (r.rate_limit_info.unifiedWindows) s.usageWindows = r.rate_limit_info.unifiedWindows
+      }
+      if (r.type === 'result' && (r.api_error_status === 429 || /usage limit|hit your limit|rate_limit_error/i.test(String(r.result || '')))) s.rateLimited = true
       if (r.type === 'system' && (r.subtype === 'hook_started' || r.subtype === 'hook_response')) {
         const key = `${r.hook_event || '?'}:${r.subtype === 'hook_started' ? 'started' : r.outcome || 'response'}`
         s.hooks[key] = (s.hooks[key] || 0) + 1
@@ -114,12 +121,14 @@ export function summarizeTranscripts(configDir, sessionId) {
     // Several transcript lines share one API message id while it streams; keep the most complete one.
     const msgs = new Map()
     for (const row of readJsonl(file)) {
+      if (row.isApiErrorMessage || (row.type === 'assistant' && row.error)) agent.apiErrors = (agent.apiErrors || 0) + 1
       if (row.type !== 'assistant' || !row.message || !row.message.usage) continue
       const id = `${row.message.id || row.uuid}:${row.requestId || ''}`
       const prev = msgs.get(id)
       if (!prev || (row.message.usage.output_tokens || 0) >= (prev.usage.output_tokens || 0)) msgs.set(id, { model: row.message.model, usage: row.message.usage })
     }
-    const agent = { file: path.relative(configDir, file), role, model: meta.model || null, description: (meta.description || '').slice(0, 120), requests: 0, input: 0, output: 0, cacheRead: 0, cacheWrite: 0, costUSD: 0, models: {} }
+    const wf = file.match(/[\\/]workflows[\\/](wf_[^\\/]+)[\\/]/)
+    const agent = { file: path.relative(configDir, file), role, workflowRun: wf ? wf[1] : null, model: meta.model || null, description: (meta.description || '').slice(0, 120), requests: 0, input: 0, output: 0, cacheRead: 0, cacheWrite: 0, costUSD: 0, models: {}, apiErrors: 0 }
     for (const [id, m] of msgs) {
       if (seen.has(id)) continue
       seen.add(id)
@@ -165,7 +174,7 @@ export function summarizeWorkflows(configDir) {
     let d = {}
     try { d = JSON.parse(readFileSync(f, 'utf8')) } catch { return { file: f, unreadable: true } }
     const r = d.result || {}
-    const out = { runId: d.runId, name: d.workflowName, status: d.status, durationMs: d.durationMs, agentCount: d.agentCount, totalTokens: d.totalTokens, totalToolCalls: d.totalToolCalls, args: typeof d.args === 'string' ? d.args.slice(0, 400) : d.args, logs: (d.logs || []).slice(0, 20) }
+    const out = { runId: d.runId, name: d.workflowName, status: d.status, durationMs: d.durationMs, agentCount: d.agentCount, totalTokens: d.totalTokens, totalToolCalls: d.totalToolCalls, args: d.args, logs: (d.logs || []).slice(0, 20) }
     if (d.workflowName === 'ship') {
       out.ship = {
         verdict: r.verdict || null,
@@ -185,8 +194,10 @@ export function shipInternals(workflows, transcripts) {
   if (!ship.length) return null
   const last = ship[ship.length - 1]
   const units = last.ship.units
-  const fixAgents = transcripts.agents.filter((a) => /\(Fix\)/.test(a.role)).length
-  const firstPassRefuted = units.filter((u) => u.refuted_by && fixAgents && u.status !== 'build-failed').length
+  // Fix agents of the last ship run only; ship.js labels them "<unit id> fix".
+  const fixUnits = new Set(transcripts.agents.filter((a) => /\(Fix\)/.test(a.role) && (!last.runId || a.workflowRun === last.runId)).map((a) => (a.description.match(/^(\S+) fix/) || [])[1] || a.file))
+  const fixAgents = fixUnits.size
+  const firstPassRefuted = fixAgents
   return {
     runs: ship.length,
     verdict: last.ship.verdict,

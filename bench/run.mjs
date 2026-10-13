@@ -24,7 +24,7 @@ const BENCH = path.dirname(fileURLToPath(import.meta.url))
 const REPO_ROOT = path.dirname(BENCH)
 const PLUGIN_DIR = path.join(REPO_ROOT, 'plugins', 'harness')
 const FIXTURE = path.join(BENCH, 'fixture', 'usage-ledger')
-export const BENCH_VERSION = 1
+export const BENCH_VERSION = 2
 
 function parseArgs(argv) {
   const o = { label: null, teams: null, tasks: null, trials: 1, parallel: 3, budgetUsd: 60, work: null, dryRun: false, force: false }
@@ -48,6 +48,22 @@ function parseArgs(argv) {
 }
 
 const readJson = (p) => JSON.parse(readFileSync(p, 'utf8'))
+let lastUsage = null
+
+// Waits before a new run while the account's plan window is nearly used up, so the benchmark neither
+// fails runs on rate limits nor leaves the account unusable. HARNESS_BENCH_USAGE_CEILING (default 0.85).
+async function waitForUsage(log) {
+  const ceiling = Number(process.env.HARNESS_BENCH_USAGE_CEILING) || 0.85
+  for (;;) {
+    const w = lastUsage || {}
+    const over = ['five_hour', 'seven_day'].map((k) => w[k] && w[k].utilization >= ceiling ? { k, resetsAt: w[k].resetsAt } : null).filter(Boolean)
+    if (!over.length) return
+    const until = Math.max(...over.map((o) => o.resetsAt * 1000)) + 60_000
+    log(`usage ${over.map((o) => `${o.k} ${Math.round(w[o.k].utilization * 100)}%`).join(', ')} is at or over ${Math.round(ceiling * 100)}%; waiting until ${new Date(until).toISOString()}`)
+    await new Promise((r) => setTimeout(r, Math.max(60_000, until - Date.now())))
+    lastUsage = null
+  }
+}
 
 function git(cwd, ...args) {
   const r = spawnSync('git', args, { cwd, encoding: 'utf8' })
@@ -97,10 +113,13 @@ function runClaude({ prompt, cwd, env, args, timeoutMs, streamFile, stderrFile }
     child.stdout.on('data', (d) => appendFileSync(streamFile, d))
     child.stderr.on('data', (d) => appendFileSync(stderrFile, d))
     let timedOut = false
+    // SIGINT first so Claude Code can stop cleanly and write its result event (with the cost), then
+    // SIGTERM, then SIGKILL.
     const timer = setTimeout(() => {
       timedOut = true
-      try { process.kill(-child.pid, 'SIGTERM') } catch {}
-      setTimeout(() => { try { process.kill(-child.pid, 'SIGKILL') } catch {} }, 15_000)
+      try { process.kill(-child.pid, 'SIGINT') } catch {}
+      setTimeout(() => { try { process.kill(-child.pid, 'SIGTERM') } catch {} }, 45_000)
+      setTimeout(() => { try { process.kill(-child.pid, 'SIGKILL') } catch {} }, 75_000)
     }, timeoutMs)
     child.on('close', (code, signal) => {
       clearTimeout(timer)
@@ -109,9 +128,29 @@ function runClaude({ prompt, cwd, env, args, timeoutMs, streamFile, stderrFile }
   })
 }
 
-function contamination(configDir) {
-  const r = spawnSync('grep', ['-rlE', 'bench/tasks|\\.bench-hidden|hidden/[a-z0-9-]+\\.test\\.js', path.join(configDir, 'projects')], { encoding: 'utf8' })
-  return (r.stdout || '').split('\n').filter(Boolean).map((f) => path.relative(configDir, f))
+// Flags a run whose transcripts mention the benchmark's own files (answer keys, hidden tests, reference
+// solutions) or another run's directory. Such a run is reported as invalid, not as a success.
+function contamination(configDir, runDir, work) {
+  const hits = new Set()
+  const r = spawnSync('grep', ['-rhoE', `(${REPO_ROOT.replace(/[.]/g, '\\.')}/bench[^"'\\s]*|\\.bench-hidden|${work.replace(/[.]/g, '\\.')}/[^"'\\s]+)`, path.join(configDir, 'projects')], { encoding: 'utf8', maxBuffer: 64 * 1024 * 1024 })
+  for (const m of (r.stdout || '').split('\n').filter(Boolean)) {
+    if (m.startsWith(runDir) || m.startsWith(path.join(work, 'plugin-snapshot'))) continue
+    hits.add(m.slice(0, 200))
+  }
+  return [...hits].slice(0, 20)
+}
+
+// The ship workflow gets its task from the main model, which retypes the slash command's argument. Check
+// that the spec arrived whole, so the harness worked from the same text as the native team.
+function specDelivered(workflows, spec) {
+  const norm = (t) => String(t || '').replace(/\s+/g, ' ').trim()
+  const ships = workflows.filter((w) => w.name === 'ship')
+  if (!ships.length || !spec) return null
+  return ships.every((w) => {
+    let a = w.args
+    if (typeof a === 'string') { try { a = JSON.parse(a) } catch { a = { task: a } } }
+    return norm(a && a.task) === norm(spec)
+  })
 }
 
 async function runJob(job, opts, log) {
@@ -143,7 +182,10 @@ async function runJob(job, opts, log) {
     const stderrFile = path.join(raw, `turn-${i + 1}.stderr.txt`)
     writeFileSync(path.join(raw, `turn-${i + 1}.prompt.txt`), turns[i])
     streamFiles.push(streamFile)
-    const remaining = deadline - Date.now()
+    // Later turns (writing the findings file) are short; keep 8 minutes for each so a long first turn
+    // cannot use up the whole task budget and leave the run without its deliverable.
+    const reserve = (turns.length - 1 - i) * 8 * 60_000
+    const remaining = deadline - Date.now() - reserve
     if (remaining <= 0) { turnResults.push({ turn: i + 1, skipped: 'task deadline passed' }); break }
     const args = [...common, ...(i === 0 ? ['--session-id', sessionId] : ['--resume', sessionId])]
     log(`  ${team.id} ${task.id} t${trial}: turn ${i + 1}/${turns.length} started`)
@@ -171,6 +213,15 @@ async function runJob(job, opts, log) {
   const untracked = spawnSync('git', ['ls-files', '--others', '--exclude-standard', '--', '.', ':(exclude).bench-hidden'], { cwd: repo, encoding: 'utf8' }).stdout.trim()
   const transcriptCost = Object.values(transcripts.byModel).reduce((a, m) => a + m.costUSD, 0)
   const wallSec = turnResults.reduce((a, t) => a + (t.wallSec || 0), 0)
+  // A killed or crashed turn writes no result event, so its cost is missing from the stream total.
+  // Fall back to the transcripts (a lower bound) so a timeout cannot make a team look cheaper.
+  const incomplete = streams.turns.some((t) => t.results === 0) || turnResults.some((t) => t.timedOut || t.signal || t.skipped)
+  const costUSD = incomplete ? Math.max(streams.costUSD, transcriptCost) : streams.costUSD
+  const crashed = streams.turns.some((t) => t.results === 0) && !turnResults.some((t) => t.timedOut)
+  const apiErrors = transcripts.agents.reduce((a, x) => a + (x.apiErrors || 0), 0)
+  // Runs that ended because of the account's usage limits, or crashed without a timeout, say nothing
+  // about the team: they are written as invalid and retried on the next invocation.
+  const invalidReason = streams.rateLimited ? 'rate limited' : crashed ? 'crashed (no result event, no timeout)' : null
   const result = {
     benchVersion: BENCH_VERSION,
     label: opts.label,
@@ -185,11 +236,16 @@ async function runJob(job, opts, log) {
     wallSec,
     timedOut: turnResults.some((t) => t.timedOut),
     turns: turnResults,
-    success: task.kind === 'check' ? !!(check && check.pass) : !!(score && score.success),
+    success: task.kind === 'check' ? !!(check && check.pass) : !!(score && score.success) && contamination(configDir, dir, opts.work).length === 0,
     score,
     check,
-    costUSD: streams.costUSD,
+    costUSD,
+    costSource: incomplete ? 'transcripts-estimate (lower bound)' : 'claude-code',
+    costUSDFromStream: streams.costUSD,
     costUSDFromTranscripts: transcriptCost,
+    invalidReason,
+    apiErrors,
+    usageWindows: streams.usageWindows,
     modelUsage: streams.modelUsage,
     tokensByModel: transcripts.byModel,
     byRole: transcripts.byRole,
@@ -204,15 +260,22 @@ async function runJob(job, opts, log) {
     testCommands: streams.testCommands.length,
     permissionDenials: streams.permissionDenials,
     errors: streams.errors,
-    contamination: contamination(configDir),
+    contamination: contamination(configDir, dir, opts.work),
+    specDelivered: specDelivered(workflows, existsSync(path.join(taskDir, 'spec.md')) ? readFileSync(path.join(taskDir, 'spec.md'), 'utf8') : ''),
     changedFiles: (spawnSync('git', ['diff', '--name-only', baseSha], { cwd: repo, encoding: 'utf8' }).stdout.trim() + '\n' + untracked).split('\n').filter(Boolean),
     finalMessage: streams.finalMessage.slice(0, 4000),
     workDir: dir,
   }
   const outDir = path.join(BENCH, 'results', opts.label, team.id, task.id)
   mkdirSync(outDir, { recursive: true })
-  writeFileSync(path.join(outDir, `t${trial}.json`), JSON.stringify(result, null, 2))
-  writeFileSync(path.join(outDir, `t${trial}.diff`), diff + (untracked ? `\n# untracked files\n${untracked}\n` : ''))
+  if (invalidReason) {
+    writeFileSync(path.join(outDir, `t${trial}.invalid.json`), JSON.stringify(result, null, 2))
+  } else {
+    rmSync(path.join(outDir, `t${trial}.invalid.json`), { force: true })
+    writeFileSync(path.join(outDir, `t${trial}.json`), JSON.stringify(result, null, 2))
+    writeFileSync(path.join(outDir, `t${trial}.diff`), diff + (untracked ? `\n# untracked files\n${untracked}\n` : ''))
+  }
+  lastUsage = streams.usageWindows || lastUsage
   return result
 }
 
@@ -242,21 +305,29 @@ async function main() {
   }
   const progress = path.join(resultsDir, 'progress.log')
   const log = (m) => { const line = `${new Date().toISOString()} ${m}`; console.log(line); appendFileSync(progress, line + '\n') }
-  const pending = jobs.filter((j) => opts.force || !existsSync(path.join(resultsDir, j.team.id, j.task.id, `t${j.trial}.json`)))
+  const done = (j) => {
+    const f = path.join(resultsDir, j.team.id, j.task.id, `t${j.trial}.json`)
+    if (!existsSync(f)) return false
+    try { return readJson(f).benchVersion === BENCH_VERSION } catch { return false }
+  }
+  const pending = jobs.filter((j) => opts.force || !done(j))
   log(`bench ${opts.label}: ${jobs.length} runs planned, ${jobs.length - pending.length} already done, ${pending.length} to run, ${opts.parallel} at a time. Work dir ${opts.work}`)
   if (opts.dryRun) {
     for (const j of pending) console.log(`${j.team.id.padEnd(26)} ${j.task.id.padEnd(22)} t${j.trial}  turns: ${turnsFor(j.team, j.task).map((t) => JSON.stringify(t.slice(0, 90))).join(' | ')}`)
     return
   }
-  writeFileSync(path.join(resultsDir, 'run-config.json'), JSON.stringify({ label: opts.label, benchVersion: BENCH_VERSION, startedAt: new Date().toISOString(), claudeVersion: spawnSync('claude', ['--version'], { encoding: 'utf8' }).stdout.trim(), gitSha: spawnSync('git', ['rev-parse', 'HEAD'], { cwd: REPO_ROOT, encoding: 'utf8' }).stdout.trim(), gitDirty: spawnSync('git', ['status', '--porcelain'], { cwd: REPO_ROOT, encoding: 'utf8' }).stdout.trim().length > 0, node: process.version, cpus: (await import('node:os')).cpus().length, teams, tasks: tasks.map((t) => t.id), trials: opts.trials, parallel: opts.parallel, budgetUsdPerTurn: opts.budgetUsd }, null, 2))
+  writeFileSync(path.join(resultsDir, 'run-config.json'), JSON.stringify({ label: opts.label, benchVersion: BENCH_VERSION, startedAt: new Date().toISOString(), claudeVersion: spawnSync('claude', ['--version'], { encoding: 'utf8' }).stdout.trim(), gitSha: spawnSync('git', ['rev-parse', 'HEAD'], { cwd: REPO_ROOT, encoding: 'utf8' }).stdout.trim(), gitDirty: spawnSync('git', ['status', '--porcelain'], { cwd: REPO_ROOT, encoding: 'utf8' }).stdout.trim().length > 0, node: process.version, cpus: (await import('node:os')).cpus().length, workflowAgentConcurrency: Math.min(16, Math.max(2, (await import('node:os')).availableParallelism() - 2)), childEnvKeys: Object.keys(childEnv({ configDir: '/tmp/x' })).sort(), teams, tasks: tasks.map((t) => t.id), trials: opts.trials, parallel: opts.parallel, budgetUsdPerTurn: opts.budgetUsd }, null, 2))
   let next = 0
   async function worker(w) {
     while (next < pending.length) {
+      await waitForUsage(log)
+      if (next >= pending.length) break
       const job = pending[next++]
       log(`[w${w}] start ${job.team.id} ${job.task.id} t${job.trial}`)
       try {
         const r = await runJob(job, opts, log)
-        log(`[w${w}] done  ${job.team.id} ${job.task.id} t${job.trial}: ${r.success ? 'SUCCESS' : 'FAIL'} in ${Math.round(r.wallSec)}s, $${r.costUSD.toFixed(2)}${r.errors.length ? `, errors: ${r.errors.join('; ').slice(0, 200)}` : ''}`)
+        const usage = r.usageWindows && r.usageWindows.five_hour ? `, plan 5h ${Math.round(r.usageWindows.five_hour.utilization * 100)}%` : ''
+        log(`[w${w}] done  ${job.team.id} ${job.task.id} t${job.trial}: ${r.invalidReason ? `INVALID (${r.invalidReason}, will retry on rerun)` : r.success ? 'SUCCESS' : 'FAIL'} in ${Math.round(r.wallSec)}s, $${r.costUSD.toFixed(2)}${usage}${r.errors.length ? `, errors: ${r.errors.join('; ').slice(0, 200)}` : ''}`)
       } catch (e) {
         log(`[w${w}] crash ${job.team.id} ${job.task.id} t${job.trial}: ${e.stack || e.message}`)
       }

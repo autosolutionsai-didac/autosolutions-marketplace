@@ -30,14 +30,15 @@ A repeatable test of the harness plugin against plain Claude Code. Every team ge
 
 Per run (`results/<label>/<team>/<task>/t<n>.json`):
 
-- **success**: code tasks pass every hidden test and keep the visible suite green with at least the original 16 tests. Findings tasks find all seeded defects. Checks pass their assertion.
+- **success**: code tasks pass every hidden test and keep the visible suite green with at least the original 16 tests ("works"); "complete" also requires what the spec asks for besides behaviour (tests, docs, a source comment). Findings tasks find all four seeded defects: a finding counts only when it names the defect's file, points within 4 lines of it and uses wording specific to it, and each defect is credited to one finding at most, so a long list of loose findings earns nothing. Real issues that were not seeded are counted as valid extras, not as noise. Checks pass their assertion.
 - **time**: wall clock across all turns.
 - **cost**: the API list-price total Claude Code reports for every model the run used, workflow agents and subagents included. A second figure recomputes the total from every agent's transcript; the two should match.
 - **tokens**: per model: input, output, cache reads, cache writes. "Fresh" tokens exclude cache reads.
 - **where it went**: cost, API calls and output tokens per role (main session, `harness:builder (Build)`, `harness:refuter (Refute)`, `harness:judge (Gate)`, workflow scopes and finders, and so on).
 - **inside ship**: units, how many passed, fix rounds, the gate's verdict, and whether it agreed with the hidden tests.
 - **hooks**: every SessionStart and Stop hook that fired, and every stop it blocked.
-- **hygiene**: timeouts, errors, permission denials, and whether any transcript touched the benchmark's own files (the hidden tests live outside the run's repository, but an agent with a shell could go looking).
+- **hygiene**: timeouts, errors, permission denials, and whether any transcript touched the benchmark's own files or another run's directory. Such a run does not count as a success.
+- **validity**: a run that hit the account's usage limit, or crashed without a timeout, is written as `t<n>.invalid.json` and retried on the next invocation rather than scored. Before each run the runner checks the plan's usage windows and pauses while either is at 85% or more (`HARNESS_BENCH_USAGE_CEILING`). A run stopped by its timeout gets SIGINT first so Claude Code can record its cost; if it still records none, the cost comes from the transcripts and is marked as a lower bound.
 
 `node bench/report.mjs <label>` turns a set of runs into `REPORT.md` and `summary.json`: success rate, total and median time and cost per team and task, cost per success, money by model and role, ship internals, and the check results.
 
@@ -59,7 +60,9 @@ node bench/report.mjs 2026-10-13            # results/2026-10-13/REPORT.md
 node bench/report.mjs 2026-10-13 2026-11-02 # pool several runs into one comparison
 ```
 
-Requirements: Claude Code 2.1.293+ on the PATH, logged in, Node 20+, git. Each run uses a fresh `CLAUDE_CONFIG_DIR`, so your own settings, plugins and memory do not leak in; the harness teams load the plugin from `plugins/harness` with `--plugin-dir`. A rerun with the same label skips finished runs, so an interrupted benchmark resumes. `--trials 3` repeats every cell; one trial cannot separate a real difference from noise.
+Requirements: Claude Code 2.1.293+ on the PATH, logged in, Node 20+, git. Each run uses a fresh `CLAUDE_CONFIG_DIR`, so your own settings, plugins and memory do not leak in, and the child environment drops anything that would change thinking or model choice (`MAX_THINKING_TOKENS`, autocompact and model overrides). The harness teams load a copy of `plugins/harness` frozen when the benchmark starts. Headless runs wait for their workflows (`CLAUDE_CODE_PRINT_BG_WAIT_CEILING_MS=0`); without that, `claude -p` stops background work 10 minutes after the last turn.
+
+Timing depends on the machine. Claude Code runs at most min(16, CPUs - 2) workflow agents at once (at least 2), so on a 4-CPU machine a ship run's three refuters per unit queue two at a time. Compare wall times only between runs on the same machine, and prefer a machine with 18 or more CPUs for timing claims. A rerun with the same label skips finished runs, so an interrupted benchmark resumes. `--trials 3` repeats every cell; one trial cannot separate a real difference from noise.
 
 To add a team, add an entry to `teams.json` (any model, effort, env, settings file or `shipArgs`). To add a task, add a folder under `tasks/` with `spec.md`, hidden tests and a reference solution (or an answer key), add it to `tasks.json`, and make `node bench/selftest.mjs` pass.
 

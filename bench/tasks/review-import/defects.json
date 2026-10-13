@@ -1,29 +1,37 @@
 {
-  "note": "Seeded defects on branch feature/bulk-import (diff against main). A finding matches a defect when it names one of the defect's files and either points within 3 lines of a listed range or uses one of its keywords; when several defects in the same file qualify, keyword hits win, then the nearest line.",
+  "note": "Seeded defects on branch feature/bulk-import (diff against main). A finding earns credit for a defect only when it names one of the defect's files, points within `tolerance` lines of one of its ranges (or gives no line), and uses one of its keywords. Each defect is credited to at most one finding (maximum matching). knownOther lists real defects that were not seeded: matching findings are reported as valid extras, not as seeded credit and not as noise.",
   "defects": [
     {
       "id": "D1",
       "title": "Import stops at the first blank line and silently drops every later row",
-      "locations": [{ "file": "src/importer.js", "lines": [15, 15] }],
-      "keywords": ["blank", "empty line", "break", "stops", "drops", "silently"]
+      "locations": [{ "file": "src/importer.js", "lines": [13, 15] }],
+      "keywords": ["blank line", "blank lines", "empty line", "empty lines", "empty row", "blank row", "break instead of continue", "`break`", "break exits", "break out of", "stops at the first", "stops processing", "stop processing", "rows after", "subsequent rows", "later rows", "remaining rows", "rest of the file", "rest of the input", "truncat", "silently drop", "silently ignor"]
     },
     {
       "id": "D2",
       "title": "POST /events/bulk reads the whole body with no size limit (readJson enforces maxBodyBytes; this path bypasses it)",
-      "locations": [{ "file": "src/server.js", "lines": [39, 40] }],
-      "keywords": ["size", "limit", "maxbodybytes", "memory", "unbounded", "large", "dos", "denial", "exhaust"]
+      "locations": [{ "file": "src/server.js", "lines": [37, 40] }],
+      "keywords": ["maxbodybytes", "size limit", "body limit", "body size", "no limit", "unbounded", "without a limit", "without any limit", "memory exhaustion", "exhaust memory", "out of memory", "oom", "denial of service", "dos", "large body", "large payload", "large request", "request size", "arbitrarily large", "bypasses readjson"]
     },
     {
       "id": "D3",
       "title": "importEvents mutates the shared DEFAULT_OPTIONS object, so stats accumulate across calls and requests",
-      "locations": [{ "file": "src/importer.js", "lines": [4, 4] }, { "file": "src/importer.js", "lines": [9, 11] }],
-      "keywords": ["default_options", "default options", "shared", "mutat", "accumulat", "leak", "across calls", "across requests", "module-level", "global"]
+      "locations": [{ "file": "src/importer.js", "lines": [3, 4] }, { "file": "src/importer.js", "lines": [9, 11] }],
+      "keywords": ["default_options", "default options", "defaults object", "module-level", "module level", "shared default", "shared options", "shared object", "mutat", "accumulat", "across calls", "across requests", "between calls", "between requests", "persists across", "state leak", "leaks between", "leak between", "cumulative", "options.stats"]
     },
     {
       "id": "D4",
       "title": "Bulk import records each row under the key in the payload instead of the caller's x-api-key, so a caller can bill usage to other keys",
-      "locations": [{ "file": "src/server.js", "lines": [41, 41] }, { "file": "src/importer.js", "lines": [30, 30] }],
-      "keywords": ["spoof", "impersonat", "another key", "other key", "other keys", "any key", "caller", "row.key", "x-api-key", "authoriz", "attribut", "someone else", "on behalf"]
+      "locations": [{ "file": "src/server.js", "lines": [37, 41] }, { "file": "src/importer.js", "lines": [30, 30] }],
+      "keywords": ["row.key", "x-api-key", "api key header", "header key", "caller's key", "caller key", "callers' key", "authenticated key", "authenticated caller", "authenticated user", "payload key", "key from the payload", "key in the payload", "key from each row", "key in each row", "per-row key", "row's key", "other keys", "other key", "another key", "any key", "arbitrary key", "arbitrary tenant", "other tenant", "another tenant", "another customer", "other customers", "spoof", "impersonat", "bill usage to", "billed to", "attribut", "on behalf of"]
     }
+  ],
+  "knownOther": [
+    { "id": "a", "title": "maxRows is checked after earlier rows are recorded, so the import is partial before the 400", "locations": [{ "file": "src/importer.js", "lines": [16, 16] }], "keywords": ["maxrows", "too many rows", "partial", "already recorded", "already imported"] },
+    { "id": "b", "title": "A JSON line that parses to null or a primitive throws outside the try, giving a 500 after partial import", "locations": [{ "file": "src/importer.js", "lines": [19, 25] }], "keywords": ["null", "typeerror", "non-object", "primitive", "array"] },
+    { "id": "c", "title": "Concatenating chunks as strings corrupts multi-byte UTF-8 at chunk boundaries", "locations": [{ "file": "src/server.js", "lines": [40, 40] }], "keywords": ["utf-8", "utf8", "multi-byte", "multibyte", "chunk boundar", "setencoding", "decoder", "buffer.concat"] },
+    { "id": "d", "title": "A numeric `at` (milliseconds), which POST /events accepts, is rejected because Date.parse(number) is NaN", "locations": [{ "file": "src/importer.js", "lines": [30, 30] }], "keywords": ["date.parse", "numeric", "milliseconds", "number", "nan", "epoch", "iso"] },
+    { "id": "e", "title": "The endpoint returns 200 even when every row failed", "locations": [{ "file": "src/server.js", "lines": [41, 41] }], "keywords": ["200", "status code", "always succeed"] },
+    { "id": "f", "title": "Tests miss blank lines, defaults, size limits or key handling", "locations": [{ "file": "test/importer.test.js", "lines": [1, 60] }], "keywords": ["test", "coverage"] }
   ]
 }

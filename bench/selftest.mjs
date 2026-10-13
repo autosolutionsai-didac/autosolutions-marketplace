@@ -140,14 +140,27 @@ done(ledger.invoice('victim') && !ledger.invoice('attacker') ? 'exploited' : 'sa
 rmSync(base, { recursive: true, force: true })
 rmSync(branch, { recursive: true, force: true })
 
-// 5
-for (const [taskId, keyFile] of [['review-import', 'defects.json'], ['audit-input', 'vulns.json']]) {
-  const key = JSON.parse(readFileSync(path.join(BENCH, 'tasks', taskId, keyFile), 'utf8'))
-  const perfect = key.defects.map((d) => ({ file: d.locations[0].file, line: d.locations[0].lines[0], severity: '', text: d.title.toLowerCase() }))
-  check(`${taskId}: matcher credits a report that names every seeded defect`, matchFindings(perfect, key.defects).recall === 1)
-  const noise = [{ file: 'src/ledger.js', line: 40, severity: '', text: 'variable naming' }, { file: 'README.md', line: 1, severity: '', text: 'typo' }]
-  const m = matchFindings(noise, key.defects)
-  check(`${taskId}: matcher gives no credit for unrelated findings`, m.recall === 0 && m.extras === 2)
+// 5. The matcher credits correct reports in their usual phrasings and gives no seeded credit to anything else.
+{
+  const F = (file, line, text) => ({ file, line, severity: '', text: text.toLowerCase() })
+  const review = JSON.parse(readFileSync(path.join(BENCH, 'tasks', 'review-import', 'defects.json'), 'utf8'))
+  const audit = JSON.parse(readFileSync(path.join(BENCH, 'tasks', 'audit-input', 'vulns.json'), 'utf8'))
+  const tol = (id) => tasks.find((t) => t.id === id).tolerance
+  const R = (fs) => matchFindings(fs, review.defects, tol('review-import'), review.knownOther)
+  const A = (fs) => matchFindings(fs, audit.defects, tol('audit-input'), audit.knownOther)
+  check('matcher: a correct review in typical words finds D1-D4', R([F('src/importer.js', 15, 'Import stops at the first blank line, dropping later rows'), F('src/server.js', 40, 'No body size limit on /events/bulk: memory exhaustion'), F('src/importer.js', 10, 'Mutates DEFAULT_OPTIONS so stats accumulate across requests'), F('src/server.js', 41, 'Rows recorded under row.key, not the caller x-api-key')]).recall === 1)
+  check('matcher: D4 reported at the header check as "authenticated user ... arbitrary tenants" still counts', R([F('src/importer.js', 15, 'break on empty line drops the rest of the file'), F('src/server.js', 40, 'Unbounded request body (DoS)'), F('src/importer.js', 4, 'shared DEFAULT_OPTIONS object is mutated'), F('src/server.js', 38, 'API key header is checked but discarded; lets an authenticated user write usage for arbitrary tenants')]).recall === 1)
+  const c = R([F('src/importer.js', 16, 'maxRows enforced after rows already recorded'), F('src/importer.js', 12, 'whole payload split in memory'), F('src/importer.js', 25, 'a null line crashes, the caller gets a 500'), F('src/server.js', 40, 'multi-byte UTF-8 corrupted at chunk boundaries')])
+  check('matcher: four real but unseeded review findings get no seeded credit and count as valid extras', c.recall === 0 && c.validExtras === 3, JSON.stringify(c))
+  check('matcher: a shotgun list far from the seeded lines gets no credit', R([F('src/importer.js', 60, 'error message could break log parsing'), F('src/server.js', 5, 'consider a rate limit on the health route'), F('src/importer.js', 70, 'helper uses a global regex'), F('src/server.js', 90, 'caller gets a generic 500 on json errors')]).recall === 0)
+  for (const [file, line, text] of [['src/importer.js', 30, 'invalid timestamp becomes NaN'], ['src/server.js', 41, 'returns 200 when all rows fail'], ['src/importer.js', 21, 'invalid json error loses the parser message, so the caller cannot tell what failed']]) {
+    check(`matcher: off-target review finding "${text}" earns no seeded credit`, R([F(file, line, text)]).recall === 0)
+  }
+  check('matcher: off-target audit finding "missing api key results in undefined key" earns no seeded credit', A([F('src/server.js', 30, 'missing api key results in undefined key')]).recall === 0)
+  check('matcher: short keywords match whole words only ("dos" is not "does")', R([F('src/server.js', 40, 'this does not check anything')]).recall === 0)
+  check('matcher: a correct audit finds V1-V4, with V1 reported at the route', A([F('src/server.js', 46, 'Directory traversal through GET /docs/:name'), F('src/config.js', 15, 'Prototype pollution via __proto__ in deepMerge'), F('src/backup.js', 8, 'Command injection: dest interpolated into exec'), F('src/auth.js', 3, 'Admin check passes when LEDGER_ADMIN_TOKEN is unset')]).recall === 1)
+  const g = A([F('src/server.js', 38, 'Unauthenticated invoice access (IDOR) bypasses tenant isolation'), F('src/server.js', 41, 'CSV formula injection in export')])
+  check('matcher: real but unseeded audit findings get no seeded credit and count as valid extras', g.recall === 0 && g.validExtras === 2, JSON.stringify(g))
 }
 
 console.log(failures ? `\n${failures} check(s) failed` : '\nselftest: all checks passed')

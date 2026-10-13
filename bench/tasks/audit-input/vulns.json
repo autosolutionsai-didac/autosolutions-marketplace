@@ -1,29 +1,38 @@
 {
-  "note": "Seeded vulnerabilities in the base fixture, all reachable over HTTP. Matching works as for review-import, with a 5-line tolerance.",
+  "note": "Seeded vulnerabilities in the base fixture, all reachable over HTTP. Matching works as for review-import: right file, within `tolerance` lines (or no line given), and a defect-specific keyword. knownOther lists real issues that were not seeded; matching findings are reported as valid extras.",
   "defects": [
     {
       "id": "V1",
       "title": "Path traversal in GET /docs/: the name is URL-decoded after routing and joined to docs/ without a containment check, so /docs/..%2f..%2fetc%2fpasswd reads any file",
-      "locations": [{ "file": "src/static.js", "lines": [14, 16] }],
-      "keywords": ["travers", "../", "..%2f", "directory", "path.join", "outside", "arbitrary file", "lfi"]
+      "locations": [{ "file": "src/static.js", "lines": [13, 16] }, { "file": "src/server.js", "lines": [46, 46] }],
+      "keywords": ["travers", "../", "..%2f", "%2f", "dot-dot", "directory escape", "escape the docs", "outside the docs", "outside docs", "outside of docs", "arbitrary file", "any file", "read files outside", "lfi", "containment"]
     },
     {
       "id": "V2",
       "title": "Prototype pollution in POST /admin/config: deepMerge copies a __proto__ key from the JSON body onto Object.prototype",
       "locations": [{ "file": "src/config.js", "lines": [12, 22] }, { "file": "src/server.js", "lines": [51, 51] }],
-      "keywords": ["prototype", "__proto__", "pollut", "constructor"]
+      "keywords": ["prototype", "__proto__", "pollut", "constructor.prototype"]
     },
     {
       "id": "V3",
       "title": "Command injection in POST /admin/backup: dest is interpolated into a shell command run with exec",
-      "locations": [{ "file": "src/backup.js", "lines": [8, 8] }, { "file": "src/server.js", "lines": [52, 54] }],
-      "keywords": ["inject", "exec", "shell", "command", "rce", "execfile", "spawn", "arbitrary command"]
+      "locations": [{ "file": "src/backup.js", "lines": [6, 9] }, { "file": "src/server.js", "lines": [52, 54] }],
+      "keywords": ["command injection", "shell injection", "os command", "exec", "execfile", "child_process", "shell metachar", "metacharacter", "arbitrary command", "arbitrary shell", "remote code", "rce", "spawn", "interpolat", "tar command"]
     },
     {
       "id": "V4",
       "title": "Admin authentication: when LEDGER_ADMIN_TOKEN is unset, a request without the header passes (undefined === undefined); the comparison is also not constant-time",
-      "locations": [{ "file": "src/auth.js", "lines": [2, 4] }, { "file": "src/server.js", "lines": [49, 49] }],
-      "keywords": ["undefined", "unset", "not set", "missing token", "bypass", "timing", "constant-time", "constant time", "timingsafeequal", "empty token"]
+      "locations": [{ "file": "src/auth.js", "lines": [1, 4] }, { "file": "src/server.js", "lines": [48, 49] }],
+      "keywords": ["unset", "not set", "not configured", "missing token", "no token", "empty token", "undefined", "ledger_admin_token", "timing", "constant-time", "constant time", "timingsafeequal", "fails open", "fail open"]
     }
+  ],
+  "knownOther": [
+    { "id": "f", "title": "GET /invoices/:key has no authentication: anyone can read any customer's invoice", "locations": [{ "file": "src/server.js", "lines": [36, 44] }], "keywords": ["invoice", "idor", "unauthenticated", "no authentication", "any customer", "authoriz", "access control"] },
+    { "id": "g", "title": "x-api-key is never verified, so anyone can record usage against any key", "locations": [{ "file": "src/server.js", "lines": [28, 33] }], "keywords": ["x-api-key", "api key", "not verified", "not validated", "never verified", "any key", "spoof", "forge"] },
+    { "id": "h", "title": "CSV formula injection: cells are not neutralised before export", "locations": [{ "file": "src/csv.js", "lines": [10, 13] }, { "file": "src/server.js", "lines": [39, 41] }], "keywords": ["formula", "csv injection", "spreadsheet", "excel"] },
+    { "id": "i", "title": "Client-controlled `at` lets usage be backdated out of a billing period", "locations": [{ "file": "src/server.js", "lines": [31, 32] }], "keywords": ["backdat", "client-controlled", "client controlled", "timestamp", "billing period"] },
+    { "id": "j", "title": "Malformed percent-encoding makes decodeURIComponent throw, giving a 500", "locations": [{ "file": "src/server.js", "lines": [38, 38] }, { "file": "src/static.js", "lines": [14, 14] }], "keywords": ["decodeuricomponent", "urierror", "malformed", "percent-encod"] },
+    { "id": "k", "title": "GET /invoices/<key with no usage> dereferences null and returns 500", "locations": [{ "file": "src/server.js", "lines": [38, 43] }], "keywords": ["null", "500", "no usage", "unknown key", "crash"] },
+    { "id": "l", "title": "Error and resource issues in request handling (body limit settable by admin, missing security headers)", "locations": [{ "file": "src/server.js", "lines": [60, 80] }, { "file": "src/config.js", "lines": [1, 6] }], "keywords": ["maxbodybytes", "header", "limit"] }
   ]
 }

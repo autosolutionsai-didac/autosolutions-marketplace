@@ -23,7 +23,10 @@ function walk(dir, out = []) {
   return out
 }
 
-const runs = labels.flatMap((l) => walk(path.join(BENCH, 'results', l)).map((f) => JSON.parse(readFileSync(f, 'utf8'))))
+const allRuns = labels.flatMap((l) => walk(path.join(BENCH, 'results', l)).map((f) => JSON.parse(readFileSync(f, 'utf8'))))
+const latest = Math.max(...allRuns.map((r) => r.benchVersion || 1))
+const runs = allRuns.filter((r) => (r.benchVersion || 1) === latest && !r.invalidReason)
+if (runs.length < allRuns.length) console.error(`ignoring ${allRuns.length - runs.length} run(s) from an older bench version or marked invalid`)
 const teams = JSON.parse(readFileSync(path.join(BENCH, 'teams.json'), 'utf8')).teams
 const tasks = JSON.parse(readFileSync(path.join(BENCH, 'tasks.json'), 'utf8')).tasks
 const teamIds = teams.map((t) => t.id).filter((id) => runs.some((r) => r.team === id))
@@ -41,9 +44,14 @@ const usd = (x) => (x == null ? 'n/a' : `$${x.toFixed(2)}`)
 const mins = (s) => (s == null ? 'n/a' : `${(s / 60).toFixed(1)} min`)
 const pct = (x) => (x == null ? 'n/a' : `${Math.round(x * 100)}%`)
 const ktok = (n) => (n == null ? 'n/a' : n >= 1e6 ? `${(n / 1e6).toFixed(2)}M` : `${Math.round(n / 1e3)}k`)
-const tokensOf = (r) => sum(Object.values(r.tokensByModel || {}).map((m) => m.input + m.output + m.cacheRead + m.cacheWrite))
-const outputOf = (r) => sum(Object.values(r.tokensByModel || {}).map((m) => m.output))
-const freshOf = (r) => sum(Object.values(r.tokensByModel || {}).map((m) => m.input + m.output + m.cacheWrite))
+// Token totals come from Claude Code's own per-model usage; transcripts are the fallback for runs whose
+// stream has no final result (they miss some output tokens of workflow agents).
+const usageOf = (r) => (r.costSource === 'claude-code' && r.modelUsage && Object.keys(r.modelUsage).length
+  ? Object.values(r.modelUsage).map((u) => ({ input: u.inputTokens, output: u.outputTokens, cacheRead: u.cacheReadInputTokens, cacheWrite: u.cacheCreationInputTokens }))
+  : Object.values(r.tokensByModel || {}))
+const tokensOf = (r) => sum(usageOf(r).map((m) => m.input + m.output + m.cacheRead + m.cacheWrite))
+const outputOf = (r) => sum(usageOf(r).map((m) => m.output))
+const freshOf = (r) => sum(usageOf(r).map((m) => m.input + m.output + m.cacheWrite))
 // "Complete": the change works (success) and also has what the spec asked for besides behaviour
 // (tests, docs, a source comment). Findings tasks have no such extras, so complete equals success there.
 const completeOf = (r) => (r.success && (r.taskKind !== 'code' || (r.score && r.score.specComplete !== false)) ? 1 : 0)
@@ -61,7 +69,10 @@ function cell(team, task) {
     output: median(rs.map(outputOf)),
     fresh: median(rs.map(freshOf)),
     recall: rs[0].taskKind === 'findings' ? mean(rs.map((r) => (r.score && r.score.recall) || 0)) : null,
-    extras: rs[0].taskKind === 'findings' ? mean(rs.map((r) => (r.score && r.score.extras) || 0)) : null,
+    extras: rs[0].taskKind === 'findings' ? mean(rs.map((r) => (r.score && r.score.unmatched != null ? r.score.unmatched : r.score && r.score.extras) || 0)) : null,
+    validExtras: rs[0].taskKind === 'findings' ? mean(rs.map((r) => (r.score && r.score.validExtras) || 0)) : null,
+    duplicates: rs[0].taskKind === 'findings' ? mean(rs.map((r) => (r.score && r.score.duplicates) || 0)) : null,
+    findings: rs[0].taskKind === 'findings' ? mean(rs.map((r) => (r.score && r.score.findings) || 0)) : null,
     hiddenPass: rs[0].taskKind === 'code' ? mean(rs.map((r) => (r.score && r.score.hidden ? r.score.hidden.pass / Math.max(1, r.score.hidden.tests) : 0))) : null,
     timeouts: rs.filter((r) => r.timedOut).length,
     errors: rs.filter((r) => r.errors && r.errors.length).length,
@@ -138,12 +149,15 @@ L.push('## Per task', '')
 for (const task of comparative) {
   L.push(`### ${task.id}`, '', task.title, '')
   const findings = task.kind === 'findings'
-  L.push(`| Team | Works | ${findings ? 'Recall | Extra findings' : 'Hidden tests passed | Spec complete'} | Time | Cost | Tokens (all) | Output tokens | Notes |`, `|---|---|---|---|---|---|---|---|---|`)
+  L.push(`| Team | Works | ${findings ? 'Seeded found | Findings | Valid extras | Unmatched | Duplicates' : 'Hidden tests passed | Spec complete'} | Time | Cost | Tokens (all) | Output tokens | Notes |`, `|---|---|---|---|${findings ? '---|---|---|' : ''}---|---|---|---|---|`)
   for (const team of teamIds) {
     const c = cell(team, task.id)
     if (!c) continue
-    const notes = [c.timeouts ? `${c.timeouts} timed out` : '', c.errors ? `${c.errors} with errors` : '', c.contaminated ? `${c.contaminated} touched bench files` : ''].filter(Boolean).join(', ')
-    L.push(`| ${team} | ${pct(c.successRate)} (n=${c.n}) | ${findings ? `${pct(c.recall)} | ${c.extras == null ? 'n/a' : c.extras.toFixed(1)}` : `${pct(c.hiddenPass)} | ${pct(c.completeRate)}`} | ${mins(c.wallSec)} | ${usd(c.costUSD)} | ${ktok(c.tokens)} | ${ktok(c.output)} | ${notes} |`)
+    const estimated = runs.filter((r) => r.team === team && r.task === task.id && r.costSource !== 'claude-code').length
+    const specMiss = runs.filter((r) => r.team === team && r.task === task.id && r.specDelivered === false).length
+    const notes = [c.timeouts ? `${c.timeouts} timed out` : '', c.errors ? `${c.errors} with errors` : '', c.contaminated ? `${c.contaminated} touched bench files` : '', estimated ? `${estimated} cost estimated from transcripts (lower bound)` : '', specMiss ? `${specMiss} ship run(s) got a changed spec` : ''].filter(Boolean).join(', ')
+    const f1 = (x) => (x == null ? 'n/a' : Number.isInteger(x) ? String(x) : x.toFixed(1))
+    L.push(`| ${team} | ${pct(c.successRate)} (n=${c.n}) | ${findings ? `${pct(c.recall)} | ${f1(c.findings)} | ${f1(c.validExtras)} | ${f1(c.extras)} | ${f1(c.duplicates)}` : `${pct(c.hiddenPass)} | ${pct(c.completeRate)}`} | ${mins(c.wallSec)} | ${usd(c.costUSD)} | ${ktok(c.tokens)} | ${ktok(c.output)} | ${notes} |`)
   }
   L.push('')
 }
