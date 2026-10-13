@@ -7,6 +7,7 @@
 - Decision gate: free backends. `claude-cli` (Haiku 5.5 through the Claude Code login, no setup), `local` (an open decision model such as Kev-0.8B behind llama.cpp, Ollama or Cloudflare Clef), `heuristic` (rules, no model). New options "Decision provider" and "Local decision server URL"; `HARNESS_DECISION_FALLBACK`; `HARNESS_GATE_LOG` for calibration.
 - Decision gate: turns that change files through the shell, a subagent or a workflow are now checked (they were skipped as "no edits"), and `node --test`, `deno test` and `python -m unittest|pytest` count as test runs.
 - Docs: Sonnet costs half of Opus per token (not a fifth); price tables include cache reads, with Sonnet 5.5's cut to $0.10 on 2026-10-07.
+- Fable stop gate: the hook template asked for the model `fable`, which agent hooks do not resolve, so the gate failed silently on every turn and never reviewed anything. It now pins `claude-fable-5-1`, and `/harness:gate on` writes a remapped model (`ANTHROPIC_DEFAULT_FABLE_MODEL`) into the hook when one is set. Found by the benchmark's gate check.
 - New `bench/` at the repository root: a benchmark of the harness against plain Claude Code.
 
 ## 1.0.0 (2026-10-09)

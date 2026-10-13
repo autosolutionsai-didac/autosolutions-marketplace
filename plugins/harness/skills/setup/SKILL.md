@@ -23,7 +23,7 @@ Run `claude plugin validate "${CLAUDE_PLUGIN_ROOT}"` and report the result. Then
 
 ## 3. Models available
 
-Ask the user to check `/model` for Fable (the judge). On some subscription tiers Fable bills to usage credits and shows "Requires usage credits"; say so if they mention it. If Fable is unavailable to them, or `--judge-opus` was passed: add `"ANTHROPIC_DEFAULT_FABLE_MODEL": "claude-opus-5-5"` to the `env` block of `~/.claude/settings.json` (create the block if needed, keep every other key). That is Claude Code's own remap for the `fable` alias, so the judge agent, the `/harness:ship` gate and the Fable stop-gate hook all switch to Opus 5.5 without editing the plugin. Takes effect on the next session. Report whether the variable is already set (print only the variable name and value, never other env values).
+Ask the user to check `/model` for Fable (the judge). On some subscription tiers Fable bills to usage credits and shows "Requires usage credits"; say so if they mention it. If Fable is unavailable to them, or `--judge-opus` was passed: add `"ANTHROPIC_DEFAULT_FABLE_MODEL": "claude-opus-5-5"` to the `env` block of `~/.claude/settings.json` (create the block if needed, keep every other key). That is Claude Code's own remap for the `fable` alias, so the judge agent and the `/harness:ship` gate switch to Opus 5.5 without editing the plugin. Agent hooks do not resolve aliases, so a Fable stop gate that is already on keeps its pinned model: tell the user to run `/harness:gate off` then `/harness:gate on` to pick up the remap. Takes effect on the next session. Report whether the variable is already set (print only the variable name and value, never other env values).
 
 ## 4. Built-in Explore on Haiku (optional, recommended)
 

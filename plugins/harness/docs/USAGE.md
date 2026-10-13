@@ -94,7 +94,7 @@ Run `/tasks` while a subagent or workflow is running. Each row names the model t
 
 **A role runs on the wrong model.** `/tasks` shows what served it. Causes in order of likelihood: an organisation `availableModels` allowlist (Claude Code warns and substitutes); a provider other than the Anthropic API (Bedrock, Vertex, Foundry) where the pinned IDs differ, in which case copy the agents to `~/.claude/agents/` and use the `haiku`/`sonnet`/`opus` aliases; `CLAUDE_CODE_SUBAGENT_MODEL_FORCE=1` set somewhere, which overrides everything (remove it).
 
-**"Requires usage credits" on Fable.** Your plan bills Fable to usage credits. Either accept the prompt, or remap the alias: `"env": {"ANTHROPIC_DEFAULT_FABLE_MODEL": "claude-opus-5-5"}` in `~/.claude/settings.json` (`/harness:setup --judge-opus` does it). The judge, the ship gate and the Fable stop gate all follow the alias.
+**"Requires usage credits" on Fable.** Your plan bills Fable to usage credits. Either accept the prompt, or remap the alias: `"env": {"ANTHROPIC_DEFAULT_FABLE_MODEL": "claude-opus-5-5"}` in `~/.claude/settings.json` (`/harness:setup --judge-opus` does it). The judge and the ship gate follow the alias; for the Fable stop gate, run `/harness:gate off` and `/harness:gate on` after remapping, so the hook gets the new model.
 
 **Hooks show an error at the end of a turn.** Node is probably missing from the PATH that Claude Code sees. `node --version` in the same terminal; install Node 20+. The hooks fail open, so nothing else breaks.
 

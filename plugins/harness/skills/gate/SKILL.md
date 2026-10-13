@@ -19,8 +19,9 @@ The gates are deliberately opt-in: a Fable agent on every turn is slow and expen
 ## on
 
 1. Load `${CLAUDE_PLUGIN_ROOT}/templates/fable-gate.hooks.json`.
-2. Merge its `hooks.Stop` entry into `.claude/settings.local.json` in the current project, creating the file if needed and preserving every other key and existing hook. Skip if an identical gate is already present.
-3. Tell the user: the gate runs a Fable 5.1 agent (up to 50 turns, 5 minute timeout) at the end of every turn that changed files; it blocks the stop with concrete findings and allows it when there is nothing to fix; Claude Code caps consecutive continuations at 8; the hook is picked up automatically, no restart needed. Mention the cost (Fable is $10/$50 per MTok) and that `/harness:gate off` removes it.
+2. Choose the hook's model. Agent hooks do not resolve model aliases (a hook with `"model": "fable"` fails with an unrecognized-model error and the gate silently never runs), so the template carries the full ID `claude-fable-5-1`. If the user has remapped Fable with `ANTHROPIC_DEFAULT_FABLE_MODEL` (check the environment and the `env` block of `~/.claude/settings.json`), write that value into the hook's `model` instead, so the gate follows the same remap as the judge.
+3. Merge the `hooks.Stop` entry into `.claude/settings.local.json` in the current project, creating the file if needed and preserving every other key and existing hook. Skip if an identical gate is already present. Add `.claude/settings.local.json` to `.git/info/exclude` if git would otherwise track it.
+4. Tell the user: the gate runs a Fable 5.1 agent (or the remapped model) (up to 50 turns, 5 minute timeout) at the end of every turn that changed files; it blocks the stop with concrete findings and allows it when there is nothing to fix; Claude Code caps consecutive continuations at 8; the hook is picked up automatically, no restart needed. Mention the cost (Fable is $10/$50 per MTok) and that `/harness:gate off` removes it.
 
 ## off
 

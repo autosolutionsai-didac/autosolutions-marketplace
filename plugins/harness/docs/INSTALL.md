@@ -90,7 +90,7 @@ Remap the `fable` alias with Claude Code's own setting. In `~/.claude/settings.j
 }
 ```
 
-`/harness:setup --judge-opus` makes this edit for you. The judge agent, the `/harness:ship` gate and the Fable stop-gate hook all use the `fable` alias, so all three switch to Opus 5.5 on the next session. Every other role keeps its own model.
+`/harness:setup --judge-opus` makes this edit for you. The judge agent and the `/harness:ship` gate use the `fable` alias, so both switch to Opus 5.5 on the next session. The Fable stop gate is a hook, and hooks need a full model ID, so `/harness:gate on` writes the remapped model into it when it installs the gate; if the gate was already on, run `/harness:gate off` and `/harness:gate on` again. Every other role keeps its own model.
 
 ## Optional modules
 
