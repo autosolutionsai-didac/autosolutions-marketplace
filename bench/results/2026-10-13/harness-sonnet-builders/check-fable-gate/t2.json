@@ -1,0 +1,148 @@
+{
+  "benchVersion": 2,
+  "label": "2026-10-13",
+  "team": "harness-sonnet-builders",
+  "teamKind": "harness",
+  "task": "check-fable-gate",
+  "taskKind": "check",
+  "trial": 2,
+  "sessionId": "fe3d883a-f1ce-4328-a179-289d0b8740bb",
+  "startedAt": "2026-10-13T20:39:38.011Z",
+  "finishedAt": "2026-10-13T20:41:04.042Z",
+  "wallSec": 86.028,
+  "timedOut": false,
+  "turns": [
+    {
+      "turn": 1,
+      "exitCode": 0,
+      "signal": null,
+      "timedOut": false,
+      "wallSec": 38.718
+    },
+    {
+      "turn": 2,
+      "exitCode": 0,
+      "signal": null,
+      "timedOut": false,
+      "wallSec": 47.31
+    }
+  ],
+  "success": true,
+  "score": null,
+  "check": {
+    "pass": true,
+    "details": {
+      "installedInSettingsLocal": true,
+      "fableUsage": {
+        "inputTokens": 132,
+        "outputTokens": 2445,
+        "cacheReadInputTokens": 48700,
+        "cacheCreationInputTokens": 39842,
+        "thinkingTokens": 746,
+        "webSearchRequests": 0,
+        "costUSD": 0.63377
+      },
+      "stopHooksStarted": 2,
+      "stopBlocks": [],
+      "hooks": {
+        "SessionStart:started": 2,
+        "SessionStart:success": 2,
+        "Stop:started": 2,
+        "Stop:success": 2
+      }
+    }
+  },
+  "costUSD": 0.827117,
+  "costSource": "claude-code",
+  "costUSDFromStream": 0.827117,
+  "costUSDFromTranscripts": 0.193347,
+  "invalidReason": null,
+  "apiErrors": 0,
+  "usageWindows": {
+    "five_hour": {
+      "utilization": 0.5,
+      "resetsAt": 1791930000
+    },
+    "seven_day": {
+      "utilization": 0.18,
+      "resetsAt": 1792162800
+    },
+    "seven_day_overage_included": {
+      "utilization": 0.05,
+      "resetsAt": 1792162800
+    }
+  },
+  "modelUsage": {
+    "claude-opus-5-5": {
+      "inputTokens": 14,
+      "outputTokens": 3005,
+      "cacheReadInputTokens": 149435,
+      "cacheCreationInputTokens": 12913,
+      "thinkingTokens": 427,
+      "webSearchRequests": 0,
+      "costUSD": 0.193347
+    },
+    "claude-fable-5-1": {
+      "inputTokens": 132,
+      "outputTokens": 2445,
+      "cacheReadInputTokens": 48700,
+      "cacheCreationInputTokens": 39842,
+      "thinkingTokens": 746,
+      "webSearchRequests": 0,
+      "costUSD": 0.63377
+    }
+  },
+  "tokensByModel": {
+    "claude-opus-5-5": {
+      "requests": 7,
+      "input": 14,
+      "output": 3005,
+      "cacheRead": 149435,
+      "cacheWrite": 12913,
+      "costUSD": 0.193347
+    }
+  },
+  "byRole": {
+    "main": {
+      "agents": 1,
+      "requests": 7,
+      "input": 14,
+      "output": 3005,
+      "cacheRead": 149435,
+      "cacheWrite": 12913,
+      "costUSD": 0.193347,
+      "models": {
+        "claude-opus-5-5": 7
+      }
+    }
+  },
+  "agentCount": 0,
+  "workflows": [],
+  "ship": null,
+  "hooks": {
+    "SessionStart:started": 2,
+    "SessionStart:success": 2,
+    "Stop:started": 2,
+    "Stop:success": 2
+  },
+  "stopBlocks": [],
+  "toolUses": {
+    "Bash": 5
+  },
+  "agentSpawns": [],
+  "workflowCalls": [],
+  "testCommands": 2,
+  "permissionDenials": 2,
+  "errors": [],
+  "contamination": [],
+  "specDelivered": null,
+  "changedFiles": [
+    "src/ledger.js",
+    "src/money.js",
+    "test/money.test.js"
+  ],
+  "finalMessage": "I renamed `microToCents` to `microsToCents`, and all 16 tests pass after the change, the same as before.\n\n**Changes** (3 files, 7 lines):\n- `src/money.js:3`: the function definition.\n- `src/ledger.js:3` and `:78`: the only caller, which turns the invoice subtotal into cents.\n- `test/money.test.js`: the import, the test name and its three assertions.\n\nA search for the old name (including spelling variants, docs and README) now finds nothing. The function had no other callers.\n\nI left the parameter name `micro` as it was, since you only asked to rename the function. I haven't committed anything; the changes are in the working tree.\n\nThe Fable gate you turned on will review this turn before it ends, since files changed.",
+  "workDir": "/tmp/harness-bench/2026-10-13/harness-sonnet-builders/check-fable-gate/t2",
+  "apiErrorTexts": [],
+  "rescoredAt": "2026-10-13T20:41:56.889Z"
+}

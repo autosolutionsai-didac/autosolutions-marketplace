@@ -1,0 +1,60 @@
+diff --git a/src/ledger.js b/src/ledger.js
+index adf909c..a3f7de1 100644
+--- a/src/ledger.js
++++ b/src/ledger.js
+@@ -1,6 +1,6 @@
+ import { costOf } from './cost.js'
+ import { getPrice } from './prices.js'
+-import { applyDiscount, microToCents } from './money.js'
++import { applyDiscount, microsToCents } from './money.js'
+ 
+ export class ValidationError extends Error {
+   constructor(message) {
+@@ -75,7 +75,7 @@ export class Ledger {
+       byModel.set(e.model, line)
+     }
+     const lines = [...byModel.values()].sort((a, b) => a.model.localeCompare(b.model))
+-    const subtotalCents = microToCents(lines.reduce((sum, l) => sum + l.costMicro, 0))
++    const subtotalCents = microsToCents(lines.reduce((sum, l) => sum + l.costMicro, 0))
+     const discountPercent = this.discounts[key] || 0
+     const totalCents = applyDiscount(subtotalCents, discountPercent)
+     return { key, lines, subtotalCents, discountPercent, totalCents }
+diff --git a/src/money.js b/src/money.js
+index 95a7ad7..f9ccfa3 100644
+--- a/src/money.js
++++ b/src/money.js
+@@ -1,6 +1,6 @@
+ // Amounts are integer cents unless a name says otherwise.
+ 
+-export function microToCents(micro) {
++export function microsToCents(micro) {
+   return Math.round(micro / 10_000)
+ }
+ 
+diff --git a/test/money.test.js b/test/money.test.js
+index 917bae5..2b4c681 100644
+--- a/test/money.test.js
++++ b/test/money.test.js
+@@ -1,6 +1,6 @@
+ import { test } from 'node:test'
+ import assert from 'node:assert/strict'
+-import { applyDiscount, formatUSD, microToCents } from '../src/money.js'
++import { applyDiscount, formatUSD, microsToCents } from '../src/money.js'
+ 
+ test('formatUSD', () => {
+   assert.equal(formatUSD(0), '$0.00')
+@@ -9,10 +9,10 @@ test('formatUSD', () => {
+   assert.equal(formatUSD(-5), '-$0.05')
+ })
+ 
+-test('microToCents rounds to the nearest cent', () => {
+-  assert.equal(microToCents(10_000), 1)
+-  assert.equal(microToCents(14_999), 1)
+-  assert.equal(microToCents(15_000), 2)
++test('microsToCents rounds to the nearest cent', () => {
++  assert.equal(microsToCents(10_000), 1)
++  assert.equal(microsToCents(14_999), 1)
++  assert.equal(microsToCents(15_000), 2)
+ })
+ 
+ test('applyDiscount', () => {

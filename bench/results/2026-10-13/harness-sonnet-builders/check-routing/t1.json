@@ -177,11 +177,11 @@
   "testCommands": 0,
   "permissionDenials": 0,
   "errors": [],
-  "contamination": [
-    "/tmp/harness-bench/2026-10-13/harne"
-  ],
+  "contamination": [],
   "specDelivered": null,
   "changedFiles": [],
   "finalMessage": "1. **Scout:** Invoice totals are computed in `src/ledger.js:78-80`. The per-line costs are summed and converted to `subtotalCents`, then `totalCents = applyDiscount(subtotalCents, discountPercent)` applies the discount, which is defined at `src/money.js:16`.\n2. **Web-scout:** The official `node:test` docs page is https://nodejs.org/api/test.html (titled \"Test runner\"). Pages for specific major versions follow the pattern `https://nodejs.org/docs/latest-vX.x/api/test.html`.\n3. **Refuter:** No, it doesn't round half up. `src/money.js:18` uses `Math.floor`, so it always rounds down. For example, `applyDiscount(5, 10)` returns 4 instead of 5, and `applyDiscount(10, 33)` returns 6 instead of 7. As a result, invoice totals are always rounded down in the customer's favour; nothing in the repo says whether that's intended.\n\nThe existing tests in `test/money.test.js` pass but only use amounts that divide evenly, so they can't catch this. No repo files were changed; the refuter's only file is a scratch script at `/tmp/refute-scratch/check.mjs`, outside the repo.",
-  "workDir": "/tmp/harness-bench/2026-10-13/harness-sonnet-builders/check-routing/t1"
+  "workDir": "/tmp/harness-bench/2026-10-13/harness-sonnet-builders/check-routing/t1",
+  "apiErrorTexts": [],
+  "rescoredAt": "2026-10-13T20:41:56.927Z"
 }

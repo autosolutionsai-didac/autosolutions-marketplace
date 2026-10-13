@@ -1,0 +1,267 @@
+{
+  "benchVersion": 2,
+  "label": "2026-10-13",
+  "team": "harness-opus-builders",
+  "teamKind": "harness",
+  "task": "audit-input",
+  "taskKind": "findings",
+  "trial": 1,
+  "sessionId": "1b9ab6d5-552e-4403-9d01-df771d3ec840",
+  "startedAt": "2026-10-13T20:29:37.362Z",
+  "finishedAt": "2026-10-13T20:39:14.174Z",
+  "wallSec": 576.811,
+  "timedOut": false,
+  "turns": [
+    {
+      "turn": 1,
+      "exitCode": 0,
+      "signal": null,
+      "timedOut": false,
+      "wallSec": 540.759
+    },
+    {
+      "turn": 2,
+      "exitCode": 0,
+      "signal": null,
+      "timedOut": false,
+      "wallSec": 36.052
+    }
+  ],
+  "success": true,
+  "score": {
+    "success": true,
+    "recall": 1,
+    "found": [
+      "V1",
+      "V2",
+      "V3",
+      "V4"
+    ],
+    "missed": [],
+    "duplicates": 0,
+    "validExtras": 2,
+    "validExtraIds": [
+      "f",
+      "g",
+      "k",
+      "h"
+    ],
+    "unmatched": 2,
+    "extras": 2,
+    "unmatchedTitles": [
+      "src/prices.js:19 plain-object lookups accept prototype keys like constructor, tostring and __proto__ prices[model] re",
+      "src/ledger.js:39 unbounded in-memory event growth from unauthenticated writes every accepted event is pushed onto thi"
+    ],
+    "findings": 8
+  },
+  "check": null,
+  "costUSD": 3.2241422749999993,
+  "costSource": "claude-code",
+  "costUSDFromStream": 3.2241422749999993,
+  "costUSDFromTranscripts": 3.1757430749999997,
+  "invalidReason": null,
+  "apiErrors": 0,
+  "usageWindows": {
+    "five_hour": {
+      "utilization": 0.49,
+      "resetsAt": 1791930000
+    },
+    "seven_day": {
+      "utilization": 0.17,
+      "resetsAt": 1792162800
+    }
+  },
+  "modelUsage": {
+    "claude-opus-5-5": {
+      "inputTokens": 270,
+      "outputTokens": 61714,
+      "cacheReadInputTokens": 1089031,
+      "cacheCreationInputTokens": 215172,
+      "thinkingTokens": 9485,
+      "webSearchRequests": 0,
+      "costUSD": 2.6278281999999993
+    },
+    "claude-haiku-5-5": {
+      "inputTokens": 6,
+      "outputTokens": 1440,
+      "cacheReadInputTokens": 12745,
+      "cacheCreationInputTokens": 1837,
+      "thinkingTokens": 97,
+      "webSearchRequests": 0,
+      "costUSD": 0.0010776750000000002
+    },
+    "claude-sonnet-5-5": {
+      "inputTokens": 70,
+      "outputTokens": 11146,
+      "cacheReadInputTokens": 374614,
+      "cacheCreationInputTokens": 74655,
+      "thinkingTokens": 1617,
+      "webSearchRequests": 0,
+      "costUSD": 0.3356989
+    },
+    "claude-opus-4-8": {
+      "inputTokens": 16,
+      "outputTokens": 7517,
+      "cacheReadInputTokens": 55915,
+      "cacheCreationInputTokens": 6972,
+      "thinkingTokens": 1761,
+      "webSearchRequests": 0,
+      "costUSD": 0.2595375
+    }
+  },
+  "tokensByModel": {
+    "claude-sonnet-5-5": {
+      "requests": 35,
+      "input": 70,
+      "output": 11146,
+      "cacheRead": 374614,
+      "cacheWrite": 74655,
+      "costUSD": 0.33569889999999997
+    },
+    "claude-opus-5-5": {
+      "requests": 125,
+      "input": 252,
+      "output": 61714,
+      "cacheRead": 1027345,
+      "cacheWrite": 207974,
+      "costUSD": 2.5794289999999997
+    },
+    "claude-opus-4-8": {
+      "requests": 8,
+      "input": 16,
+      "output": 7517,
+      "cacheRead": 55915,
+      "cacheWrite": 6972,
+      "costUSD": 0.2595375
+    },
+    "claude-haiku-5-5": {
+      "requests": 3,
+      "input": 6,
+      "output": 1440,
+      "cacheRead": 12745,
+      "cacheWrite": 1837,
+      "costUSD": 0.0010776750000000002
+    }
+  },
+  "byRole": {
+    "workflow:Find": {
+      "agents": 11,
+      "requests": 35,
+      "input": 70,
+      "output": 11146,
+      "cacheRead": 374614,
+      "cacheWrite": 74655,
+      "costUSD": 0.33569889999999997,
+      "models": {
+        "claude-sonnet-5-5": 35
+      }
+    },
+    "harness:refuter (Verify)": {
+      "agents": 32,
+      "requests": 120,
+      "input": 242,
+      "output": 53522,
+      "cacheRead": 673843,
+      "cacheWrite": 152125,
+      "costUSD": 2.0298921,
+      "models": {
+        "claude-opus-5-5": 112,
+        "claude-opus-4-8": 8
+      }
+    },
+    "harness:scout (Scope)": {
+      "agents": 1,
+      "requests": 3,
+      "input": 6,
+      "output": 1440,
+      "cacheRead": 12745,
+      "cacheWrite": 1837,
+      "costUSD": 0.0010776750000000002,
+      "models": {
+        "claude-haiku-5-5": 3
+      }
+    },
+    "workflow:Rank": {
+      "agents": 1,
+      "requests": 2,
+      "input": 4,
+      "output": 8287,
+      "cacheRead": 40109,
+      "cacheWrite": 29887,
+      "costUSD": 0.3232128,
+      "models": {
+        "claude-opus-5-5": 2
+      }
+    },
+    "main": {
+      "agents": 1,
+      "requests": 11,
+      "input": 22,
+      "output": 7422,
+      "cacheRead": 369308,
+      "cacheWrite": 32934,
+      "costUSD": 0.48586159999999995,
+      "models": {
+        "claude-opus-5-5": 11
+      }
+    }
+  },
+  "agentCount": 45,
+  "workflows": [
+    {
+      "runId": "wf_67a1ce2e-158",
+      "name": "audit",
+      "status": "completed",
+      "durationMs": 490604,
+      "agentCount": 45,
+      "totalTokens": 469501,
+      "totalToolCalls": 168,
+      "args": {
+        "concern": "security vulnerabilities an attacker can reach through the HTTP API",
+        "path": "src"
+      },
+      "logs": [
+        "Checking 11 file(s) for: security vulnerabilities an attacker can reach through the HTTP API",
+        "15 confirmed instance(s) of \"security vulnerabilities an attacker can reach through the HTTP API\""
+      ],
+      "findings": {
+        "verdict": null,
+        "issues": 8,
+        "files": null
+      }
+    }
+  ],
+  "ship": null,
+  "hooks": {
+    "SessionStart:started": 2,
+    "SessionStart:success": 2,
+    "Stop:started": 3,
+    "Stop:success": 3
+  },
+  "stopBlocks": [],
+  "toolUses": {
+    "Workflow": 1,
+    "Bash": 7,
+    "Write": 1
+  },
+  "agentSpawns": [],
+  "workflowCalls": [
+    {
+      "name": "harness:audit",
+      "scriptPath": null,
+      "args": "{\"concern\":\"security vulnerabilities an attacker can reach through the HTTP API\",\"path\":\"src\"}"
+    }
+  ],
+  "testCommands": 0,
+  "permissionDenials": 0,
+  "errors": [],
+  "contamination": [],
+  "specDelivered": null,
+  "changedFiles": [
+    "AUDIT.json"
+  ],
+  "finalMessage": "I wrote `AUDIT.json` to the repository root. It's a JSON array of the 8 findings I reported, in the same order and with the same severities (3 high, 4 medium, 1 low). Each object has exactly the fields `file`, `line`, `severity`, `title` and `detail`. It parses as valid JSON, and git shows it as the only change in the repo.\n\nEach object takes one `line`, so I made two choices:\n- **Ranges:** where I'd cited a range, I used the first line: `src/static.js:14`, `src/config.js:12` and `src/server.js:36`. I checked all the line numbers against the current source.\n- **Finding 4:** it had two locations. I used `src/prices.js:19` as its `file`/`line` and named the second location (`src/ledger.js:79`) in its `detail`, rather than splitting it into a ninth entry.",
+  "workDir": "/tmp/harness-bench/2026-10-13/harness-opus-builders/audit-input/t1",
+  "apiErrorTexts": [],
+  "rescoredAt": "2026-10-13T20:41:53.261Z"
+}

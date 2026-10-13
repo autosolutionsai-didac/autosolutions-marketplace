@@ -114,13 +114,13 @@
   "testCommands": 1,
   "permissionDenials": 0,
   "errors": [],
-  "contamination": [
-    "/tmp/harness-bench/2026-10-13/harne"
-  ],
+  "contamination": [],
   "specDelivered": null,
   "changedFiles": [
     "src/money.js"
   ],
   "finalMessage": "Done.\n\nI ran `node --check src/money.js` and `npm test`: the syntax check passed and all 16 tests passed.\n`git diff` shows a one-line change to `src/money.js`.",
-  "workDir": "/tmp/harness-bench/2026-10-13/harness-sonnet-builders/check-gate-claude-cli/t1"
+  "workDir": "/tmp/harness-bench/2026-10-13/harness-sonnet-builders/check-gate-claude-cli/t1",
+  "apiErrorTexts": [],
+  "rescoredAt": "2026-10-13T20:41:56.897Z"
 }

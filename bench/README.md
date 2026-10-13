@@ -50,6 +50,10 @@ Per run (`results/<label>/<team>/<task>/t<n>.json`):
 4. On review and audit, the harness's per-file finders plus refuter verification find at least as many seeded defects, with fewer unverified extras.
 5. Every harness feature check passes.
 
+## Results
+
+- [2026-10-13](results/2026-10-13/FINDINGS.md): first full run, 3 teams, 5 tasks, 9 checks ([report](results/2026-10-13/REPORT.md)).
+
 ## Running it
 
 ```

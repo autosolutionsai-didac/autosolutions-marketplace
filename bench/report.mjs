@@ -130,7 +130,7 @@ const label = labels.join(' + ')
 const cfgFile = path.join(BENCH, 'results', labels[0], 'run-config.json')
 const cfg = existsSync(cfgFile) ? JSON.parse(readFileSync(cfgFile, 'utf8')) : {}
 L.push(`# Harness benchmark: ${label}`, '')
-L.push(`Runs: ${runs.length} (${runs.filter((r) => r.taskKind !== 'check').length} comparative, ${runs.filter((r) => r.taskKind === 'check').length} harness checks). Claude Code ${cfg.claudeVersion || '?'}, Node ${cfg.node || '?'}, ${cfg.cpus || '?'} CPUs, ${cfg.parallel || '?'} runs at a time, trials per cell: ${Math.max(...runs.map((r) => r.trial), 1)}.`, '')
+L.push(`Runs: ${runs.length} (${runs.filter((r) => r.taskKind !== 'check').length} comparative, ${runs.filter((r) => r.taskKind === 'check').length} harness checks). Claude Code ${cfg.claudeVersion || '?'}, Node ${cfg.node || '?'}, ${cfg.cpus || '?'} CPUs, ${cfg.parallel || '?'} runs at a time, trials per comparative cell: ${Math.max(1, ...runs.filter((r) => r.taskKind !== 'check').map((r) => r.trial))}.${existsSync(path.join(BENCH, 'results', labels[0], 'run-config-2.json')) ? ' Later invocations (resumes or reruns of a subset) are recorded in run-config-<n>.json.' : ''}`, '')
 L.push('Costs are API list-price equivalents as reported by Claude Code (subscription users pay in usage limits instead). Tokens count everything the models read and wrote, including cache reads; "fresh" leaves cache reads out. Times are wall clock for the whole run, all turns.', '')
 
 L.push('## Teams', '')

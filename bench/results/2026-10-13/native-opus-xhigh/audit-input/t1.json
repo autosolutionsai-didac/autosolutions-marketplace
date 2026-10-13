@@ -57,7 +57,7 @@
   "costUSD": 0.6883387,
   "costSource": "claude-code",
   "costUSDFromStream": 0.6883387,
-  "costUSDFromTranscripts": 0.4821666,
+  "costUSDFromTranscripts": 0.6575511,
   "invalidReason": null,
   "apiErrors": 0,
   "usageWindows": {
@@ -105,7 +105,7 @@
       "output": 5325,
       "cacheRead": 25739,
       "cacheWrite": 2938,
-      "costUSD": 0
+      "costUSD": 0.1753845
     }
   },
   "byRole": {
@@ -116,7 +116,7 @@
       "output": 15797,
       "cacheRead": 246212,
       "cacheWrite": 31509,
-      "costUSD": 0.4821666,
+      "costUSD": 0.6575510999999999,
       "models": {
         "claude-opus-5-5": 8,
         "claude-opus-4-8": 1
@@ -144,5 +144,6 @@
   ],
   "finalMessage": "I wrote `AUDIT.json` to the repository root. It has the 8 findings from my report and nothing else: 4 high, 2 medium and 2 low. Each entry has `file`, `line`, `severity`, `title` and `detail`, with the same files, lines and severities as before.\n\nThe file parses as valid JSON, and `git status` shows `AUDIT.json` as the only change. My test scripts from the audit are in `/tmp/audit-poc-t1`, outside the repo.",
   "workDir": "/tmp/harness-bench/2026-10-13/native-opus-xhigh/audit-input/t1",
-  "rescoredAt": "2026-10-13T20:30:48.739Z"
+  "rescoredAt": "2026-10-13T20:41:58.141Z",
+  "apiErrorTexts": []
 }

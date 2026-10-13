@@ -8,7 +8,7 @@
 // Timing and the per-turn records are kept from the original result; score, contamination, success, cost
 // and token figures are recomputed. Check results (which depend on in-run state such as the mock decision
 // server's call log) are kept as they were.
-import { existsSync, readdirSync, readFileSync, statSync, writeFileSync } from 'node:fs'
+import { existsSync, mkdirSync, readdirSync, readFileSync, statSync, writeFileSync } from 'node:fs'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { shipInternals, summarizeStreams, summarizeTranscripts, summarizeWorkflows } from './lib/collect.mjs'
@@ -58,6 +58,7 @@ if (recover) {
         let sessionId = null
         for (const f of streamFiles) for (const l of readFileSync(f, 'utf8').split('\n')) { if (!sessionId && l.includes('"session_id"')) { try { sessionId = JSON.parse(l).session_id } catch {} } }
         const skeleton = { benchVersion: cfg.benchVersion, label, team: teamId, teamKind: teams[teamId].kind, task: taskId, taskKind: (tasks[taskId] || {}).kind, trial, sessionId, startedAt: new Date(starts[0]).toISOString(), finishedAt: new Date(end).toISOString(), wallSec: turns.reduce((a, t) => a + t.wallSec, 0), timedOut: false, turns, workDir: dir, recovered: 'rebuilt from the work directory after the runner crashed while collecting this run; turn times from progress.log' }
+        mkdirSync(path.dirname(out), { recursive: true })
         writeFileSync(out, JSON.stringify(skeleton, null, 2))
         files.push(out)
         console.log(`recovered ${tag}`)
