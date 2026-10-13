@@ -1,0 +1,152 @@
+{
+  "benchVersion": 2,
+  "label": "2026-10-13",
+  "team": "native-opus-xhigh",
+  "teamKind": "native",
+  "task": "bugfix-trio",
+  "taskKind": "code",
+  "trial": 1,
+  "sessionId": "bf1e90a0-9c8f-4eeb-b675-039fa608781b",
+  "startedAt": "2026-10-13T20:10:08.016Z",
+  "finishedAt": "2026-10-13T20:17:27.279Z",
+  "wallSec": 439.262,
+  "timedOut": false,
+  "turns": [
+    {
+      "turn": 1,
+      "exitCode": 0,
+      "signal": null,
+      "timedOut": false,
+      "wallSec": 439.262
+    }
+  ],
+  "success": true,
+  "score": {
+    "success": true,
+    "specComplete": true,
+    "compliance": {
+      "complete": true,
+      "items": {
+        "regressionTestsFailOnBase": 5,
+        "regressionTests": true
+      }
+    },
+    "visible": {
+      "tests": 21,
+      "pass": 21,
+      "fail": 0,
+      "cancelled": 0,
+      "timedOut": null,
+      "exitCode": 0,
+      "failures": []
+    },
+    "hidden": {
+      "tests": 9,
+      "pass": 9,
+      "fail": 0
+    },
+    "hiddenPerFile": {
+      "b1-discount.test.js": {
+        "pass": 3,
+        "fail": 0,
+        "failures": []
+      },
+      "b2-csv.test.js": {
+        "pass": 3,
+        "fail": 0,
+        "failures": []
+      },
+      "b3-not-found.test.js": {
+        "pass": 3,
+        "fail": 0,
+        "failures": []
+      }
+    },
+    "partial": 1,
+    "notes": []
+  },
+  "check": null,
+  "costUSD": 0.9195621999999999,
+  "costSource": "claude-code",
+  "costUSDFromStream": 0.9195621999999999,
+  "costUSDFromTranscripts": 0.9195622,
+  "invalidReason": null,
+  "apiErrors": 0,
+  "usageWindows": {
+    "five_hour": {
+      "utilization": 0.39,
+      "resetsAt": 1791930000
+    },
+    "seven_day": {
+      "utilization": 0.16,
+      "resetsAt": 1792162800
+    }
+  },
+  "modelUsage": {
+    "claude-opus-5-5": {
+      "inputTokens": 32,
+      "outputTokens": 22260,
+      "cacheReadInputTokens": 637771,
+      "cacheCreationInputTokens": 43335,
+      "thinkingTokens": 11683,
+      "webSearchRequests": 0,
+      "costUSD": 0.9195621999999999
+    }
+  },
+  "tokensByModel": {
+    "claude-opus-5-5": {
+      "requests": 16,
+      "input": 32,
+      "output": 22260,
+      "cacheRead": 637771,
+      "cacheWrite": 43335,
+      "costUSD": 0.9195622
+    }
+  },
+  "byRole": {
+    "main": {
+      "agents": 1,
+      "requests": 16,
+      "input": 32,
+      "output": 22260,
+      "cacheRead": 637771,
+      "cacheWrite": 43335,
+      "costUSD": 0.9195622,
+      "models": {
+        "claude-opus-5-5": 16
+      }
+    }
+  },
+  "agentCount": 0,
+  "workflows": [],
+  "ship": null,
+  "hooks": {},
+  "stopBlocks": [],
+  "toolUses": {
+    "Bash": 14,
+    "ToolSearch": 1,
+    "TaskStop": 1,
+    "Read": 1,
+    "Edit": 4
+  },
+  "agentSpawns": [],
+  "workflowCalls": [],
+  "testCommands": 6,
+  "permissionDenials": 0,
+  "errors": [],
+  "contamination": [],
+  "specDelivered": null,
+  "changedFiles": [
+    "README.md",
+    "src/csv.js",
+    "src/money.js",
+    "src/server.js",
+    "test/csv.test.js",
+    "test/ledger.test.js",
+    "test/money.test.js",
+    "test/server.test.js"
+  ],
+  "finalMessage": "I fixed all three bugs. Each has a regression test that failed before the fix and passes after it. `npm test` now passes 21 of 21 tests: the 16 existing ones plus 5 new ones. Before the fix, the same suite ended with exactly the 5 new tests failing. Nothing is committed.\n\n**1. Discount rounding** (`src/money.js`)\n- **Cause:** `applyDiscount` rounded down (`Math.floor`) instead of half up.\n- **Fix:** it now rounds half up. Simply switching to `Math.round` would still be one cent low with fractional discounts, which `setDiscount` allows. For example, 1,250 cents with 0.04% off is exactly 1,249.5 cents, but floating point computes 1,249.4999… and gives 1,249. So the calculation is now done in exact whole numbers. It matched an independent whole-number check on about 55 million amount/percent pairs.\n- **Tests:** in `test/money.test.js`: 10 cents → 9, 1,001 → 851, 1,004 → 853, plus two fractional-percent cases. In `test/ledger.test.js`: the reported $10.01 at 15% off now totals 851 cents.\n- **Side effect:** `applyDiscount` now throws a `RangeError` if given a non-whole number of cents. Nothing in the code does that, since amounts are always whole cents.\n\n**2. CSV quoting** (`src/csv.js`)\n- A field is now wrapped in double quotes only if it contains a comma, a double quote, a CR or an LF, and any double quotes inside it are doubled. Other fields stay unquoted and lines still end with `\\n`. Header names get the same treatment, which doesn't change the current fixed headers.\n- **Tests:** a direct test in `test/csv.test.js` covering a comma, a double quote, CR, LF and a header. An end-to-end test in `test/server.test.js` with the keys `team, alpha` and `say \"hi\"`.\n\n**3. Invoice for a key with no usage** (`src/server.js`)\n- The route now returns 404 `{\"error\":\"not_found\"}` when there is no invoice, for both formats.\n- **Worse than reported:** the CSV format didn't return a 500, it never responded at all. The CSV branch had already started a 200 response, so the error handler crashed when it tried to send the 500.\n- **Test:** in `test/server.test.js`. The two new server tests close their server even when they fail, and the 404 test gives up on a request after 2 seconds. Without this, a failure left the existing tests' server open and `npm test` hung.\n\nI also updated the invoice row and the discount sentence in `README.md` to describe the new behaviour.\n\n**Security problems I found but didn't fix, since they're outside these three bugs.** The first two need no login, and I reproduced both:\n- **Path traversal:** `GET /docs/..%2fpackage.json` returns files from outside `docs/` (`src/static.js`).\n- **Open admin access:** if `LEDGER_ADMIN_TOKEN` isn't set, every admin endpoint is open, because a missing header equals the missing token (`src/auth.js:3`).\n- **Command injection:** `POST /admin/backup` puts `dest` straight into a shell command (`src/backup.js:8`). Combined with the previous problem, anyone can run commands on the server when the token is unset.\n- **Prototype pollution:** `POST /admin/config` accepts `__proto__` keys and merges them into shared objects (`src/config.js`).\n- **Smaller issue:** a badly encoded key such as `/invoices/%E0%A4` still returns 500. Also, if anything fails in the CSV branch after it starts the 200 response, the error handler still crashes and the request hangs.\n\nI can fix any of these separately if you want.",
+  "workDir": "/tmp/harness-bench/2026-10-13/native-opus-xhigh/bugfix-trio/t1",
+  "rescoredAt": "2026-10-13T20:17:34.256Z"
+}
