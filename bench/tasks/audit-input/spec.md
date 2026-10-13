@@ -1,0 +1,1 @@
+Audit src/ for security vulnerabilities that an attacker can reach through the HTTP API. For each finding give the file, the line, a severity (high, medium or low) and a one-line explanation of how it is exploited.

@@ -1,0 +1,111 @@
+{
+  "note": "kind code: scored by hidden acceptance tests plus the visible suite. kind findings: scored against a seeded answer key. kind check: a pass/fail probe of one harness feature, run for the harness teams only. {{spec}} is the task's spec.md, {{shipArgs}} is {task: spec} merged with the team's shipArgs as JSON, {{findingsTurn}} is tasks/findings-turn.md filled in.",
+  "tasks": [
+    {
+      "id": "rate-limit",
+      "kind": "code",
+      "title": "Feature: per-key rate limiting (new module, server wiring, tests, docs)",
+      "exercises": "ship: plan, parallel builders in worktrees, three-lens refuters, fix round, integration, Fable gate",
+      "timeoutMin": 90,
+      "turns": { "harness": ["/harness:ship {{shipArgs}}"], "native": ["{{spec}}"] }
+    },
+    {
+      "id": "bugfix-trio",
+      "kind": "code",
+      "title": "Three independent bug reports in three files, each with a regression test",
+      "exercises": "ship with independent units built in parallel",
+      "timeoutMin": 90,
+      "turns": { "harness": ["/harness:ship {{shipArgs}}"], "native": ["{{spec}}"] }
+    },
+    {
+      "id": "price-refresh",
+      "kind": "code",
+      "title": "Add current Claude 5.5 prices, which postdate the models' training data",
+      "exercises": "no slash command: the harness's session context decides whether to use web-scout, builder, refuter",
+      "timeoutMin": 45,
+      "turns": { "harness": ["{{spec}}"], "native": ["{{spec}}"] }
+    },
+    {
+      "id": "review-import",
+      "kind": "findings",
+      "title": "Review a feature branch with four seeded defects",
+      "exercises": "review workflow: per-file finders, refuter verification, ranking",
+      "timeoutMin": 45,
+      "setup": { "branch": "feature/bulk-import", "overlay": "overlay", "commitMessage": "Add bulk NDJSON import (POST /events/bulk)" },
+      "answerKey": "defects.json",
+      "findingsFile": "REVIEW.json",
+      "findingsWhat": "review",
+      "tolerance": 3,
+      "turns": { "harness": ["/harness:review {\"base\": \"main\"}", "{{findingsTurn}}"], "native": ["{{spec}}", "{{findingsTurn}}"] }
+    },
+    {
+      "id": "audit-input",
+      "kind": "findings",
+      "title": "Security audit with four seeded vulnerabilities reachable over HTTP",
+      "exercises": "audit workflow: Haiku scoping, finders, two-refuter votes, ranking",
+      "timeoutMin": 45,
+      "answerKey": "vulns.json",
+      "findingsFile": "AUDIT.json",
+      "findingsWhat": "audit",
+      "tolerance": 5,
+      "turns": { "harness": ["/harness:audit {\"concern\": \"security vulnerabilities an attacker can reach through the HTTP API\", \"path\": \"src\"}", "{{findingsTurn}}"], "native": ["{{spec}}", "{{findingsTurn}}"] }
+    },
+    {
+      "id": "check-routing",
+      "kind": "check",
+      "check": "routing",
+      "teams": ["harness-sonnet-builders"],
+      "title": "Each role subagent is served by the model its definition pins",
+      "timeoutMin": 20,
+      "turns": { "harness": ["Harness wiring check. Use the Agent tool three times, once per role below, and do not answer any of these yourself. (1) Ask the harness:scout subagent where invoice totals are computed, with file:line. (2) Ask the harness:web-scout subagent for the URL of the official Node.js documentation page for the node:test module. (3) Ask the harness:refuter subagent whether applyDiscount in src/money.js rounds half up to the nearest cent. Then reply with one line per step giving each answer."] }
+    },
+    {
+      "id": "check-judge",
+      "kind": "check",
+      "check": "judge",
+      "teams": ["harness-sonnet-builders"],
+      "title": "/harness:judge runs the judge role on Fable 5.1 and fails a branch with seeded defects",
+      "timeoutMin": 30,
+      "setup": { "from": "review-import", "branch": "feature/bulk-import", "overlay": "overlay", "commitMessage": "Add bulk NDJSON import (POST /events/bulk)" },
+      "turns": { "harness": ["/harness:judge main"] }
+    },
+    {
+      "id": "check-decision-gate",
+      "kind": "check",
+      "check": "decisionGate",
+      "teams": ["harness-sonnet-builders"],
+      "title": "The Stop-hook decision gate blocks an unverified 'Done' once and the session then runs the tests (local mock of the Jev API)",
+      "timeoutMin": 20,
+      "mockDecision": true,
+      "turns": { "harness": ["In src/money.js, add a one-line comment above formatUSD saying that it formats integer cents as US dollars. Make that edit and then reply with just: Done."] }
+    },
+    {
+      "id": "check-fable-gate",
+      "kind": "check",
+      "check": "fableGate",
+      "teams": ["harness-sonnet-builders"],
+      "title": "/harness:gate on installs the Fable stop gate, which then reviews the next change",
+      "timeoutMin": 30,
+      "turns": { "harness": ["/harness:gate on", "In src/money.js rename microToCents to microsToCents and update every caller and test. Run the tests when you are done."] }
+    },
+    {
+      "id": "check-second-opinion",
+      "kind": "check",
+      "check": "secondOpinionNoKey",
+      "teams": ["harness-sonnet-builders"],
+      "title": "/harness:second-opinion without an OpenAI key degrades gracefully and names the fix",
+      "timeoutMin": 15,
+      "setup": { "from": "review-import", "branch": "feature/bulk-import", "overlay": "overlay", "commitMessage": "Add bulk NDJSON import (POST /events/bulk)" },
+      "turns": { "harness": ["/harness:second-opinion diff the bulk import endpoint"] }
+    },
+    {
+      "id": "check-setup",
+      "kind": "check",
+      "check": "setup",
+      "teams": ["harness-sonnet-builders"],
+      "title": "/harness:setup runs its checks and reports status",
+      "timeoutMin": 15,
+      "turns": { "harness": ["/harness:setup"] }
+    }
+  ]
+}

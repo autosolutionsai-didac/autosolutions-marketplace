@@ -1,0 +1,29 @@
+{
+  "note": "Seeded vulnerabilities in the base fixture, all reachable over HTTP. Matching works as for review-import, with a 5-line tolerance.",
+  "defects": [
+    {
+      "id": "V1",
+      "title": "Path traversal in GET /docs/: the name is URL-decoded after routing and joined to docs/ without a containment check, so /docs/..%2f..%2fetc%2fpasswd reads any file",
+      "locations": [{ "file": "src/static.js", "lines": [14, 16] }],
+      "keywords": ["travers", "../", "..%2f", "directory", "path.join", "outside", "arbitrary file", "lfi"]
+    },
+    {
+      "id": "V2",
+      "title": "Prototype pollution in POST /admin/config: deepMerge copies a __proto__ key from the JSON body onto Object.prototype",
+      "locations": [{ "file": "src/config.js", "lines": [12, 22] }, { "file": "src/server.js", "lines": [51, 51] }],
+      "keywords": ["prototype", "__proto__", "pollut", "constructor"]
+    },
+    {
+      "id": "V3",
+      "title": "Command injection in POST /admin/backup: dest is interpolated into a shell command run with exec",
+      "locations": [{ "file": "src/backup.js", "lines": [8, 8] }, { "file": "src/server.js", "lines": [52, 54] }],
+      "keywords": ["inject", "exec", "shell", "command", "rce", "execfile", "spawn", "arbitrary command"]
+    },
+    {
+      "id": "V4",
+      "title": "Admin authentication: when LEDGER_ADMIN_TOKEN is unset, a request without the header passes (undefined === undefined); the comparison is also not constant-time",
+      "locations": [{ "file": "src/auth.js", "lines": [2, 4] }, { "file": "src/server.js", "lines": [49, 49] }],
+      "keywords": ["undefined", "unset", "not set", "missing token", "bypass", "timing", "constant-time", "constant time", "timingsafeequal", "empty token"]
+    }
+  ]
+}

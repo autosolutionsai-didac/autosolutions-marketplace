@@ -1,0 +1,13 @@
+{
+  "name": "usage-ledger",
+  "version": "0.3.0",
+  "private": true,
+  "type": "module",
+  "description": "Records LLM API usage per API key and turns it into invoices.",
+  "scripts": {
+    "test": "node --test"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}

@@ -1,0 +1,29 @@
+{
+  "note": "Seeded defects on branch feature/bulk-import (diff against main). A finding matches a defect when it names one of the defect's files and either points within 3 lines of a listed range or uses one of its keywords; when several defects in the same file qualify, keyword hits win, then the nearest line.",
+  "defects": [
+    {
+      "id": "D1",
+      "title": "Import stops at the first blank line and silently drops every later row",
+      "locations": [{ "file": "src/importer.js", "lines": [15, 15] }],
+      "keywords": ["blank", "empty line", "break", "stops", "drops", "silently"]
+    },
+    {
+      "id": "D2",
+      "title": "POST /events/bulk reads the whole body with no size limit (readJson enforces maxBodyBytes; this path bypasses it)",
+      "locations": [{ "file": "src/server.js", "lines": [39, 40] }],
+      "keywords": ["size", "limit", "maxbodybytes", "memory", "unbounded", "large", "dos", "denial", "exhaust"]
+    },
+    {
+      "id": "D3",
+      "title": "importEvents mutates the shared DEFAULT_OPTIONS object, so stats accumulate across calls and requests",
+      "locations": [{ "file": "src/importer.js", "lines": [4, 4] }, { "file": "src/importer.js", "lines": [9, 11] }],
+      "keywords": ["default_options", "default options", "shared", "mutat", "accumulat", "leak", "across calls", "across requests", "module-level", "global"]
+    },
+    {
+      "id": "D4",
+      "title": "Bulk import records each row under the key in the payload instead of the caller's x-api-key, so a caller can bill usage to other keys",
+      "locations": [{ "file": "src/server.js", "lines": [41, 41] }, { "file": "src/importer.js", "lines": [30, 30] }],
+      "keywords": ["spoof", "impersonat", "another key", "other key", "other keys", "any key", "caller", "row.key", "x-api-key", "authoriz", "attribut", "someone else", "on behalf"]
+    }
+  ]
+}
