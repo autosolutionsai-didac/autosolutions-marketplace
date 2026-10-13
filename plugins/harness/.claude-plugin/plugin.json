@@ -1,7 +1,7 @@
 {
   "name": "harness",
   "displayName": "AutoSolutions Harness",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "Opus plans, Haiku scouts, Sonnet builds, Opus tries to break it, Fable signs off. Role-based subagents, ship/review/audit workflows, and optional gates from other model families.",
   "author": {
     "name": "AutoSolutions.ai",
@@ -23,12 +23,32 @@
     "decision_gate": {
       "type": "string",
       "title": "Decision gate",
-      "description": "Cheap 'is this really done?' check when a turn that changed files ends. 'auto' runs when a Jev or OpenAI key is available, 'off' never runs it.",
+      "description": "Cheap 'is this really done?' check when a turn that changed files ends. 'auto' runs when a backend is configured (a Jev or OpenAI key, a local decision server, or the provider below); 'off' never runs it.",
       "options": [
         "auto",
         "off"
       ],
       "default": "auto"
+    },
+    "decision_provider": {
+      "type": "string",
+      "title": "Decision provider",
+      "description": "Which backend answers the gate. 'auto' uses a paid key if one is set, then a local server if its URL is set. Free choices: 'local' (llama.cpp, Ollama or Cloudflare Clef running an open decision model), 'claude-cli' (Haiku through your Claude Code login, draws on plan usage, about 3 s), 'heuristic' (rules, no model).",
+      "options": [
+        "auto",
+        "local",
+        "claude-cli",
+        "heuristic",
+        "typesafe",
+        "openrouter",
+        "openai"
+      ],
+      "default": "auto"
+    },
+    "local_decision_url": {
+      "type": "string",
+      "title": "Local decision server URL (optional)",
+      "description": "Base URL of a server that speaks the System One API, for example http://127.0.0.1:8080 for llama-server or http://127.0.0.1:11434 for Ollama. Setting it is enough for 'auto' to use it."
     },
     "openai_api_key": {
       "type": "string",

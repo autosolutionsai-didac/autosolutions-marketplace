@@ -36,7 +36,7 @@ Workflows run in the background. Tell the user to watch with `/workflows`, and r
 
 ## Gates
 
-- Decision gate (automatic when a Jev or OpenAI key is configured): a 100 ms check on every turn that changed files. If you claim done without running checks, it sends you back once with the reason. Respond by running the checks, not by rewording.
+- Decision gate (automatic once a backend is configured: Jev, OpenAI Decisions, a local decision model, Haiku through the Claude Code login, or rules): a quick check on every turn that changed files. If you claim done without running checks, it sends you back once with the reason. Respond by running the checks, not by rewording.
 - Fable stop gate (`/harness:gate on`): a Fable agent inspects the session's diff before you are allowed to finish. Expensive; use on branches that matter.
 - Codex review gate (`/harness:gate codex`): the official OpenAI plugin's Stop hook, a GPT review that blocks the stop while it finds issues.
 

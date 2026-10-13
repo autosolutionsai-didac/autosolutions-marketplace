@@ -39,7 +39,7 @@ Needs Claude Code 2.1.293+, Node 20+, git. Full guide with the optional modules:
 | `/harness:gate on\|off\|codex\|status` | Expensive stop gates, per project, on demand |
 | `/harness:setup` | Checks, the Haiku override for the built-in Explore agent, optional modules |
 
-Plus two things that run on their own: a session note that teaches the orchestrator the protocol, and the **decision gate**, a 100 ms check (TypeSafe Jev or OpenAI Decisions, your choice, off until a key exists) that sends Claude back once when it claims completion without running anything.
+Plus two things that run on their own: a session note that teaches the orchestrator the protocol, and the **decision gate**, a quick check that sends Claude back once when it claims completion without running anything. It is off until you pick a backend: TypeSafe Jev or OpenAI Decisions with a paid key, or a free one (an open decision model on your machine, Haiku through the Claude Code login you already have, or plain rules). See [OPTIONAL-DECISION-GATE.md](docs/OPTIONAL-DECISION-GATE.md).
 
 ## Day to day
 

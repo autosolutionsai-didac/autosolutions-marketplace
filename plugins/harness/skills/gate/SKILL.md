@@ -14,7 +14,7 @@ The gates are deliberately opt-in: a Fable agent on every turn is slow and expen
 ## status
 
 1. Read `.claude/settings.local.json`, `.claude/settings.json` and `~/.claude/settings.json` if they exist.
-2. Report: Fable stop gate on/off (a `Stop` hook of `type: "agent"` whose prompt contains `harness fable gate`), Codex review gate (a `Stop` hook mentioning codex, or ask the user to run `/codex:setup` to check), and the decision gate (environment keys `TYPESAFE_API_KEY`, `OPENROUTER_API_KEY`, `OPENAI_API_KEY` or the plugin options; the plugin option "Decision gate" set to `off` disables it). Never print secret values.
+2. Report: Fable stop gate on/off (a `Stop` hook of `type: "agent"` whose prompt contains `harness fable gate`), Codex review gate (a `Stop` hook mentioning codex, or ask the user to run `/codex:setup` to check), and the decision gate (the backend chosen by `HARNESS_DECISION_PROVIDER` or the plugin option "Decision provider", else the first of the keys `TYPESAFE_API_KEY`, `OPENROUTER_API_KEY`, `OPENAI_API_KEY` or a local server URL; the plugin option "Decision gate" set to `off` disables it). Never print secret values.
 
 ## on
 

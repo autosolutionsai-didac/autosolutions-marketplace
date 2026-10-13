@@ -1,7 +1,7 @@
 // Mock-backed tests for the harness scripts (no real API calls). Run: node tests/test-scripts.mjs
 import { createServer } from 'node:http'
 import { spawn, spawnSync } from 'node:child_process'
-import { writeFileSync, mkdtempSync } from 'node:fs'
+import { writeFileSync, mkdtempSync, readFileSync, chmodSync, existsSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 
@@ -14,6 +14,13 @@ const server = createServer((req, res) => {
     const json = body ? JSON.parse(body) : {}
     requests.push({ url: req.url, auth: req.headers.authorization, json })
     res.setHeader('content-type', 'application/json')
+    if (req.url === '/v1/models') {
+      return res.end(JSON.stringify({ data: [{ id: 'chat-model', output_modalities: ['text'] }, { id: 'kev-0.8b', output_modalities: ['decisions'] }] }))
+    }
+    if (req.url === '/client/v4/accounts/acct/ai/run/@cf/cloudflare/clef-flash') {
+      const answers = Object.fromEntries(Object.keys(json.questions).map((k) => [k, { noul: k === 'claims_done' ? 0.9 : 0.05 }]))
+      return res.end(JSON.stringify({ success: true, result: { answers } }))
+    }
     if (req.url === '/v1/systemone') {
       const answers = Object.fromEntries(Object.keys(json.questions).map((k) => [k, { type: 'noul', noul: k === 'claims_done' ? 0.93 : k === 'cites_verification' ? 0.08 : 0.1 }]))
       return res.end(JSON.stringify({ model: 'jev-1.13.0', answers, usage: { input_tokens: 400, output_tokens: 4 } }))
@@ -110,6 +117,58 @@ const check = (name, cond, extra = '') => { console.log(`${cond ? 'PASS' : 'FAIL
     }
     r = await runAsync([join(ROOT, 'scripts/decision-gate.mjs')], { input: gateIn(shellTurn('Bash', { command: 'grep -rn foo .' }), repo), env })
     check('gate: read-only shell turn on a dirty tree -> allow', r.status === 0 && r.stdout === '', r.stderr.split('\n').pop())
+  }
+  // Free backends
+  {
+    const before = requests.length
+    r = await runGate({ HARNESS_LOCAL_URL: base }, false)
+    const q = requests.slice(before).find((x) => x.url === '/v1/systemone')
+    check('gate: local System One server, no key, auto-selected -> block', r.status === 0 && /"decision":"block"/.test(r.stdout) && /Decision gate \(local\)/.test(r.stdout), r.stdout.slice(0, 100))
+    check('gate: local request discovers the decision model, sends text state, no auth header', q && q.json.model === 'kev-0.8b' && typeof q.json.state === 'string' && /FINAL ASSISTANT MESSAGE/.test(q.json.state) && !q.auth, q && JSON.stringify({ model: q.json.model, auth: q.auth }))
+    r = await runGate({ HARNESS_DECISION_PROVIDER: 'local', HARNESS_LOCAL_URL: `${base}/client/v4/accounts/acct/ai/run/@cf/cloudflare/clef-flash`, HARNESS_LOCAL_MODEL: 'clef-flash', HARNESS_LOCAL_API_KEY: 'cf' }, false)
+    const cf = requests.slice(before).find((x) => x.url.includes('clef-flash'))
+    check('gate: local endpoint URL used as given, Cloudflare result envelope, bearer key', r.status === 0 && /"decision":"block"/.test(r.stdout) && cf && cf.auth === 'Bearer cf' && cf.json.model === 'clef-flash', r.stdout.slice(0, 80))
+    r = await runGate({ TYPESAFE_API_KEY: 'k', TYPESAFE_BASE_URL: base, HARNESS_LOCAL_URL: 'http://127.0.0.1:1' }, false)
+    check('gate: auto prefers a paid key over a local URL', /Decision gate \(typesafe\)/.test(r.stdout), r.stdout.slice(0, 60))
+
+    // claude-cli: a stand-in claude binary that checks what the gate passes it.
+    const bin = join(dir, 'fake-claude.mjs')
+    const seen = join(dir, 'fake-claude-seen.json')
+    writeFileSync(bin, `#!/usr/bin/env node
+import { writeFileSync, readFileSync } from 'node:fs'
+const stdin = readFileSync(0, 'utf8')
+writeFileSync(${JSON.stringify(seen)}, JSON.stringify({ args: process.argv.slice(2), apiKey: process.env.ANTHROPIC_API_KEY || null, authToken: process.env.ANTHROPIC_AUTH_TOKEN || null, gate: process.env.HARNESS_DECISION_GATE, cwd: process.cwd(), stdin }))
+const done = /Done/.test(stdin)
+console.log(JSON.stringify({ type: 'result', is_error: false, structured_output: { claims_done: done ? 0.92 : 0.1, cites_verification: 0.04, unresolved_problem: 0.03, deferred_to_user: 0.02 } }))
+`)
+    chmodSync(bin, 0o755)
+    r = await runGate({ HARNESS_DECISION_PROVIDER: 'claude-cli', HARNESS_CLAUDE_BIN: bin, ANTHROPIC_API_KEY: 'sk-should-not-leak', ANTHROPIC_AUTH_TOKEN: 'tok' }, false)
+    const got = existsSync(seen) ? JSON.parse(readFileSync(seen, 'utf8')) : {}
+    check('gate: claude-cli, done without tests -> block', r.status === 0 && /Decision gate \(claude-cli\)/.test(r.stdout), r.stdout.slice(0, 80) || r.stderr.split('\n').pop())
+    check('gate: claude-cli child gets no API key or auth token (bills the plan, not an API key)', got.apiKey === null && got.authToken === null)
+    check('gate: claude-cli child has hooks disabled and the gate off (no recursion), no tools, no MCP', got.gate === 'off' && got.args.includes('{"disableAllHooks": true}') && got.args.includes('--strict-mcp-config') && got.args[got.args.indexOf('--tools') + 1] === '' && got.args.includes('claude-haiku-5-5'))
+    r = await runGate({ HARNESS_DECISION_PROVIDER: 'claude-cli', HARNESS_CLAUDE_BIN: join(dir, 'missing-claude') }, false)
+    check('gate: claude-cli missing binary -> fail open', r.status === 0 && r.stdout === '', r.stderr.split('\n').pop())
+
+    // heuristic
+    const H = { HARNESS_DECISION_PROVIDER: 'heuristic' }
+    r = await runGate(H, false, 'Done.')
+    check('gate: heuristic, "Done." with no test run -> block', /"decision":"block"/.test(r.stdout))
+    r = await runGate(H, false, 'Not done yet: the parser change is in, but I have not wired it to the CLI.')
+    check('gate: heuristic, negated completion -> allow', r.stdout === '', r.stdout.slice(0, 80))
+    r = await runGate(H, false, 'Implemented the fix. All 16 tests pass.')
+    check('gate: heuristic, done with a concrete pass report -> allow', r.stdout === '', r.stdout.slice(0, 80))
+    r = await runGate(H, true, 'Fixed it.')
+    check('gate: heuristic, done after a test command ran -> allow', r.stdout === '', r.stdout.slice(0, 80))
+    r = await runGate(H, false, 'I updated the config. Please run npm test to verify.')
+    check('gate: heuristic, step left to the user -> block', /leaves verification or a step to the user/.test(r.stdout), r.stdout.slice(0, 80))
+
+    // fallback and the decision log
+    const logFile = join(dir, 'gate-log.jsonl')
+    r = await runGate({ HARNESS_LOCAL_URL: 'http://127.0.0.1:1', HARNESS_DECISION_FALLBACK: 'heuristic', HARNESS_GATE_LOG: logFile }, false, 'Done.')
+    check('gate: local unreachable, heuristic fallback -> block', /Decision gate \(heuristic\)/.test(r.stdout), r.stdout.slice(0, 80))
+    const logged = existsSync(logFile) ? readFileSync(logFile, 'utf8').trim().split('\n').map((l) => JSON.parse(l)) : []
+    check('gate: HARNESS_GATE_LOG records provider, probabilities and a message hash, not the text', logged.length === 1 && logged[0].provider === 'heuristic' && logged[0].blocked === true && logged[0].message_sha256 && !logged[0].message)
   }
   r = await runGate({ OPENAI_API_KEY: 'k2', OPENAI_BASE_URL: base }, false)
   check('gate: openai decisions, verified per model -> allow', r.status === 0 && r.stdout === '', r.stderr.split('\n').pop())

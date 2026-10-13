@@ -1,5 +1,14 @@
 # Changelog
 
+## 1.1.0 (2026-10-13)
+
+- Ship: the fix round for a refuted unit runs on Opus 5.5 (`fixModel`); first builds stay on Sonnet 5.5 at medium.
+- Workflows: options passed as a JSON object after the slash command are applied (`/harness:ship {"task": "...", "maxUnits": 2}`). Before, the whole text became the task, base branch or concern and the options were dropped.
+- Decision gate: free backends. `claude-cli` (Haiku 5.5 through the Claude Code login, no setup), `local` (an open decision model such as Kev-0.8B behind llama.cpp, Ollama or Cloudflare Clef), `heuristic` (rules, no model). New options "Decision provider" and "Local decision server URL"; `HARNESS_DECISION_FALLBACK`; `HARNESS_GATE_LOG` for calibration.
+- Decision gate: turns that change files through the shell, a subagent or a workflow are now checked (they were skipped as "no edits"), and `node --test`, `deno test` and `python -m unittest|pytest` count as test runs.
+- Docs: Sonnet costs half of Opus per token (not a fifth); price tables include cache reads, with Sonnet 5.5's cut to $0.10 on 2026-10-07.
+- New `bench/` at the repository root: a benchmark of the harness against plain Claude Code.
+
 ## 1.0.0 (2026-10-09)
 
 First release.
