@@ -24,8 +24,11 @@ const DEBUG = process.env.HARNESS_DEBUG === '1'
 const log = (...a) => { if (DEBUG) process.stderr.write(`[decision-gate] ${a.join(' ')}\n`) }
 const allow = () => { process.exit(0) }
 
-const TEST_CMD = /\b(pytest|jest|vitest|mocha|cargo\s+test|go\s+test|npm\s+(run\s+)?(test|lint|typecheck|check|build)|pnpm\s+(run\s+)?(test|lint|typecheck|check|build)|yarn\s+(run\s+)?(test|lint|typecheck|check|build)|bun\s+(run\s+)?(test|lint)|tsc\b|eslint|ruff|mypy|rspec|phpunit|gradle\s+test|mvn\s+test|dotnet\s+test|make\s+(test|check)|swift\s+test|flutter\s+test|playwright\s+test|cypress\s+run)/i
+const TEST_CMD = /\b(pytest|jest|vitest|mocha|node\s+(--[\w=-]+\s+)*--test\b|deno\s+test|python3?\s+-m\s+(unittest|pytest)|cargo\s+test|go\s+test|npm\s+(run\s+)?(test|lint|typecheck|check|build)|pnpm\s+(run\s+)?(test|lint|typecheck|check|build)|yarn\s+(run\s+)?(test|lint|typecheck|check|build)|bun\s+(run\s+)?(test|lint)|tsc\b|eslint|ruff|mypy|rspec|phpunit|gradle\s+test|mvn\s+test|dotnet\s+test|make\s+(test|check)|swift\s+test|flutter\s+test|playwright\s+test|cypress\s+run)/i
 const EDIT_TOOLS = new Set(['Edit', 'Write', 'MultiEdit', 'NotebookEdit'])
+// Shell commands that can change files. Edits made this way, or by subagents and workflows, never show
+// up as Edit/Write calls in the main transcript, so they count as changes when git sees a dirty tree.
+const SHELL_WRITE = /(\bsed\s+(-\w*\s+)*-i|\bperl\s+-\w*i|\btee\b|[^<>&|2]>>?\s*[^\s&|>]|\bcat\s*<<|\b(mv|cp|rm|touch|mkdir|truncate|patch|install)\s|\bgit\s+(apply|am|checkout|restore|reset|stash|merge|rebase|cherry-pick|commit|mv|rm)\b|\b(python3?|node|ruby|perl|deno|bun)\s+(-c|-e|\S+\.(py|js|mjs|cjs|ts|rb|pl))\b|\b(npm|pnpm|yarn)\s+(install|add|remove|uninstall|update|run\s+(format|fix|lint:fix))|\bprettier\s+(--write|-w)|\beslint\b.*--fix|\bruff\s+(format|check\s+--fix))/
 
 function readStdin() {
   try { return readFileSync(0, 'utf8') } catch { return '' }
@@ -56,7 +59,7 @@ function pickProvider() {
 
 // Walk the transcript backwards to the last real user prompt and collect what happened since.
 function turnEvidence(transcriptPath) {
-  const ev = { edits: 0, editedFiles: new Set(), bash: [], testCommands: [], subagents: [], parsed: false }
+  const ev = { edits: 0, editedFiles: new Set(), bash: [], shellWrites: 0, testCommands: [], subagents: [], parsed: false }
   try {
     if (!transcriptPath || !existsSync(transcriptPath)) return ev
     const lines = readFileSync(transcriptPath, 'utf8').split('\n').filter(Boolean)
@@ -83,8 +86,10 @@ function turnEvidence(transcriptPath) {
         if (name === 'Bash' && typeof inp.command === 'string') {
           ev.bash.push(inp.command)
           if (TEST_CMD.test(inp.command)) ev.testCommands.push(inp.command.slice(0, 160))
+          if (SHELL_WRITE.test(inp.command)) ev.shellWrites++
         }
         if (name === 'Agent' || name === 'Task') ev.subagents.push(String(inp.subagent_type || inp.description || 'agent').slice(0, 60))
+        if (name === 'Workflow') ev.subagents.push(`workflow:${String(inp.name || 'script').slice(0, 50)}`)
       }
     }
     ev.parsed = true
@@ -160,7 +165,8 @@ async function main() {
   const cwd = input.cwd || process.cwd()
   const ev = turnEvidence(input.transcript_path)
   const git = gitChanges(cwd)
-  const changedSomething = ev.edits > 0 || (!ev.parsed && git.count > 0)
+  const indirect = ev.shellWrites > 0 || ev.subagents.length > 0
+  const changedSomething = ev.edits > 0 || (git.count > 0 && (indirect || !ev.parsed))
   if (!changedSomething) { log('no edits this turn, allowing'); return allow() }
 
   const finalMessage = String(input.last_assistant_message || '').slice(0, 6000)
@@ -170,6 +176,7 @@ async function main() {
     final_message: finalMessage,
     files_edited_this_turn: [...ev.editedFiles].slice(0, 30),
     edit_count_this_turn: ev.edits,
+    file_changing_shell_commands_this_turn: ev.shellWrites,
     test_or_check_commands_run_this_turn: ev.testCommands.slice(0, 15),
     subagents_used_this_turn: ev.subagents.slice(0, 10),
     git_status_sample: git.sample,
