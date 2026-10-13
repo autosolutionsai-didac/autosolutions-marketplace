@@ -19,6 +19,7 @@ import { shipInternals, summarizeStreams, summarizeTranscripts, summarizeWorkflo
 import { scoreCodeTask, scoreFindingsTask } from './lib/score.mjs'
 import { startMockDecisionServer } from './lib/mock-decision.mjs'
 import { CHECKS } from './lib/checks.mjs'
+import { contamination, specDelivered } from './lib/evaluate.mjs'
 
 const BENCH = path.dirname(fileURLToPath(import.meta.url))
 const REPO_ROOT = path.dirname(BENCH)
@@ -125,31 +126,6 @@ function runClaude({ prompt, cwd, env, args, timeoutMs, streamFile, stderrFile }
       clearTimeout(timer)
       resolve({ exitCode: code, signal, timedOut, wallSec: (Date.now() - started) / 1000, out })
     })
-  })
-}
-
-// Flags a run whose transcripts mention the benchmark's own files (answer keys, hidden tests, reference
-// solutions) or another run's directory. Such a run is reported as invalid, not as a success.
-function contamination(configDir, runDir, work) {
-  const hits = new Set()
-  const r = spawnSync('grep', ['-rhoE', `(${REPO_ROOT.replace(/[.]/g, '\\.')}/bench[^"'\\s]*|\\.bench-hidden|${work.replace(/[.]/g, '\\.')}/[^"'\\s]+)`, path.join(configDir, 'projects')], { encoding: 'utf8', maxBuffer: 64 * 1024 * 1024 })
-  for (const m of (r.stdout || '').split('\n').filter(Boolean)) {
-    if (m.startsWith(runDir) || m.startsWith(path.join(work, 'plugin-snapshot'))) continue
-    hits.add(m.slice(0, 200))
-  }
-  return [...hits].slice(0, 20)
-}
-
-// The ship workflow gets its task from the main model, which retypes the slash command's argument. Check
-// that the spec arrived whole, so the harness worked from the same text as the native team.
-function specDelivered(workflows, spec) {
-  const norm = (t) => String(t || '').replace(/\s+/g, ' ').trim()
-  const ships = workflows.filter((w) => w.name === 'ship')
-  if (!ships.length || !spec) return null
-  return ships.every((w) => {
-    let a = w.args
-    if (typeof a === 'string') { try { a = JSON.parse(a) } catch { a = { task: a } } }
-    return norm(a && a.task) === norm(spec)
   })
 }
 

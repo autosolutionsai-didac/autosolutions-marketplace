@@ -13,6 +13,8 @@ import os from 'node:os'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { BASELINE_VISIBLE_TESTS, matchFindings, runNodeTests, specCompliance } from './lib/score.mjs'
+import { contamination } from './lib/evaluate.mjs'
+import { mkdirSync, writeFileSync } from 'node:fs'
 
 const BENCH = path.dirname(fileURLToPath(import.meta.url))
 const FIXTURE = path.join(BENCH, 'fixture', 'usage-ledger')
@@ -161,6 +163,21 @@ rmSync(branch, { recursive: true, force: true })
   check('matcher: a correct audit finds V1-V4, with V1 reported at the route', A([F('src/server.js', 46, 'Directory traversal through GET /docs/:name'), F('src/config.js', 15, 'Prototype pollution via __proto__ in deepMerge'), F('src/backup.js', 8, 'Command injection: dest interpolated into exec'), F('src/auth.js', 3, 'Admin check passes when LEDGER_ADMIN_TOKEN is unset')]).recall === 1)
   const g = A([F('src/server.js', 38, 'Unauthenticated invoice access (IDOR) bypasses tenant isolation'), F('src/server.js', 41, 'CSV formula injection in export')])
   check('matcher: real but unseeded audit findings get no seeded credit and count as valid extras', g.recall === 0 && g.validExtras === 2, JSON.stringify(g))
+}
+
+// 6. Contamination: another run's directory or the bench's own files count; the run itself does not.
+{
+  const t = mkdtempSync(path.join(os.tmpdir(), 'bench-contam-'))
+  mkdirSync(path.join(t, 'home', 'projects', 'p'), { recursive: true })
+  const W = '/tmp/harness-bench/LBL'
+  const own = `${W}/harness-sonnet-builders/rate-limit/t1`
+  const lines = (...xs) => xs.map((x) => JSON.stringify({ x })).join('\n') + '\n'
+  writeFileSync(path.join(t, 'home', 'projects', 'p', 'a.jsonl'), lines(`${own}/repo/src/x.js`, `${W}/harne`, `${W}/plugin-snapshot/harness/agents/builder.md`))
+  check('contamination: the run\'s own paths (even cut short) and the plugin snapshot are not flagged', contamination(path.join(t, 'home'), own, W).length === 0)
+  writeFileSync(path.join(t, 'home', 'projects', 'p', 'b.jsonl'), lines(`cat ${W}/native-opus-xhigh/rate-limit/t1/repo/src/rate-limit.js`, `read ${path.dirname(BENCH)}/bench/tasks/review-import/defects.json`))
+  const hits = contamination(path.join(t, 'home'), own, W)
+  check('contamination: a sibling run and the answer key are flagged', hits.length === 2, JSON.stringify(hits))
+  rmSync(t, { recursive: true, force: true })
 }
 
 console.log(failures ? `\n${failures} check(s) failed` : '\nselftest: all checks passed')
