@@ -1,0 +1,130 @@
+{
+  "benchVersion": 2,
+  "label": "2026-10-13",
+  "team": "native-opus-xhigh",
+  "teamKind": "native",
+  "task": "review-import",
+  "taskKind": "findings",
+  "trial": 1,
+  "sessionId": "8530c94e-81ef-4a8a-8ea3-732c332df2c2",
+  "startedAt": "2026-10-13T20:23:48.628Z",
+  "finishedAt": "2026-10-13T20:25:18.737Z",
+  "wallSec": 90.10799999999999,
+  "timedOut": false,
+  "turns": [
+    {
+      "turn": 1,
+      "exitCode": 0,
+      "signal": null,
+      "timedOut": false,
+      "wallSec": 70.189
+    },
+    {
+      "turn": 2,
+      "exitCode": 0,
+      "signal": null,
+      "timedOut": false,
+      "wallSec": 19.919
+    }
+  ],
+  "success": false,
+  "score": {
+    "success": true,
+    "recall": 1,
+    "found": [
+      "D1",
+      "D2",
+      "D3",
+      "D4"
+    ],
+    "missed": [],
+    "duplicates": 0,
+    "validExtras": 6,
+    "validExtraIds": [
+      "a",
+      "b",
+      "d",
+      "c",
+      "f"
+    ],
+    "unmatched": 0,
+    "extras": 0,
+    "unmatchedTitles": [],
+    "findings": 10
+  },
+  "check": null,
+  "costUSD": 0.4065834,
+  "costSource": "claude-code",
+  "costUSDFromStream": 0.4065834,
+  "costUSDFromTranscripts": 0.4065834,
+  "invalidReason": null,
+  "apiErrors": 0,
+  "usageWindows": {
+    "five_hour": {
+      "utilization": 0.43,
+      "resetsAt": 1791930000
+    },
+    "seven_day": {
+      "utilization": 0.16,
+      "resetsAt": 1792162800
+    }
+  },
+  "modelUsage": {
+    "claude-opus-5-5": {
+      "inputTokens": 20,
+      "outputTokens": 8686,
+      "cacheReadInputTokens": 260797,
+      "cacheCreationInputTokens": 22578,
+      "thinkingTokens": 3403,
+      "webSearchRequests": 0,
+      "costUSD": 0.4065834
+    }
+  },
+  "tokensByModel": {
+    "claude-opus-5-5": {
+      "requests": 10,
+      "input": 20,
+      "output": 8686,
+      "cacheRead": 260797,
+      "cacheWrite": 22578,
+      "costUSD": 0.4065834
+    }
+  },
+  "byRole": {
+    "main": {
+      "agents": 1,
+      "requests": 10,
+      "input": 20,
+      "output": 8686,
+      "cacheRead": 260797,
+      "cacheWrite": 22578,
+      "costUSD": 0.4065834,
+      "models": {
+        "claude-opus-5-5": 10
+      }
+    }
+  },
+  "agentCount": 0,
+  "workflows": [],
+  "ship": null,
+  "hooks": {},
+  "stopBlocks": [],
+  "toolUses": {
+    "Bash": 7,
+    "Write": 1
+  },
+  "agentSpawns": [],
+  "workflowCalls": [],
+  "testCommands": 1,
+  "permissionDenials": 0,
+  "errors": [],
+  "contamination": [
+    "/tmp/harness-bench/2026-10-13/native-opu"
+  ],
+  "specDelivered": null,
+  "changedFiles": [
+    "REVIEW.json"
+  ],
+  "finalMessage": "I wrote all 10 findings to `REVIEW.json` in the repository root: 2 blocking, 4 major and 4 minor, in the same order and with the same severities as my review. The file parses as valid JSON, and it's the only change in the working tree; no other files were touched.\n\nEach table row became one entry, with two small adjustments:\n- **Key-spoofing bug:** I gave it the single line `src/importer.js:30`. The detail text still mentions the call at `src/server.js:41`.\n- **Shared-options bug:** I used line 4, where `DEFAULT_OPTIONS` is defined. The detail text mentions line 10, where it gets changed.",
+  "workDir": "/tmp/harness-bench/2026-10-13/native-opus-xhigh/review-import/t1"
+}
