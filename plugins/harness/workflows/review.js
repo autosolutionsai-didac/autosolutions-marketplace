@@ -1,7 +1,7 @@
 export const meta = {
   name: 'review',
   description: 'Review every changed file in parallel, verify each finding adversarially, return one ranked report',
-  whenToUse: 'Before opening a PR or merging a branch. Usage: /harness:review [base-branch]  (default: main)',
+  whenToUse: 'Before opening a PR or merging a branch. Usage: /harness:review [base-branch]  (default: main), or /harness:review {"base": "main", "focus": "..."} to set options',
   phases: [
     { title: 'Scope', detail: 'List the files changed against the base branch' },
     { title: 'Find', detail: 'One Sonnet reviewer per changed file' },
@@ -10,7 +10,17 @@ export const meta = {
   ],
 }
 
-const input = typeof args === 'string' ? { base: args } : (args || {})
+// Accepts "main", or { base, maxFiles, focus, ... }. A string that is a JSON object is read as the
+// structured form, so the options survive being passed through a slash command as text.
+function parseArgs(a) {
+  if (a && typeof a === 'object') return a
+  const s = String(a || '').trim()
+  if (s.startsWith('{')) {
+    try { const o = JSON.parse(s); if (o && typeof o === 'object' && !Array.isArray(o)) return o } catch {}
+  }
+  return { base: s }
+}
+const input = parseArgs(args)
 const BASE = String(input.base || 'main').trim()
 const MAX_FILES = Math.max(1, Math.min(Number(input.maxFiles) || 40, 200))
 const FOCUS = String(input.focus || '').trim()

@@ -13,7 +13,7 @@ You are the orchestrator. Your context is the expensive, scarce resource. Everyt
 |---|---|---|---|
 | `harness:scout` | Haiku 5.5, read-only | "Where is X defined, who calls Y, how is Z configured", mapping a subsystem before a change | Interpretation, design, anything requiring judgment |
 | `harness:web-scout` | Haiku 5.5, read-only | Fetching docs, changelogs, pricing, announcements, with URLs and quotes | Conclusions, recommendations |
-| `harness:builder` | Sonnet 5.5 | One well-scoped implementation unit with a spec, the files it owns, and acceptance criteria | Exploration, open-ended design, multi-unit tasks (use /harness:ship) |
+| `harness:builder` | Sonnet 5.5 (fix rounds in /harness:ship run it on Opus 5.5) | One well-scoped implementation unit with a spec, the files it owns, and acceptance criteria | Exploration, open-ended design, multi-unit tasks (use /harness:ship) |
 | `harness:refuter` | Opus 5.5, read-only + Bash | Trying to break a change before anyone trusts it, verifying a finding, checking a claim of "done" | Writing code, routine lookups |
 | `harness:judge` | Fable 5.1, read-only + Bash | The final PASS/FAIL before merge or release, once per change, with the evidence already gathered | Anything repetitive; it is the most expensive model here |
 
@@ -28,7 +28,7 @@ Plain rules of thumb:
 
 ## Workflows
 
-- `/harness:ship <task>`: plan (Opus) → parallel build in git worktrees (Sonnet) → three-lens refutation per unit (Opus) → one fix round → integrate into your branch (Opus) → Fable gate. Use for anything that touches several files. Review the merge commits before you push. The gate stage uses the `fable` alias unless the user names a `gateModel`.
+- `/harness:ship <task>`: plan (Opus) → parallel build in git worktrees (Sonnet) → three-lens refutation per unit (Opus) → one fix round (Opus) → integrate into your branch (Opus) → Fable gate. Use for anything that touches several files. Review the merge commits before you push. The gate stage uses the `fable` alias unless the user names a `gateModel`.
 - `/harness:review [base]`: one Sonnet reviewer per changed file, every finding verified by an Opus refuter, one ranked report. Use before a PR.
 - `/harness:audit <concern> in <path>`: Haiku lists candidates, Sonnet finds instances, two Opus refuters vote on each, Opus writes the report. Use for codebase-wide checks.
 

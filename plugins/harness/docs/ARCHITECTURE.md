@@ -8,7 +8,7 @@ How the pieces fit, what enforces what, and where the limits are. Everything her
 flowchart TB
   U[You] --> O[Orchestrator: your main session, Opus 5.5]
   O -->|search| S[harness:scout and web-scout, Haiku 5.5]
-  O -->|implement one unit| B[harness:builder, Sonnet 5.5]
+  O -->|implement one unit| B[harness:builder, Sonnet 5.5; fixes on Opus 5.5]
   O -->|try to break it| R[harness:refuter, Opus 5.5 high effort]
   O -->|final verdict, once| J[harness:judge, Fable 5.1]
   O -->|several files| W[Workflows: ship, review, audit]
@@ -49,13 +49,13 @@ plugins/harness/
 
 ## Model routing and how it is enforced
 
-Claude Code resolves a subagent's model in this order: the per-invocation `model` parameter, then the agent definition's `model` frontmatter, then `CLAUDE_CODE_SUBAGENT_MODEL`, then the main conversation's model. The roles pin full model IDs in frontmatter (`claude-haiku-5-5`, `claude-sonnet-5-5`, `claude-opus-5-5`) so alias drift cannot move them, and the judge uses the `fable` alias, which Claude Code resolves to Fable 5.1 on the Anthropic API. The alias is deliberate: `ANTHROPIC_DEFAULT_FABLE_MODEL` remaps it, which is how users without Fable put the judge, the ship gate and the Fable stop gate on Opus with one setting. Workflow agents follow the same order; the scripts pass the model explicitly on every stage.
+Claude Code resolves a subagent's model in this order: the per-invocation `model` parameter, then the agent definition's `model` frontmatter, then `CLAUDE_CODE_SUBAGENT_MODEL`, then the main conversation's model. The roles pin full model IDs in frontmatter (`claude-haiku-5-5`, `claude-sonnet-5-5`, `claude-opus-5-5`) so alias drift cannot move them, and the judge uses the `fable` alias, which Claude Code resolves to Fable 5.1 on the Anthropic API. The alias is deliberate: `ANTHROPIC_DEFAULT_FABLE_MODEL` remaps it, which is how users without Fable put the judge, the ship gate and the Fable stop gate on Opus with one setting. Workflow agents follow the same order; the scripts pass the model explicitly on every stage. Workflow options arrive as `args`: an object when Claude passes one, or the raw text after the slash command. Every script reads text that is a JSON object (`/harness:ship {"task": "...", "buildModel": "claude-opus-5-5"}`) as the structured form; any other text is taken as the task, the base branch or the concern, so options written in prose are only applied if Claude turns them into an object.
 
 Two things can still override this: an organisation `availableModels` allowlist (Claude Code substitutes and warns), and `CLAUDE_CODE_SUBAGENT_MODEL_FORCE=1`, which forces one model on everything. The harness never sets the latter.
 
 Routing was unreliable in some Claude Code versions during 2026 (requests silently served on the parent model). The fix landed progressively through v2.1.146 to v2.1.257, which is why the install requires 2.1.293+, and why `/tasks` is the authority: it shows the model actually serving each subagent. The setup skill and the usage guide both tell people to check it.
 
-Effort is per role too: scouts at `low`, builders at `medium` (the default for the 5.5 models), refuters and the judge at `high`. Frontmatter effort overrides the session level but not `CLAUDE_CODE_EFFORT_LEVEL`.
+Effort is per role too: scouts at `low`, builders at `medium` (Claude Code's default for the 5.5 models; the API default for Sonnet 5.5 is `high`), refuters and the judge at `high`. Frontmatter effort overrides the session level but not `CLAUDE_CODE_EFFORT_LEVEL`.
 
 ## The ship workflow in detail
 
@@ -65,7 +65,7 @@ Build     per unit: Sonnet in a fresh git worktree (isolation: 'worktree'), comm
           returns {branch, worktree_path, files_changed, checks{ran, passed, commands}}
 Refute    per unit: 3 Opus refuters in parallel, lenses = correctness / edges-and-regressions / verification,
           each returns {refuted, severity, findings[], ran[]}; unit passes on majority (fewer than half refute)
-Fix       once, for refuted units: Sonnet works inside the same worktree, then Refute runs again
+Fix       once, for refuted units: the builder role on Opus (fixModel) works inside the same worktree, then Refute runs again
 Integrate Opus in the main checkout: git merge --no-ff each passing branch, resolve conflicts, full suite
 Gate      Fable (or the configured judge model) with the whole evidence trail: {verdict, blocking[], advisory[], verified[]}
 ```
@@ -75,6 +75,7 @@ Design choices worth knowing:
 - Units go through Build → Refute → Fix as a pipeline, so unit B can be in review while unit A is still building. Integration is the only barrier.
 - Majority rule rather than "any refuter can veto". Refuters are prompted to attack; a single over-eager objection should not sink a unit, two of three should. Dissenting findings on passing units are still surfaced to the judge and to you.
 - One fix round, not a loop. If a unit cannot pass after one round, a human should look at it.
+- The fix runs on Opus, not Sonnet. First builds stay on Sonnet at medium effort, where it costs well under half as much per attempt as Opus (Artificial Analysis Intelligence Index: $0.59 against $1.34 per task at medium). A refuted unit is the case where that saving did not pay off, and its retry is the last chance before the unit is dropped, so it gets the stronger model. Fixes only happen for refuted units, so the extra cost is small next to the three Opus refuters every unit already gets.
 - Worktrees branch from `origin/<default>` unless `worktree.baseRef` is `head`. The recommended settings template sets `head` so a ship from a feature branch builds on that branch.
 - Nothing is pushed. Integration produces merge commits on your branch; the unit branches and worktrees are kept for inspection.
 - `Date.now()` and `Math.random()` are unavailable in workflow scripts by design (runs must be resumable); the scripts do not use them.

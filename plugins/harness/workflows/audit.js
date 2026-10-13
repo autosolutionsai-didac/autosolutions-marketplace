@@ -1,7 +1,7 @@
 export const meta = {
   name: 'audit',
   description: 'Sweep a directory for one concern with cheap finders, verify every finding adversarially, report what survived',
-  whenToUse: 'Codebase-wide checks for a single concern: missing auth checks, unhandled errors, injection risks, a deprecated API, dead code. Usage: /harness:audit <concern> in <path>',
+  whenToUse: 'Codebase-wide checks for a single concern: missing auth checks, unhandled errors, injection risks, a deprecated API, dead code. Usage: /harness:audit <concern> in <path>, or /harness:audit {"concern": "...", "path": "src"} to set options',
   phases: [
     { title: 'Scope', detail: 'Haiku lists the files worth looking at' },
     { title: 'Find', detail: 'One Sonnet finder per file' },
@@ -10,9 +10,14 @@ export const meta = {
   ],
 }
 
-// Accepts "missing auth checks in src/routes" or { concern, path, maxFiles }
+// Accepts "missing auth checks in src/routes" or { concern, path, maxFiles }. A string that is a JSON
+// object is read as the structured form, so the options survive being passed through a slash command as text.
 const input = typeof args === 'string' ? parseFreeform(args) : (args || {})
 function parseFreeform(s) {
+  const t = String(s).trim()
+  if (t.startsWith('{')) {
+    try { const o = JSON.parse(t); if (o && typeof o === 'object' && !Array.isArray(o)) return o } catch {}
+  }
   const m = String(s).match(/^(.*?)\s+in\s+(\S+)\s*$/i)
   return m ? { concern: m[1], path: m[2] } : { concern: String(s), path: '.' }
 }

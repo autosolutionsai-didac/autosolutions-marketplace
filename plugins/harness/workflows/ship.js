@@ -1,12 +1,12 @@
 export const meta = {
   name: 'ship',
-  description: 'Plan with Opus, build each unit with Sonnet in its own worktree, refute with Opus, integrate, gate with Fable',
-  whenToUse: 'A feature, fix or refactor that touches several files or deserves more than one pass. Usage: /harness:ship <what to build>',
+  description: 'Plan with Opus, build each unit with Sonnet in its own worktree, refute with Opus, fix refuted units with Opus, integrate, gate with Fable',
+  whenToUse: 'A feature, fix or refactor that touches several files or deserves more than one pass. Usage: /harness:ship <what to build>, or /harness:ship {"task": "...", "maxUnits": 4} to set options',
   phases: [
     { title: 'Plan', detail: 'Opus splits the task into independent units' },
     { title: 'Build', detail: 'Sonnet implements each unit in an isolated git worktree' },
     { title: 'Refute', detail: 'Three Opus skeptics try to break each unit' },
-    { title: 'Fix', detail: 'Sonnet fixes refuted units, then they are refuted again' },
+    { title: 'Fix', detail: 'Opus fixes refuted units, then they are refuted again' },
     { title: 'Integrate', detail: 'Opus merges passing units into your branch and runs the full suite' },
     { title: 'Gate', detail: 'Fable issues the ship verdict' },
   ],
@@ -15,9 +15,19 @@ export const meta = {
 // ---------------------------------------------------------------------------
 // Inputs
 //   /harness:ship add rate limiting to the public API
-//   or structured: { task, maxUnits, integrate, planModel, buildModel, refuteModel, gateModel }
+//   or structured: { task, maxUnits, integrate, planModel, buildModel, fixModel, refuteModel, gateModel }
+//   A string that is a JSON object is read as the structured form, so the options survive
+//   being passed through a slash command as text.
 // ---------------------------------------------------------------------------
-const input = typeof args === 'string' ? { task: args } : (args || {})
+function parseArgs(a) {
+  if (a && typeof a === 'object') return a
+  const s = String(a || '').trim()
+  if (s.startsWith('{')) {
+    try { const o = JSON.parse(s); if (o && typeof o === 'object' && !Array.isArray(o)) return o } catch {}
+  }
+  return { task: s }
+}
+const input = parseArgs(args)
 const task = String(input.task || '').trim()
 if (!task) throw new Error('Describe the task: /harness:ship <what to build>')
 
@@ -26,6 +36,10 @@ const INTEGRATE = input.integrate !== false
 const MODELS = {
   plan: input.planModel || 'claude-opus-5-5',
   build: input.buildModel || 'claude-sonnet-5-5',
+  // A refuted unit gets one more attempt before it is dropped, and it has already shown it is
+  // harder than its spec suggested, so the retry runs on the stronger model. Fixes only run for
+  // refuted units, so this costs little next to the three refuters every unit gets.
+  fix: input.fixModel || 'claude-opus-5-5',
   refute: input.refuteModel || 'claude-opus-5-5',
   gate: input.gateModel || 'fable',
 }
@@ -262,7 +276,7 @@ const results = (await pipeline(plan.units,
     if (first.passed) return { unit: u, build, refutation: first, status: 'passed' }
     log(`${u.id} refuted by ${first.refutedCount}/${first.votes.length}, fixing once`)
     const fixed = await agent(fixPrompt(u, build, first), {
-      phase: 'Fix', model: MODELS.build, effort: 'medium', agentType: 'harness:builder', schema: BUILD, label: `${u.id} fix`,
+      phase: 'Fix', model: MODELS.fix, effort: 'medium', agentType: 'harness:builder', schema: BUILD, label: `${u.id} fix`,
     })
     if (!fixed) return { unit: u, build, refutation: first, status: 'failed' }
     const second = await refute(u, fixed)
