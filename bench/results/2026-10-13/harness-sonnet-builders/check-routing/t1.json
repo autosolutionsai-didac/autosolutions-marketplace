@@ -1,0 +1,187 @@
+{
+  "benchVersion": 2,
+  "label": "2026-10-13",
+  "team": "harness-sonnet-builders",
+  "teamKind": "harness",
+  "task": "check-routing",
+  "taskKind": "check",
+  "trial": 1,
+  "sessionId": "243b653f-e99a-49e3-b1f7-cd84f8049e51",
+  "startedAt": "2026-10-13T20:30:37.944Z",
+  "finishedAt": "2026-10-13T20:31:27.602Z",
+  "wallSec": 49.657,
+  "timedOut": false,
+  "turns": [
+    {
+      "turn": 1,
+      "exitCode": 0,
+      "signal": null,
+      "timedOut": false,
+      "wallSec": 49.657
+    }
+  ],
+  "success": true,
+  "score": null,
+  "check": {
+    "pass": true,
+    "details": {
+      "harness:scout": {
+        "spawned": 1,
+        "servedBy": [
+          "claude-haiku-5-5"
+        ],
+        "expected": "claude-haiku-5-5",
+        "ok": true
+      },
+      "harness:web-scout": {
+        "spawned": 1,
+        "servedBy": [
+          "claude-haiku-5-5"
+        ],
+        "expected": "claude-haiku-5-5",
+        "ok": true
+      },
+      "harness:refuter": {
+        "spawned": 1,
+        "servedBy": [
+          "claude-opus-5-5"
+        ],
+        "expected": "claude-opus-5-5",
+        "ok": true
+      }
+    }
+  },
+  "costUSD": 0.25514341999999995,
+  "costSource": "claude-code",
+  "costUSDFromStream": 0.25514341999999995,
+  "costUSDFromTranscripts": 0.25081752,
+  "invalidReason": null,
+  "apiErrors": 0,
+  "usageWindows": {
+    "five_hour": {
+      "utilization": 0.46,
+      "resetsAt": 1791930000
+    },
+    "seven_day": {
+      "utilization": 0.17,
+      "resetsAt": 1792162800
+    }
+  },
+  "modelUsage": {
+    "claude-haiku-5-5": {
+      "inputTokens": 38157,
+      "outputTokens": 3465,
+      "cacheReadInputTokens": 7147,
+      "cacheCreationInputTokens": 9710,
+      "thinkingTokens": 974,
+      "webSearchRequests": 0,
+      "costUSD": 0.006833420000000001
+    },
+    "claude-opus-5-5": {
+      "inputTokens": 18,
+      "outputTokens": 4122,
+      "cacheReadInputTokens": 119005,
+      "cacheCreationInputTokens": 20705,
+      "thinkingTokens": 227,
+      "webSearchRequests": 0,
+      "costUSD": 0.24830999999999998
+    }
+  },
+  "tokensByModel": {
+    "claude-opus-5-5": {
+      "requests": 9,
+      "input": 18,
+      "output": 4122,
+      "cacheRead": 119005,
+      "cacheWrite": 20705,
+      "costUSD": 0.24831
+    },
+    "claude-haiku-5-5": {
+      "requests": 4,
+      "input": 8,
+      "output": 2443,
+      "cacheRead": 7147,
+      "cacheWrite": 9710,
+      "costUSD": 0.00250752
+    }
+  },
+  "byRole": {
+    "harness:refuter": {
+      "agents": 1,
+      "requests": 4,
+      "input": 8,
+      "output": 2547,
+      "cacheRead": 17255,
+      "cacheWrite": 7881,
+      "costUSD": 0.093828,
+      "models": {
+        "claude-opus-5-5": 4
+      }
+    },
+    "harness:web-scout": {
+      "agents": 1,
+      "requests": 2,
+      "input": 4,
+      "output": 1048,
+      "cacheRead": 3182,
+      "cacheWrite": 4084,
+      "costUSD": 0.00106672,
+      "models": {
+        "claude-haiku-5-5": 2
+      }
+    },
+    "harness:scout": {
+      "agents": 1,
+      "requests": 2,
+      "input": 4,
+      "output": 1395,
+      "cacheRead": 3965,
+      "cacheWrite": 5626,
+      "costUSD": 0.0014408000000000001,
+      "models": {
+        "claude-haiku-5-5": 2
+      }
+    },
+    "main": {
+      "agents": 1,
+      "requests": 5,
+      "input": 10,
+      "output": 1575,
+      "cacheRead": 101750,
+      "cacheWrite": 12824,
+      "costUSD": 0.154482,
+      "models": {
+        "claude-opus-5-5": 5
+      }
+    }
+  },
+  "agentCount": 3,
+  "workflows": [],
+  "ship": null,
+  "hooks": {
+    "SessionStart:started": 1,
+    "SessionStart:success": 1,
+    "Stop:started": 4,
+    "Stop:success": 4
+  },
+  "stopBlocks": [],
+  "toolUses": {
+    "Agent": 3
+  },
+  "agentSpawns": [
+    "harness:scout",
+    "harness:web-scout",
+    "harness:refuter"
+  ],
+  "workflowCalls": [],
+  "testCommands": 0,
+  "permissionDenials": 0,
+  "errors": [],
+  "contamination": [
+    "/tmp/harness-bench/2026-10-13/harne"
+  ],
+  "specDelivered": null,
+  "changedFiles": [],
+  "finalMessage": "1. **Scout:** Invoice totals are computed in `src/ledger.js:78-80`. The per-line costs are summed and converted to `subtotalCents`, then `totalCents = applyDiscount(subtotalCents, discountPercent)` applies the discount, which is defined at `src/money.js:16`.\n2. **Web-scout:** The official `node:test` docs page is https://nodejs.org/api/test.html (titled \"Test runner\"). Pages for specific major versions follow the pattern `https://nodejs.org/docs/latest-vX.x/api/test.html`.\n3. **Refuter:** No, it doesn't round half up. `src/money.js:18` uses `Math.floor`, so it always rounds down. For example, `applyDiscount(5, 10)` returns 4 instead of 5, and `applyDiscount(10, 33)` returns 6 instead of 7. As a result, invoice totals are always rounded down in the customer's favour; nothing in the repo says whether that's intended.\n\nThe existing tests in `test/money.test.js` pass but only use amounts that divide evenly, so they can't catch this. No repo files were changed; the refuter's only file is a scratch script at `/tmp/refute-scratch/check.mjs`, outside the repo.",
+  "workDir": "/tmp/harness-bench/2026-10-13/harness-sonnet-builders/check-routing/t1"
+}
