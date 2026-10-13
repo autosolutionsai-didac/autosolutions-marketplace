@@ -1,0 +1,120 @@
+{
+  "benchVersion": 1,
+  "label": "2026-10-13",
+  "team": "native-opus-xhigh",
+  "teamKind": "native",
+  "task": "rate-limit",
+  "taskKind": "code",
+  "trial": 1,
+  "sessionId": "a442516d-9ceb-4a34-9f8c-e19dba292c1d",
+  "startedAt": "2026-10-13T19:47:49.063Z",
+  "finishedAt": "2026-10-13T19:56:49.828Z",
+  "wallSec": 540.764,
+  "timedOut": false,
+  "turns": [
+    {
+      "turn": 1,
+      "exitCode": 0,
+      "signal": null,
+      "timedOut": false,
+      "wallSec": 540.764
+    }
+  ],
+  "success": true,
+  "score": {
+    "success": true,
+    "specComplete": true,
+    "compliance": {
+      "complete": true,
+      "items": {
+        "testFile": true,
+        "readmeDocumented": true
+      }
+    },
+    "visible": {
+      "tests": 31,
+      "pass": 31,
+      "fail": 0,
+      "cancelled": 0,
+      "timedOut": null,
+      "exitCode": 0,
+      "failures": []
+    },
+    "hidden": {
+      "tests": 9,
+      "pass": 9,
+      "fail": 0
+    },
+    "hiddenPerFile": {
+      "rate-limit.test.js": {
+        "pass": 9,
+        "fail": 0,
+        "failures": []
+      }
+    },
+    "partial": 1,
+    "notes": []
+  },
+  "check": null,
+  "costUSD": 1.2842178,
+  "costUSDFromTranscripts": 1.2842178,
+  "modelUsage": {
+    "claude-opus-5-5": {
+      "inputTokens": 32,
+      "outputTokens": 31067,
+      "cacheReadInputTokens": 714909,
+      "cacheCreationInputTokens": 64971,
+      "thinkingTokens": 16342,
+      "webSearchRequests": 0,
+      "costUSD": 1.2842178
+    }
+  },
+  "tokensByModel": {
+    "claude-opus-5-5": {
+      "requests": 16,
+      "input": 32,
+      "output": 31067,
+      "cacheRead": 714909,
+      "cacheWrite": 64971,
+      "costUSD": 1.2842178
+    }
+  },
+  "byRole": {
+    "main": {
+      "agents": 1,
+      "requests": 16,
+      "input": 32,
+      "output": 31067,
+      "cacheRead": 714909,
+      "cacheWrite": 64971,
+      "costUSD": 1.2842178,
+      "models": {
+        "claude-opus-5-5": 16
+      }
+    }
+  },
+  "agentCount": 0,
+  "workflows": [],
+  "ship": null,
+  "hooks": {},
+  "stopBlocks": [],
+  "toolUses": {
+    "Bash": 13,
+    "Write": 2,
+    "Read": 2
+  },
+  "agentSpawns": [],
+  "workflowCalls": [],
+  "testCommands": 5,
+  "permissionDenials": 0,
+  "errors": [],
+  "contamination": [],
+  "changedFiles": [
+    "README.md",
+    "src/server.js",
+    "src/rate-limit.js",
+    "test/rate-limit.test.js"
+  ],
+  "finalMessage": "Rate limiting is in place and `npm test` passes: 31 tests, the 16 that already existed plus 15 new ones in `test/rate-limit.test.js`. Nothing is committed.\n\n**How it fits together**\n- **`src/rate-limit.js`** contains the `RateLimiter` class and nothing to do with HTTP. It has no clock of its own; the server passes in `options.now()` on each request, so `Date.now()` is never called directly.\n- **`src/server.js`** answers `GET /health` first, so it's never counted and gets no rate-limit headers. Next it runs the limiter, then routing as before. The limiter sets `X-RateLimit-Limit` and `X-RateLimit-Remaining` before any response is written. As a result they also appear on responses the server builds itself, such as CSV exports, `/docs` files and the 400/500 error replies.\n- **Unparseable URLs:** some request URLs (e.g. `GET http://[`) make `new URL()` throw, and the server answers them with a 500. I put the limiter ahead of URL parsing so those requests are limited too, and there's a test for it.\n\n**Choices beyond your spec**\n- **Empty header:** an empty `x-api-key` header counts as `anonymous`. This matches how `/events` already treats an empty key as missing, and stops `\"\"` from being a separate free allowance.\n- **Partial settings:** `rateLimit: { limit: 5 }` keeps the default `windowMs`. A `limit` below 1 or a non-positive `windowMs` makes `createServer` throw a `RangeError`.\n- **Memory:** windows that have ended are cleared out at most once per `windowMs`, so keys that stop sending requests don't use memory forever. This doesn't change behaviour, because a key whose window has ended is treated the same as a new key.\n- **Rejected requests** don't add to the count, and they never reach the handler (a test checks that a rejected `POST /events` isn't recorded).\n\n**How I checked the tests:** I broke the server five ways: limiter after URL parsing, `/health` counted, `Date.now()` instead of the clock, no `Retry-After`, and empty key not treated as `anonymous`. The new tests caught each one. That check also showed a failing assertion skipped server cleanup and hung the test run, so each test now registers its cleanup with `t.after`.\n\n**Limits of the design:** counts are kept in memory for each process, so they reset on restart and aren't shared between processes. The key is whatever `x-api-key` says and isn't checked against real keys, so a client can get a fresh allowance by changing the header. Both are noted in the README.\n\n**Existing problems I noticed but didn't touch:**\n- **Admin check:** if `LEDGER_ADMIN_TOKEN` isn't set, `isAdmin` lets through any request that has no `x-admin-token` header. That opens `POST /admin/backup`, which puts `dest` straight into a shell command — remote code execution.\n- **`/docs/:name`:** `serveDoc` doesn't stop `..` in the name, so it can serve files outside `docs/`.\n- **`POST /admin/config`:** the settings merge accepts `__proto__` keys, which can change built-in object behaviour across the process (prototype pollution).\n- **Invoices:** `GET /invoices/:key` returns a 500 for a key with no usage, because `invoice()` returns null.\n\nI'd fix the first two first, and can do that separately if you want.",
+  "workDir": "/tmp/harness-bench/2026-10-13/native-opus-xhigh/rate-limit/t1"
+}

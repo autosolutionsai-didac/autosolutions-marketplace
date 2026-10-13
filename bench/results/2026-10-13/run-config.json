@@ -1,10 +1,10 @@
 {
   "label": "2026-10-13",
   "benchVersion": 1,
-  "startedAt": "2026-10-13T19:47:48.907Z",
+  "startedAt": "2026-10-13T19:59:25.962Z",
   "claudeVersion": "2.1.296 (Claude Code)",
-  "gitSha": "b268dd9d496b169f524cfc222c80e35b07ecc796",
-  "gitDirty": false,
+  "gitSha": "6ae1818729613dcadd9d2c15b1f381f33ca92887",
+  "gitDirty": true,
   "node": "v22.22.0",
   "cpus": 4,
   "teams": [
@@ -54,7 +54,9 @@
     "check-decision-gate",
     "check-fable-gate",
     "check-second-opinion",
-    "check-setup"
+    "check-setup",
+    "check-gate-claude-cli",
+    "check-gate-heuristic"
   ],
   "trials": 1,
   "parallel": 3,

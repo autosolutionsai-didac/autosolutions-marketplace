@@ -1,0 +1,296 @@
+{
+  "benchVersion": 1,
+  "label": "2026-10-13",
+  "team": "harness-opus-builders",
+  "teamKind": "harness",
+  "task": "rate-limit",
+  "taskKind": "code",
+  "trial": 1,
+  "sessionId": "e7ddd602-5701-46a1-b719-198c2a7f1615",
+  "startedAt": "2026-10-13T19:47:49.343Z",
+  "finishedAt": "2026-10-13T19:58:03.026Z",
+  "wallSec": 613.682,
+  "timedOut": false,
+  "turns": [
+    {
+      "turn": 1,
+      "exitCode": 0,
+      "signal": null,
+      "timedOut": false,
+      "wallSec": 613.682
+    }
+  ],
+  "success": true,
+  "score": {
+    "success": true,
+    "specComplete": true,
+    "compliance": {
+      "complete": true,
+      "items": {
+        "testFile": true,
+        "readmeDocumented": true
+      }
+    },
+    "visible": {
+      "tests": 35,
+      "pass": 35,
+      "fail": 0,
+      "cancelled": 0,
+      "timedOut": null,
+      "exitCode": 0,
+      "failures": []
+    },
+    "hidden": {
+      "tests": 9,
+      "pass": 9,
+      "fail": 0
+    },
+    "hiddenPerFile": {
+      "rate-limit.test.js": {
+        "pass": 9,
+        "fail": 0,
+        "failures": []
+      }
+    },
+    "partial": 1,
+    "notes": []
+  },
+  "check": null,
+  "costUSD": 2.5765034499999997,
+  "costUSDFromTranscripts": 2.57650345,
+  "modelUsage": {
+    "claude-opus-5-5": {
+      "inputTokens": 120,
+      "outputTokens": 46185,
+      "cacheReadInputTokens": 997271,
+      "cacheCreationInputTokens": 185889,
+      "thinkingTokens": 5558,
+      "webSearchRequests": 0,
+      "costUSD": 2.0995731999999996
+    },
+    "claude-fable-5-1": {
+      "inputTokens": 162,
+      "outputTokens": 4054,
+      "cacheReadInputTokens": 59291,
+      "cacheCreationInputTokens": 20623,
+      "thinkingTokens": 1689,
+      "webSearchRequests": 0,
+      "costUSD": 0.47693025
+    }
+  },
+  "tokensByModel": {
+    "claude-opus-5-5": {
+      "requests": 60,
+      "input": 120,
+      "output": 46185,
+      "cacheRead": 997271,
+      "cacheWrite": 185889,
+      "costUSD": 2.0995732
+    },
+    "claude-fable-5-1": {
+      "requests": 6,
+      "input": 162,
+      "output": 4054,
+      "cacheRead": 59291,
+      "cacheWrite": 20623,
+      "costUSD": 0.47693025000000006
+    }
+  },
+  "byRole": {
+    "harness:refuter (Refute)": {
+      "agents": 6,
+      "requests": 29,
+      "input": 58,
+      "output": 15067,
+      "cacheRead": 320326,
+      "cacheWrite": 83275,
+      "costUSD": 0.7820122,
+      "models": {
+        "claude-opus-5-5": 29
+      }
+    },
+    "harness:builder (Build)": {
+      "agents": 2,
+      "requests": 19,
+      "input": 38,
+      "output": 21803,
+      "cacheRead": 501769,
+      "cacheWrite": 61215,
+      "costUSD": 0.8426408,
+      "models": {
+        "claude-opus-5-5": 19
+      }
+    },
+    "harness:judge (Gate)": {
+      "agents": 1,
+      "requests": 6,
+      "input": 162,
+      "output": 4054,
+      "cacheRead": 59291,
+      "cacheWrite": 20623,
+      "costUSD": 0.47693025000000006,
+      "models": {
+        "claude-fable-5-1": 6
+      }
+    },
+    "workflow:Plan": {
+      "agents": 1,
+      "requests": 4,
+      "input": 8,
+      "output": 5486,
+      "cacheRead": 52732,
+      "cacheWrite": 9685,
+      "costUSD": 0.1687234,
+      "models": {
+        "claude-opus-5-5": 4
+      }
+    },
+    "workflow:Integrate": {
+      "agents": 1,
+      "requests": 4,
+      "input": 8,
+      "output": 1626,
+      "cacheRead": 38688,
+      "cacheWrite": 16216,
+      "costUSD": 0.12136960000000001,
+      "models": {
+        "claude-opus-5-5": 4
+      }
+    },
+    "main": {
+      "agents": 1,
+      "requests": 4,
+      "input": 8,
+      "output": 2203,
+      "cacheRead": 83756,
+      "cacheWrite": 15498,
+      "costUSD": 0.18482720000000002,
+      "models": {
+        "claude-opus-5-5": 4
+      }
+    }
+  },
+  "agentCount": 11,
+  "workflows": [
+    {
+      "runId": "wf_a124767b-f94",
+      "name": "ship",
+      "status": "completed",
+      "durationMs": 585666,
+      "agentCount": 11,
+      "totalTokens": 219900,
+      "totalToolCalls": 71,
+      "args": {
+        "task": "Add per-API-key rate limiting to the HTTP server in src/server.js. Put the limiter in a new module, src/rate-limit.js.\n\nRequired behaviour:\n\n1. createServer(options) accepts options.rateLimit = { limit, windowMs }. The default is { limit: 60, windowMs: 60000 }. All timing uses the existing options.now() clock, never Date.now() directly.\n2. The limiter runs before routing and authentication, so every request is limited, including ones that would get a 401 or 404. A request's key is its x-api-key header. Requests without that header share the key \"anonymous\".\n3. Fixed windows per key: a key's window starts at the first request in that window and lasts windowMs. Within a window the first `limit` requests are allowed and the rest are rejected. Once now >= windowStart + windowMs, the next request from that key starts a new window at that moment.\n4. A rejected request gets status 429, a Retry-After header holding the whole number of seconds until the current window ends (rounded up, at least 1), and the JSON body {\"error\":\"rate_limited\",\"retryAfter\":<the same number>}.\n5. Every response to a limited request, allowed or rejected, has an X-RateLimit-Limit header (the limit) and an X-RateLimit-Remaining header (requests still allowed in the current window after this one, never below 0).\n6. GET /health is exempt: it is never rejected, never counts toward any key's limit, and has no rate-limit headers.\n7. Add tests in test/rate-limit.test.js and document the behaviour in README.md.\n\nThe existing test suite (npm test) must keep passing.",
+        "buildModel": "claude-opus-5-5"
+      },
+      "logs": [
+        "Planning: Add per-API-key rate limiting to the HTTP server in src/server.js. Put the limiter in a new module, src/rate-limit.js.\n\nRequired behaviour:\n",
+        "2 unit(s) on base main: u1, u2",
+        "2 passed, 0 failed or unbuilt"
+      ],
+      "ship": {
+        "verdict": "PASS",
+        "gate": {
+          "verdict": "PASS",
+          "confidence": "high",
+          "blocking": [],
+          "summary": "Adds per-API-key fixed-window rate limiting (src/rate-limit.js, wired into createServer via options.rateLimit, defaults 60/60s, uses the injected now() clock only). Implementation matches all seven requirements: limiter runs after the GET /health short-circuit but before every route and auth check, keys on x-api-key with 'anonymous' fallback (empty header included), window boundary is now >= start + windowMs, 429 carries Retry-After = max(1, ceil(ms/1000)) and matching JSON body, X-RateLimit-Limit/Remaining ride along on every limited response including 400/401/403/404 and non-JSON (markdown, CSV) responses because they are set via res.setHeader before writeHead. 19 new tests in test/rate-limit.test.js cover each requirement including clock-vs-real-time and exact boundary cases; README has a Rate limiting section. I re-ran npm test on Node v22.22.0: 35/35 pass, so the original 16 still work. Only advisory: the per-key map never evicts entries."
+        },
+        "integration": {
+          "merged": [
+            "worktree-wf_a124767b-f94-2",
+            "worktree-wf_a124767b-f94-3"
+          ],
+          "skipped": [],
+          "conflicts": [],
+          "checks": {
+            "ran": true,
+            "passed": true,
+            "commands": [
+              "npm test (node --test) before merging: 16/16 pass",
+              "npm test (node --test) after both merges: 35/35 pass"
+            ],
+            "notes": "The repo has no type check or lint script; package.json defines only `test`. Before merging, main was clean apart from the untracked .claude/ directory (the harness worktrees). It was left untouched and nothing was stashed. Both merges were --no-ff with no conflicts: merge 8fb707f brings in u1 and merge 2f88268 brings in u2, both on main and not pushed. I checked the merged README against the code and it matches src/rate-limit.js and src/server.js. That covers the defaults (60 requests per 60000 ms, with partial overrides merged in), limiting before auth and routing, the shared 'anonymous' key, the 429 body and Retry-After value, the X-RateLimit-* headers, and /health being exempt. One thing for later, not a blocker: the per-key Map in the limiter never evicts entries, so memory grows with every distinct x-api-key value."
+          }
+        },
+        "units": [
+          {
+            "id": "u1",
+            "title": "Rate limiter module, server integration and tests",
+            "status": "passed",
+            "refuted_by": "0/3",
+            "findings": 3
+          },
+          {
+            "id": "u2",
+            "title": "Document rate limiting in README",
+            "status": "passed",
+            "refuted_by": "0/3",
+            "findings": 4
+          }
+        ]
+      }
+    }
+  ],
+  "ship": {
+    "runs": 1,
+    "verdict": "PASS",
+    "gateVerdict": "PASS",
+    "units": 2,
+    "unitsPassed": 2,
+    "unitsFailed": 0,
+    "fixRounds": 0,
+    "unitStatuses": [
+      "u1:passed:0/3",
+      "u2:passed:0/3"
+    ],
+    "merged": [
+      "worktree-wf_a124767b-f94-2",
+      "worktree-wf_a124767b-f94-3"
+    ],
+    "integrationChecks": {
+      "ran": true,
+      "passed": true,
+      "commands": [
+        "npm test (node --test) before merging: 16/16 pass",
+        "npm test (node --test) after both merges: 35/35 pass"
+      ],
+      "notes": "The repo has no type check or lint script; package.json defines only `test`. Before merging, main was clean apart from the untracked .claude/ directory (the harness worktrees). It was left untouched and nothing was stashed. Both merges were --no-ff with no conflicts: merge 8fb707f brings in u1 and merge 2f88268 brings in u2, both on main and not pushed. I checked the merged README against the code and it matches src/rate-limit.js and src/server.js. That covers the defaults (60 requests per 60000 ms, with partial overrides merged in), limiting before auth and routing, the shared 'anonymous' key, the 429 body and Retry-After value, the X-RateLimit-* headers, and /health being exempt. One thing for later, not a blocker: the per-key Map in the limiter never evicts entries, so memory grows with every distinct x-api-key value."
+    },
+    "firstPassRefutedApprox": 0
+  },
+  "hooks": {
+    "SessionStart:started": 1,
+    "SessionStart:success": 1,
+    "Stop:started": 2,
+    "Stop:success": 2
+  },
+  "stopBlocks": [],
+  "toolUses": {
+    "Workflow": 1,
+    "Bash": 1
+  },
+  "agentSpawns": [],
+  "workflowCalls": [
+    {
+      "name": "harness:ship",
+      "scriptPath": null,
+      "args": "{\"task\":\"Add per-API-key rate limiting to the HTTP server in src/server.js. Put the limiter in a new module, src/rate-limit.js.\\n\\nRequired behaviour:\\n\\n1. createServer(options) accepts options.rateLimit = { limit, windowMs }. The default is { limit: 60, windowMs: 60000 }. All timing uses the exist"
+    }
+  ],
+  "testCommands": 1,
+  "permissionDenials": 0,
+  "errors": [],
+  "contamination": [],
+  "changedFiles": [
+    "README.md",
+    "src/rate-limit.js",
+    "src/server.js",
+    "test/rate-limit.test.js",
+    ".claude/worktrees/wf_a124767b-f94-2/",
+    ".claude/worktrees/wf_a124767b-f94-3/"
+  ],
+  "finalMessage": "Rate limiting is in place and merged into `main`. I re-ran `npm test` myself after the workflow finished: 35 of 35 pass (the 16 existing tests plus 19 new ones). Fable's final check passed it with high confidence and no blocking issues, and no reviewer found a defect. Nothing was pushed (there's no remote).\n\n**What changed:**\n- **`src/rate-limit.js`** (new): a fixed-window counter per key, with defaults of 60 requests per 60,000 ms. It only ever reads time from the `now` clock it's given.\n- **`src/server.js`**: `createServer` takes a new `rateLimit` option; partial overrides fall back to the defaults. The limiter runs right after the `GET /health` early return and before any auth or routing, so 401 and 404 responses are counted too. Rejected requests get a 429 with `Retry-After` and the JSON body from the spec. The two `X-RateLimit-*` headers are set early in the request, so they appear on every response from every route except `/health`, including the CSV and markdown ones.\n- **`test/rate-limit.test.js`** (new): 19 tests covering all seven requirements, including the exact window boundary and a check that timing comes from `options.now()` rather than `Date.now()`.\n- **`README.md`**: a new \"Rate limiting\" section.\n\nIt landed as two merge commits on `main`, `8fb707f` (code and tests) and `2f88268` (README).\n\n**Worth knowing:**\n- An empty `x-api-key` header counts as `\"anonymous\"`, the same as a missing one. The spec only covers a missing header, so tell me if an empty one should be its own key.\n- The limiter never deletes old keys, so memory grows with every distinct `x-api-key` value it has ever seen. That's fine for trusted callers. If untrusted clients can send made-up keys, we should add a sweep that drops keys whose window has ended.\n- Passing `rateLimit: { limit: undefined }` explicitly replaces the default with `undefined` instead of falling back to 60. Real partial overrides like `{ limit: 5 }` work and are tested.\n- The untracked `.claude/` directory holds the workflow's worktrees and isn't part of the change.",
+  "workDir": "/tmp/harness-bench/2026-10-13/harness-opus-builders/rate-limit/t1"
+}

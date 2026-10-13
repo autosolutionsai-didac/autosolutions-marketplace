@@ -41,6 +41,18 @@ export const CHECKS = {
     }
   },
 
+  // A free gate backend (no mock): the gate must block the unverified "Done." itself, naming the backend,
+  // and the session must then run the tests.
+  freeGate(ctx, task) {
+    const want = task.env.HARNESS_DECISION_PROVIDER
+    const blocks = ctx.streams.stopBlocks.filter((b) => b.output.includes(`Decision gate (${want})`))
+    const testsAfter = ctx.streams.testCommands.length > 0
+    return {
+      pass: blocks.length > 0 && testsAfter,
+      details: { provider: want, blocks: blocks.map((b) => b.output.slice(0, 300)), testCommandsRun: ctx.streams.testCommands, finalMessage: ctx.streams.finalMessage.slice(0, 400) },
+    }
+  },
+
   fableGate(ctx) {
     const settingsFile = path.join(ctx.repo, '.claude', 'settings.local.json')
     const installed = existsSync(settingsFile) && readFileSync(settingsFile, 'utf8').includes('harness fable gate')

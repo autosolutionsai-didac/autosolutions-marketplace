@@ -24,5 +24,8 @@ export function childEnv({ configDir, extra = {} }) {
   }
   env.CLAUDE_CONFIG_DIR = configDir
   env.IS_SANDBOX = env.IS_SANDBOX || '1'
+  // Headless claude -p stops background tasks still running 10 minutes after the last turn. A ship
+  // workflow routinely runs longer, so wait for it; the task timeout in run.mjs still bounds every run.
+  env.CLAUDE_CODE_PRINT_BG_WAIT_CEILING_MS = '0'
   return { ...env, ...extra }
 }

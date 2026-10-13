@@ -127,11 +127,11 @@ async function runJob(job, opts, log) {
   const turns = turnsFor(team, task)
   const sessionId = randomUUID()
   const mock = task.mockDecision ? await startMockDecisionServer() : null
-  const extraEnv = { ...(team.env || {}) }
+  const extraEnv = { ...(team.env || {}), ...(task.env || {}) }
   if (mock) Object.assign(extraEnv, { TYPESAFE_API_KEY: 'bench-mock', TYPESAFE_BASE_URL: mock.url, HARNESS_DEBUG: '1' })
   const env = childEnv({ configDir, extra: extraEnv })
   const common = ['--model', team.model, '--effort', team.effort, '--output-format', 'stream-json', '--verbose', '--include-hook-events', '--permission-mode', 'bypassPermissions', '--max-budget-usd', String(opts.budgetUsd)]
-  if (team.plugin) common.push('--plugin-dir', PLUGIN_DIR)
+  if (team.plugin) common.push('--plugin-dir', opts.pluginDir)
   if (team.settings) common.push('--settings', path.resolve(BENCH, team.settings))
 
   const startedAt = new Date().toISOString()
@@ -163,7 +163,7 @@ async function runJob(job, opts, log) {
   try {
     if (task.kind === 'code') score = scoreCodeTask(repo, task, taskDir)
     else if (task.kind === 'findings') score = scoreFindingsTask(repo, task, taskDir)
-    else if (task.kind === 'check') check = CHECKS[task.check]({ repo, streams, transcripts, workflows, mock })
+    else if (task.kind === 'check') check = CHECKS[task.check]({ repo, streams, transcripts, workflows, mock }, task)
   } catch (e) {
     score = { success: false, error: `scoring failed: ${e.message}` }
   }
@@ -234,6 +234,12 @@ async function main() {
   const resultsDir = path.join(BENCH, 'results', opts.label)
   mkdirSync(resultsDir, { recursive: true })
   mkdirSync(opts.work, { recursive: true })
+  // Freeze the plugin as it is now, so edits made while a long benchmark runs cannot leak into later runs.
+  opts.pluginDir = path.join(opts.work, 'plugin-snapshot', 'harness')
+  if (!opts.dryRun) {
+    rmSync(opts.pluginDir, { recursive: true, force: true })
+    cpSync(PLUGIN_DIR, opts.pluginDir, { recursive: true })
+  }
   const progress = path.join(resultsDir, 'progress.log')
   const log = (m) => { const line = `${new Date().toISOString()} ${m}`; console.log(line); appendFileSync(progress, line + '\n') }
   const pending = jobs.filter((j) => opts.force || !existsSync(path.join(resultsDir, j.team.id, j.task.id, `t${j.trial}.json`)))
