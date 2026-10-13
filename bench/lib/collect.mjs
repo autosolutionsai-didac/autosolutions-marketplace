@@ -120,15 +120,21 @@ export function summarizeTranscripts(configDir, sessionId) {
     else if (sessionId && base !== sessionId) role = `other:${base.slice(0, 8)}`
     // Several transcript lines share one API message id while it streams; keep the most complete one.
     const msgs = new Map()
+    let apiErrors = 0
+    const errorTexts = []
     for (const row of readJsonl(file)) {
-      if (row.isApiErrorMessage || (row.type === 'assistant' && row.error)) agent.apiErrors = (agent.apiErrors || 0) + 1
+      if (row.isApiErrorMessage || (row.type === 'assistant' && row.error)) {
+        apiErrors++
+        const text = row.message && Array.isArray(row.message.content) ? row.message.content.map((b) => b.text || '').join(' ') : ''
+        if (text) errorTexts.push(text.slice(0, 160))
+      }
       if (row.type !== 'assistant' || !row.message || !row.message.usage) continue
       const id = `${row.message.id || row.uuid}:${row.requestId || ''}`
       const prev = msgs.get(id)
       if (!prev || (row.message.usage.output_tokens || 0) >= (prev.usage.output_tokens || 0)) msgs.set(id, { model: row.message.model, usage: row.message.usage })
     }
     const wf = file.match(/[\\/]workflows[\\/](wf_[^\\/]+)[\\/]/)
-    const agent = { file: path.relative(configDir, file), role, workflowRun: wf ? wf[1] : null, model: meta.model || null, description: (meta.description || '').slice(0, 120), requests: 0, input: 0, output: 0, cacheRead: 0, cacheWrite: 0, costUSD: 0, models: {}, apiErrors: 0 }
+    const agent = { file: path.relative(configDir, file), role, workflowRun: wf ? wf[1] : null, model: meta.model || null, description: (meta.description || '').slice(0, 120), requests: 0, input: 0, output: 0, cacheRead: 0, cacheWrite: 0, costUSD: 0, models: {}, apiErrors, errorTexts: errorTexts.slice(0, 3) }
     for (const [id, m] of msgs) {
       if (seen.has(id)) continue
       seen.add(id)
@@ -159,8 +165,9 @@ export function summarizeTranscripts(configDir, sessionId) {
       bm.cacheWrite += u.cache_creation_input_tokens || 0
       bm.costUSD += cost
     }
-    if (agent.requests) {
+    if (agent.requests || agent.apiErrors) {
       agents.push(agent)
+      byRole[role] ||= { agents: 0, requests: 0, input: 0, output: 0, cacheRead: 0, cacheWrite: 0, costUSD: 0, models: {} }
       byRole[role].agents++
     }
   }
