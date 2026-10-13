@@ -48,17 +48,23 @@ export function summarizeStreams(streamFiles) {
     const rows = readJsonl(file)
     const results = rows.filter((r) => r.type === 'result')
     const last = results[results.length - 1]
-    const turn = { file: path.basename(file), results: results.length, isError: last ? !!last.is_error : true, subtype: last && last.subtype, terminalReason: last && last.terminal_reason, numTurns: last && last.num_turns, costUSD: last ? last.total_cost_usd || 0 : 0 }
+    // total_cost_usd and modelUsage are cumulative for the session: a turn started with --resume reports
+    // the earlier turns' spend too. The session total is therefore the largest value seen, not a sum.
+    const turn = { file: path.basename(file), results: results.length, isError: last ? !!last.is_error : true, subtype: last && last.subtype, terminalReason: last && last.terminal_reason, numTurns: last && last.num_turns, cumulativeCostUSD: last ? last.total_cost_usd || 0 : 0 }
+    turn.costUSD = Math.max(0, turn.cumulativeCostUSD - s.costUSD)
     s.turns.push(turn)
     if (!last) s.errors.push(`${path.basename(file)}: no result event (killed or crashed)`)
     else if (last.is_error) s.errors.push(`${path.basename(file)}: ${last.subtype} ${last.terminal_reason || ''} ${(last.result || '').slice(0, 200)}`)
-    if (last) {
-      s.costUSD += last.total_cost_usd || 0
+    if (last && (last.total_cost_usd || 0) >= s.costUSD) {
+      s.costUSD = last.total_cost_usd || 0
+      s.modelUsage = {}
       for (const [model, u] of Object.entries(last.modelUsage || {})) {
         const id = canonicalModel(model)
         const acc = (s.modelUsage[id] ||= { inputTokens: 0, outputTokens: 0, cacheReadInputTokens: 0, cacheCreationInputTokens: 0, thinkingTokens: 0, webSearchRequests: 0, costUSD: 0 })
         for (const k of Object.keys(acc)) acc[k] += u[k] || 0
       }
+    }
+    if (last) {
       if (typeof last.result === 'string') s.finalMessage = last.result
       s.permissionDenials += (last.permission_denials || []).length
     }

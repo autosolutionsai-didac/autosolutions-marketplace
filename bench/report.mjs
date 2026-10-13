@@ -44,6 +44,9 @@ const ktok = (n) => (n == null ? 'n/a' : n >= 1e6 ? `${(n / 1e6).toFixed(2)}M` :
 const tokensOf = (r) => sum(Object.values(r.tokensByModel || {}).map((m) => m.input + m.output + m.cacheRead + m.cacheWrite))
 const outputOf = (r) => sum(Object.values(r.tokensByModel || {}).map((m) => m.output))
 const freshOf = (r) => sum(Object.values(r.tokensByModel || {}).map((m) => m.input + m.output + m.cacheWrite))
+// "Complete": the change works (success) and also has what the spec asked for besides behaviour
+// (tests, docs, a source comment). Findings tasks have no such extras, so complete equals success there.
+const completeOf = (r) => (r.success && (r.taskKind !== 'code' || (r.score && r.score.specComplete !== false)) ? 1 : 0)
 
 function cell(team, task) {
   const rs = runs.filter((r) => r.team === team && r.task === task)
@@ -51,6 +54,7 @@ function cell(team, task) {
   return {
     n: rs.length,
     successRate: mean(rs.map((r) => (r.success ? 1 : 0))),
+    completeRate: mean(rs.map(completeOf)),
     wallSec: median(rs.map((r) => r.wallSec)),
     costUSD: median(rs.map((r) => r.costUSD)),
     tokens: median(rs.map(tokensOf)),
@@ -71,6 +75,7 @@ const totals = Object.fromEntries(teamIds.map((team) => {
     runs: rs.length,
     successes: rs.filter((r) => r.success).length,
     successRate: mean(rs.map((r) => (r.success ? 1 : 0))),
+    complete: sum(rs.map(completeOf)),
     wallSec: sum(rs.map((r) => r.wallSec)),
     costUSD: sum(rs.map((r) => r.costUSD)),
     tokens: sum(rs.map(tokensOf)),
@@ -122,10 +127,10 @@ for (const t of teams.filter((t) => teamIds.includes(t.id))) L.push(`- **${t.id}
 L.push('')
 
 L.push('## Overall (comparative tasks)', '')
-L.push('| Team | Success | Total time | Total cost | Cost per success | Tokens (all) | Fresh tokens | Output tokens |', '|---|---|---|---|---|---|---|---|')
+L.push('| Team | Works | Works and complete | Total time | Total cost | Cost per working result | Tokens (all) | Fresh tokens | Output tokens |', '|---|---|---|---|---|---|---|---|---|')
 for (const team of teamIds) {
   const t = totals[team]
-  L.push(`| ${team} | ${t.successes}/${t.runs} (${pct(t.successRate)}) | ${mins(t.wallSec)} | ${usd(t.costUSD)} | ${usd(t.costPerSuccess)} | ${ktok(t.tokens)} | ${ktok(t.fresh)} | ${ktok(t.output)} |`)
+  L.push(`| ${team} | ${t.successes}/${t.runs} (${pct(t.successRate)}) | ${t.complete}/${t.runs} | ${mins(t.wallSec)} | ${usd(t.costUSD)} | ${usd(t.costPerSuccess)} | ${ktok(t.tokens)} | ${ktok(t.fresh)} | ${ktok(t.output)} |`)
 }
 L.push('')
 
@@ -133,12 +138,12 @@ L.push('## Per task', '')
 for (const task of comparative) {
   L.push(`### ${task.id}`, '', task.title, '')
   const findings = task.kind === 'findings'
-  L.push(`| Team | Success | ${findings ? 'Recall | Extra findings' : 'Hidden tests passed'} | Time | Cost | Tokens (all) | Output tokens | Notes |`, `|---|---|${findings ? '---|---|' : '---|'}---|---|---|---|---|`)
+  L.push(`| Team | Works | ${findings ? 'Recall | Extra findings' : 'Hidden tests passed | Spec complete'} | Time | Cost | Tokens (all) | Output tokens | Notes |`, `|---|---|---|---|---|---|---|---|---|`)
   for (const team of teamIds) {
     const c = cell(team, task.id)
     if (!c) continue
     const notes = [c.timeouts ? `${c.timeouts} timed out` : '', c.errors ? `${c.errors} with errors` : '', c.contaminated ? `${c.contaminated} touched bench files` : ''].filter(Boolean).join(', ')
-    L.push(`| ${team} | ${pct(c.successRate)} (n=${c.n}) | ${findings ? `${pct(c.recall)} | ${c.extras == null ? 'n/a' : c.extras.toFixed(1)}` : pct(c.hiddenPass)} | ${mins(c.wallSec)} | ${usd(c.costUSD)} | ${ktok(c.tokens)} | ${ktok(c.output)} | ${notes} |`)
+    L.push(`| ${team} | ${pct(c.successRate)} (n=${c.n}) | ${findings ? `${pct(c.recall)} | ${c.extras == null ? 'n/a' : c.extras.toFixed(1)}` : `${pct(c.hiddenPass)} | ${pct(c.completeRate)}`} | ${mins(c.wallSec)} | ${usd(c.costUSD)} | ${ktok(c.tokens)} | ${ktok(c.output)} | ${notes} |`)
   }
   L.push('')
 }

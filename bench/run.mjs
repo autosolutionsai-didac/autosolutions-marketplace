@@ -242,7 +242,7 @@ async function main() {
     for (const j of pending) console.log(`${j.team.id.padEnd(26)} ${j.task.id.padEnd(22)} t${j.trial}  turns: ${turnsFor(j.team, j.task).map((t) => JSON.stringify(t.slice(0, 90))).join(' | ')}`)
     return
   }
-  writeFileSync(path.join(resultsDir, 'run-config.json'), JSON.stringify({ label: opts.label, benchVersion: BENCH_VERSION, startedAt: new Date().toISOString(), claudeVersion: spawnSync('claude', ['--version'], { encoding: 'utf8' }).stdout.trim(), node: process.version, cpus: (await import('node:os')).cpus().length, teams, tasks: tasks.map((t) => t.id), trials: opts.trials, parallel: opts.parallel, budgetUsdPerTurn: opts.budgetUsd }, null, 2))
+  writeFileSync(path.join(resultsDir, 'run-config.json'), JSON.stringify({ label: opts.label, benchVersion: BENCH_VERSION, startedAt: new Date().toISOString(), claudeVersion: spawnSync('claude', ['--version'], { encoding: 'utf8' }).stdout.trim(), gitSha: spawnSync('git', ['rev-parse', 'HEAD'], { cwd: REPO_ROOT, encoding: 'utf8' }).stdout.trim(), gitDirty: spawnSync('git', ['status', '--porcelain'], { cwd: REPO_ROOT, encoding: 'utf8' }).stdout.trim().length > 0, node: process.version, cpus: (await import('node:os')).cpus().length, teams, tasks: tasks.map((t) => t.id), trials: opts.trials, parallel: opts.parallel, budgetUsdPerTurn: opts.budgetUsd }, null, 2))
   let next = 0
   async function worker(w) {
     while (next < pending.length) {

@@ -12,7 +12,7 @@ import { cpSync, existsSync, mkdtempSync, readFileSync, rmSync } from 'node:fs'
 import os from 'node:os'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
-import { BASELINE_VISIBLE_TESTS, matchFindings, runNodeTests } from './lib/score.mjs'
+import { BASELINE_VISIBLE_TESTS, matchFindings, runNodeTests, specCompliance } from './lib/score.mjs'
 
 const BENCH = path.dirname(fileURLToPath(import.meta.url))
 const FIXTURE = path.join(BENCH, 'fixture', 'usage-ledger')
@@ -56,6 +56,18 @@ for (const task of tasks.filter((t) => t.kind === 'code')) {
   check(`${task.id}: reference keeps the visible suite green`, rv.fail === 0 && rv.pass >= BASELINE_VISIBLE_TESTS, `${rv.pass}/${rv.tests}`)
   const rh = hiddenRun(ref, task.id)
   check(`${task.id}: reference passes every hidden test`, rh.fail === 0 && rh.pass === rh.tests && rh.pass > 0, `${rh.pass}/${rh.tests}${rh.failures.length ? ` failing: ${rh.failures.join('; ')}` : ''}`)
+  rmSync(ref, { recursive: true, force: true })
+}
+
+// 2b. The completeness checks reject the untouched fixture.
+for (const task of tasks.filter((t) => t.kind === 'code')) {
+  const base = copyFixture()
+  const c = specCompliance(task.id, base)
+  check(`${task.id}: completeness check rejects the untouched fixture`, c && !c.complete, JSON.stringify(c && c.items))
+  rmSync(base, { recursive: true, force: true })
+  const ref = copyFixture([path.join(BENCH, 'tasks', task.id, 'reference')])
+  const cr = specCompliance(task.id, ref)
+  check(`${task.id}: completeness check accepts the full reference solution`, cr && cr.complete, JSON.stringify(cr && cr.items))
   rmSync(ref, { recursive: true, force: true })
 }
 

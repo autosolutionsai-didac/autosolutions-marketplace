@@ -1,7 +1,11 @@
 // Scoring: hidden acceptance tests for code tasks, answer-key matching for review/audit tasks.
 import { spawnSync } from 'node:child_process'
-import { cpSync, existsSync, mkdirSync, readFileSync, readdirSync } from 'node:fs'
+import { cpSync, existsSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, rmSync } from 'node:fs'
+import os from 'node:os'
 import path from 'node:path'
+import { fileURLToPath } from 'node:url'
+
+const FIXTURE = path.join(path.dirname(fileURLToPath(import.meta.url)), '..', 'fixture', 'usage-ledger')
 
 export const BASELINE_VISIBLE_TESTS = 16
 
@@ -33,8 +37,11 @@ export function scoreCodeTask(repo, task, taskDir) {
   const hidden = Object.values(perFile).reduce((a, r) => ({ tests: a.tests + r.tests, pass: a.pass + r.pass, fail: a.fail + r.fail + r.cancelled }), { tests: 0, pass: 0, fail: 0 })
   const visibleOk = visible.fail === 0 && visible.cancelled === 0 && visible.pass >= BASELINE_VISIBLE_TESTS && !visible.timedOut
   const hiddenOk = hidden.fail === 0 && hidden.pass > 0 && hidden.pass === hidden.tests
+  const compliance = specCompliance(task.id, repo)
   return {
     success: visibleOk && hiddenOk,
+    specComplete: compliance ? compliance.complete : null,
+    compliance,
     visible,
     hidden,
     hiddenPerFile: Object.fromEntries(Object.entries(perFile).map(([k, r]) => [k, { pass: r.pass, fail: r.fail + r.cancelled, failures: r.failures }])),
@@ -112,4 +119,44 @@ export function scoreFindingsTask(repo, task, taskDir) {
   if (!loaded.ok) return { success: false, error: loaded.error, recall: 0, found: [], missed: key.defects.map((d) => d.id), extras: 0, findings: 0 }
   const m = matchFindings(loaded.findings, key.defects, task.tolerance || 3)
   return { success: m.recall === 1, ...m }
+}
+
+// ---- spec completeness --------------------------------------------------------------------------
+// The hidden tests score whether the change works. These checks score the other things each spec asks
+// for (tests, docs, a source comment), which otherwise make an incomplete solution look cheaper.
+const read = (f) => (existsSync(f) ? readFileSync(f, 'utf8') : '')
+const testFiles = (repo) => (existsSync(path.join(repo, 'test')) ? readdirSync(path.join(repo, 'test')).filter((f) => /\.(c|m)?js$/.test(f)) : [])
+
+// Runs the agent's test/ directory against the untouched fixture: regression tests must fail there.
+function testsAgainstBase(repo) {
+  const dir = mkdtempSync(path.join(os.tmpdir(), 'bench-regress-'))
+  cpSync(FIXTURE, dir, { recursive: true })
+  rmSync(path.join(dir, 'test'), { recursive: true, force: true })
+  cpSync(path.join(repo, 'test'), path.join(dir, 'test'), { recursive: true })
+  const r = runNodeTests(dir)
+  rmSync(dir, { recursive: true, force: true })
+  return r
+}
+
+export function specCompliance(taskId, repo) {
+  const items = {}
+  if (taskId === 'rate-limit') {
+    items.testFile = existsSync(path.join(repo, 'test', 'rate-limit.test.js'))
+    const readme = read(path.join(repo, 'README.md'))
+    items.readmeDocumented = readme !== read(path.join(FIXTURE, 'README.md')) && /429|rate[ -]?limit/i.test(readme)
+  } else if (taskId === 'bugfix-trio') {
+    const base = testsAgainstBase(repo)
+    items.regressionTestsFailOnBase = base.fail
+    items.regressionTests = base.fail >= 3
+  } else if (taskId === 'price-refresh') {
+    const prices = read(path.join(repo, 'src', 'prices.js'))
+    items.sourceUrl = /https?:\/\/[^\s'"]*(anthropic\.com|claude\.com)/i.test(prices)
+    items.lastUpdatedChanged = /last updated/i.test(prices) && !/last updated:?\s*2026-07-01/i.test(prices)
+    items.testForNewModels = testFiles(repo).some((f) => {
+      const t = read(path.join(repo, 'test', f))
+      return t.includes('claude-haiku-5-5') && t.includes('claude-sonnet-5-5') && t.includes('claude-opus-5-5')
+    })
+  } else return null
+  const complete = Object.entries(items).filter(([, v]) => typeof v === 'boolean').every(([, v]) => v)
+  return { complete, items }
 }
