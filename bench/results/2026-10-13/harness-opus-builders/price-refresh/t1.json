@@ -1,0 +1,150 @@
+{
+  "benchVersion": 2,
+  "label": "2026-10-13",
+  "team": "harness-opus-builders",
+  "teamKind": "harness",
+  "task": "price-refresh",
+  "taskKind": "code",
+  "trial": 1,
+  "sessionId": "10e556cf-f1ad-4ee2-af53-1a72049472e0",
+  "startedAt": "2026-10-13T20:22:33.438Z",
+  "finishedAt": "2026-10-13T20:23:47.885Z",
+  "wallSec": 74.447,
+  "timedOut": false,
+  "turns": [
+    {
+      "turn": 1,
+      "exitCode": 0,
+      "signal": null,
+      "timedOut": false,
+      "wallSec": 74.447
+    }
+  ],
+  "success": true,
+  "score": {
+    "success": true,
+    "specComplete": true,
+    "compliance": {
+      "complete": true,
+      "items": {
+        "sourceUrl": true,
+        "lastUpdatedChanged": true,
+        "testForNewModels": true
+      }
+    },
+    "visible": {
+      "tests": 17,
+      "pass": 17,
+      "fail": 0,
+      "cancelled": 0,
+      "timedOut": null,
+      "exitCode": 0,
+      "failures": []
+    },
+    "hidden": {
+      "tests": 5,
+      "pass": 5,
+      "fail": 0
+    },
+    "hiddenPerFile": {
+      "prices.test.js": {
+        "pass": 5,
+        "fail": 0,
+        "failures": []
+      }
+    },
+    "partial": 1,
+    "notes": []
+  },
+  "check": null,
+  "costUSD": 0.7896365999999998,
+  "costSource": "claude-code",
+  "costUSDFromStream": 0.7896365999999998,
+  "costUSDFromTranscripts": 0.787488,
+  "invalidReason": null,
+  "apiErrors": 0,
+  "usageWindows": {
+    "five_hour": {
+      "utilization": 0.42,
+      "resetsAt": 1791930000
+    },
+    "seven_day": {
+      "utilization": 0.16,
+      "resetsAt": 1792162800
+    }
+  },
+  "modelUsage": {
+    "claude-opus-5-5": {
+      "inputTokens": 18,
+      "outputTokens": 6740,
+      "cacheReadInputTokens": 571960,
+      "cacheCreationInputTokens": 67278,
+      "thinkingTokens": 2535,
+      "webSearchRequests": 0,
+      "costUSD": 0.7874879999999999
+    },
+    "claude-haiku-5-5": {
+      "inputTokens": 10971,
+      "outputTokens": 2103,
+      "cacheReadInputTokens": 0,
+      "cacheCreationInputTokens": 0,
+      "thinkingTokens": 1479,
+      "webSearchRequests": 0,
+      "costUSD": 0.0021485999999999996
+    }
+  },
+  "tokensByModel": {
+    "claude-opus-5-5": {
+      "requests": 9,
+      "input": 18,
+      "output": 6740,
+      "cacheRead": 571960,
+      "cacheWrite": 67278,
+      "costUSD": 0.787488
+    }
+  },
+  "byRole": {
+    "main": {
+      "agents": 1,
+      "requests": 9,
+      "input": 18,
+      "output": 6740,
+      "cacheRead": 571960,
+      "cacheWrite": 67278,
+      "costUSD": 0.787488,
+      "models": {
+        "claude-opus-5-5": 9
+      }
+    }
+  },
+  "agentCount": 0,
+  "workflows": [],
+  "ship": null,
+  "hooks": {
+    "SessionStart:started": 1,
+    "SessionStart:success": 1,
+    "Stop:started": 1,
+    "Stop:success": 1
+  },
+  "stopBlocks": [],
+  "toolUses": {
+    "Skill": 1,
+    "Bash": 6,
+    "ToolSearch": 1,
+    "WebFetch": 2
+  },
+  "agentSpawns": [],
+  "workflowCalls": [],
+  "testCommands": 2,
+  "permissionDenials": 0,
+  "errors": [],
+  "contamination": [],
+  "specDelivered": null,
+  "changedFiles": [
+    "src/prices.js",
+    "test/cost.test.js"
+  ],
+  "finalMessage": "I've added the three Claude 5.5 models to `src/prices.js` with their prices as of 2026-10-13, and added a test that costs one request on each. `npm test` passes all 17 tests.\n\n| Model | input | output | cacheRead | cacheWrite (5 min) |\n|---|---|---|---|---|\n| `claude-haiku-5-5` (prompts up to 100K tokens) | 0.1 | 0.5 | 0.01 | 0.125 |\n| `claude-sonnet-5-5` | 2 | 10 | 0.1 | 2.5 |\n| `claude-opus-5-5` | 4 | 20 | 0.2 | 5 |\n\nAll figures are USD per million tokens.\n\n**Where the prices come from:** Anthropic's pricing page (https://platform.claude.com/docs/en/about-claude/pricing), checked against https://claude.com/pricing; both give the same figures. The docs URL is now in a comment in `src/prices.js`, next to a note that Haiku 5.5 uses the up-to-100K prices. The \"Last updated\" line now reads 2026-10-13.\n\n**What changed recently:** cache reads on Opus 5.5 and Sonnet 5.5 now cost 0.05× the input price, not the usual 0.1×. That makes Sonnet 5.5 $0.10, where my cached reference data said $0.20. I used the official $0.10.\n\n**Changes:**\n- **`src/prices.js`:** three new entries after the existing ones. The three existing entries are untouched; the diff on that file is three new entries plus the header comment change.\n- **`test/cost.test.js`:** a new test, \"costOf prices one request on each Claude 5.5 model\". It uses a single request with input, output, cache-read and cache-write tokens, and checks the cost on each model. I confirmed it fails if a price is wrong: with Sonnet 5.5 cache reads set back to the old $0.20, it reports 26000 instead of 25000.\n\n**One thing to know:** `costOf` uses one price per model and has no idea of prompt length. Haiku 5.5 requests over 100,000 tokens actually cost 5× more ($0.50 input / $2.50 output), so this ledger will undercharge them by that much. That's what you asked for, but if large Haiku prompts are likely, `costOf` would need to apply the higher prices above 100K tokens.\n\nI haven't committed anything.",
+  "workDir": "/tmp/harness-bench/2026-10-13/harness-opus-builders/price-refresh/t1",
+  "rescoredAt": "2026-10-13T20:23:54.521Z"
+}
