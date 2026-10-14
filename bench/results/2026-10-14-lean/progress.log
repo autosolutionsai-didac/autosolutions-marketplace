@@ -51,3 +51,10 @@
 2026-10-14T21:35:18.112Z   harness-lean audit-input t3: turn 2/2 started
 2026-10-14T21:35:42.681Z [w2] done  harness-lean audit-input t3: SUCCESS in 388s, $1.39, plan 5h 36%
 2026-10-14T21:35:42.681Z all runs finished
+2026-10-14T21:40:06.469Z bench 2026-10-14-lean: 15 runs planned, 10 already done, 5 to run, 3 at a time. Work dir /tmp/harness-bench/2026-10-14-lean
+2026-10-14T21:40:06.495Z [w1] start harness-lean rate-limit t1
+2026-10-14T21:40:06.686Z   harness-lean rate-limit t1: turn 1/1 started
+2026-10-14T21:40:06.689Z [w2] start harness-lean bugfix-trio t1
+2026-10-14T21:40:06.878Z   harness-lean bugfix-trio t1: turn 1/1 started
+2026-10-14T21:40:06.880Z [w3] start harness-lean rate-limit t2
+2026-10-14T21:40:07.054Z   harness-lean rate-limit t2: turn 1/1 started
