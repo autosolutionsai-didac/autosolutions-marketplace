@@ -31,6 +31,8 @@ const MODELS = {
   verify: input.verifyModel || 'claude-opus-5-5',
   rank: input.rankModel || 'claude-opus-5-5',
 }
+// Verifiers are most of a run's cost; verifyEffort trades some scrutiny for money.
+const VERIFY_EFFORT = ['low', 'medium', 'high', 'xhigh', 'max'].includes(input.verifyEffort) ? input.verifyEffort : 'high'
 
 const FILES = {
   type: 'object',
@@ -120,7 +122,7 @@ Read the file and the callers or callees you need (Grep). Report only concrete i
 FINDING: ${fi.title} at ${fi.line} (${fi.severity})
 EVIDENCE: ${fi.evidence}
 
-Read the code at that location and whatever guards or callers would make it a false positive. Run a targeted command when that settles it. Set real=true only with a specific reason.`, { phase: 'Verify', model: MODELS.verify, effort: 'high', agentType: 'harness:refuter', schema: VOTE, label: `${f}: ${fi.title.slice(0, 40)} #${n}` })))
+Read the code at that location and whatever guards or callers would make it a false positive. Run a targeted command when that settles it. Set real=true only with a specific reason.`, { phase: 'Verify', model: MODELS.verify, effort: VERIFY_EFFORT, agentType: 'harness:refuter', schema: VOTE, label: `${f}: ${fi.title.slice(0, 40)} #${n}` })))
         .then(votes => {
           const v = votes.filter(Boolean)
           const real = v.length > 0 && v.every(x => x.real)

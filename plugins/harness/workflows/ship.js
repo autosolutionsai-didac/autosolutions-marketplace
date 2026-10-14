@@ -43,6 +43,9 @@ const MODELS = {
   refute: input.refuteModel || 'claude-opus-5-5',
   gate: input.gateModel || 'fable',
 }
+const EFFORTS = ['low', 'medium', 'high', 'xhigh', 'max']
+// Refuters are most of a ship run's cost; refuteEffort and refuteLenses trade some scrutiny for money.
+const REFUTE_EFFORT = EFFORTS.includes(input.refuteEffort) ? input.refuteEffort : 'high'
 
 // ---------------------------------------------------------------------------
 // Schemas: every stage returns typed data, never prose, so the script can branch
@@ -243,16 +246,19 @@ The integrated change is on branch ${base} in your current directory (git log, g
 // ---------------------------------------------------------------------------
 // Stages
 // ---------------------------------------------------------------------------
-const LENSES = [
+const ALL_LENSES = [
   ['correctness', 'Does the code do what the spec says for real inputs? Trace the logic and execute it where you can.'],
   ['edges-and-regressions', 'Hunt edge cases, error paths, concurrency, and existing callers or tests this change breaks.'],
   ['verification', 'Did the builder actually verify this? Re-run the claimed checks and look for acceptance criteria with no test behind them.'],
 ]
+// refuteLenses names the lenses to run (default: all three). With two, a unit passes only if neither refutes it.
+const LENSES = Array.isArray(input.refuteLenses) && input.refuteLenses.length ? ALL_LENSES.filter(([name]) => input.refuteLenses.includes(name)) : ALL_LENSES
+if (!LENSES.length) throw new Error(`refuteLenses must name at least one of: ${ALL_LENSES.map(([n]) => n).join(', ')}`)
 
 const refute = async (u, build) => {
   const votes = (await parallel(LENSES.map(([lens, focus]) => () =>
     agent(refutePrompt(u, build, lens, focus), {
-      phase: 'Refute', model: MODELS.refute, effort: 'high', agentType: 'harness:refuter', schema: VERDICT, label: `${u.id} ${lens}`,
+      phase: 'Refute', model: MODELS.refute, effort: REFUTE_EFFORT, agentType: 'harness:refuter', schema: VERDICT, label: `${u.id} ${lens}`,
     })))).filter(Boolean)
   const refutedCount = votes.filter(v => v.refuted).length
   // Majority rule: a unit passes when fewer than half of the reviewers who answered refuted it.

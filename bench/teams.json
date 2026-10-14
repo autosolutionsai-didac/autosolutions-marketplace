@@ -44,6 +44,14 @@
       "roleModels": { "builder": "claude-haiku-5-5" }
     },
     {
+      "id": "harness-lean",
+      "extends": "harness-haiku-builders",
+      "label": "Lean harness: Haiku 5.5 builders and finders; Opus 5.5 plans, integrates and fixes; two Opus refuters per unit at medium effort (correctness, edges and regressions) instead of three at high; Opus instead of Fable for the ship gate and the review and audit reports; Sonnet 5.5 verifiers at medium effort on review and audit",
+      "shipArgs": { "buildModel": "claude-haiku-5-5", "refuteLenses": ["correctness", "edges-and-regressions"], "refuteEffort": "medium", "gateModel": "claude-opus-5-5" },
+      "reviewArgs": { "findModel": "claude-haiku-5-5", "verifyModel": "claude-sonnet-5-5", "verifyEffort": "medium", "rankModel": "claude-opus-5-5" },
+      "auditArgs": { "findModel": "claude-haiku-5-5", "verifyModel": "claude-sonnet-5-5", "verifyEffort": "medium", "rankModel": "claude-opus-5-5" }
+    },
+    {
       "id": "native-opus-xhigh-jev",
       "extends": "native-opus-xhigh",
       "label": "native-opus-xhigh plus the harness decision gate on Jev (only the Stop hook, nothing else from the harness)",

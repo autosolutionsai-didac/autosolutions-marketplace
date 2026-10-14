@@ -196,11 +196,12 @@ rmSync(branch, { recursive: true, force: true })
   const teams = resolveTeams(JSON.parse(readFileSync(path.join(BENCH, 'teams.json'), 'utf8')).teams)
   const byId = Object.fromEntries(teams.map((t) => [t.id, t]))
   const jevIds = teams.filter((t) => t.decisionGate).map((t) => t.id)
-  check('teams: every team has a decision-gate twin that differs only by the gate', teams.filter((t) => !t.decisionGate).every((t) => {
-    const twin = byId[`${t.id}-jev`]
-    if (!twin) return false
+  check('teams: every decision-gate team differs from the team it extends only by the gate', jevIds.length > 0 && jevIds.every((id) => {
+    const twin = byId[id]
+    const base = byId[twin.extends]
+    if (!base) return false
     const strip = (x) => JSON.stringify({ ...x, id: null, label: null, extends: null, decisionGate: null })
-    return strip(twin) === strip(t)
+    return strip(twin) === strip(base)
   }), jevIds.join(','))
 
   const g = (cwd, ...a) => spawnSync('git', a, { cwd, encoding: 'utf8' })

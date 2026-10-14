@@ -60,9 +60,9 @@ Options are structured arguments. The reliable way to set them is a JSON object 
 Prose ("ship the rate limiter, max 4 units") works only when Claude converts it into an object before starting the workflow. When the text is passed through as-is, the whole string becomes the task (ship), the base branch (review) or the concern (audit), and the options are ignored. The accepted fields:
 
 ```
-ship:    { task, maxUnits (default 6, max 12), integrate (default true), planModel, buildModel, fixModel (default claude-opus-5-5), refuteModel, gateModel }
-review:  { base (default main), maxFiles (default 40), focus, scopeModel, findModel, verifyModel, rankModel }
-audit:   { concern, path (default .), maxFiles (default 40), scopeModel, findModel, verifyModel, rankModel }
+ship:    { task, maxUnits (default 6, max 12), integrate (default true), planModel, buildModel, fixModel (default claude-opus-5-5), refuteModel, gateModel, refuteEffort (default high), refuteLenses (default all of correctness, edges-and-regressions, verification) }
+review:  { base (default main), maxFiles (default 40), focus, scopeModel, findModel, verifyModel, rankModel, verifyEffort (default high) }
+audit:   { concern, path (default .), maxFiles (default 40), scopeModel, findModel, verifyModel, rankModel, verifyEffort (default high) }
 ```
 
 Set `integrate: false` on ship if you would rather merge the unit branches yourself.

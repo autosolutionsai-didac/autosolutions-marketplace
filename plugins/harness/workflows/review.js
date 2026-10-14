@@ -30,6 +30,8 @@ const MODELS = {
   verify: input.verifyModel || 'claude-opus-5-5',
   rank: input.rankModel || 'claude-opus-5-5',
 }
+// Verifiers are most of a run's cost; verifyEffort trades some scrutiny for money.
+const VERIFY_EFFORT = ['low', 'medium', 'high', 'xhigh', 'max'].includes(input.verifyEffort) ? input.verifyEffort : 'high'
 
 const FILES = {
   type: 'object',
@@ -126,7 +128,7 @@ FINDING: ${fi.title} (${fi.severity}) at ${fi.line}
 EVIDENCE: ${fi.evidence}
 PROPOSED FIX: ${fi.fix}
 
-Read the code at that location (git diff ${scope.base_ref}...HEAD -- "${f}", then the file), trace callers with Grep, and run a targeted test or a quick script when that settles it. Confirm only a real defect relative to how the code is used; a preference, a hypothetical that the code already guards against, or an issue that exists identically on ${scope.base_ref} and is unrelated to this change is NOT confirmed. Set the severity you would assign.`, { phase: 'Verify', model: MODELS.verify, effort: 'high', agentType: 'harness:refuter', schema: VERIFY, label: `${f}: ${fi.title.slice(0, 50)}` })))
+Read the code at that location (git diff ${scope.base_ref}...HEAD -- "${f}", then the file), trace callers with Grep, and run a targeted test or a quick script when that settles it. Confirm only a real defect relative to how the code is used; a preference, a hypothetical that the code already guards against, or an issue that exists identically on ${scope.base_ref} and is unrelated to this change is NOT confirmed. Set the severity you would assign.`, { phase: 'Verify', model: MODELS.verify, effort: VERIFY_EFFORT, agentType: 'harness:refuter', schema: VERIFY, label: `${f}: ${fi.title.slice(0, 50)}` })))
     return found.findings
       .map((fi, i) => ({ ...fi, file: f, verdict: verdicts[i] }))
       .filter(x => x.verdict && x.verdict.confirmed)
