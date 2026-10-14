@@ -102,8 +102,32 @@ function turnsFor(team, task) {
   const spec = existsSync(path.join(taskDir, 'spec.md')) ? readFileSync(path.join(taskDir, 'spec.md'), 'utf8').trim() : ''
   const findingsTurn = task.findingsFile ? fill(readFileSync(path.join(BENCH, 'tasks', 'findings-turn.md'), 'utf8').trim(), { what: task.findingsWhat, file: task.findingsFile }) : ''
   const shipArgs = JSON.stringify({ task: spec, ...(team.shipArgs || {}) })
+  const reviewArgs = JSON.stringify({ base: 'main', ...(team.reviewArgs || {}) })
+  const auditArgs = JSON.stringify({ concern: 'security vulnerabilities an attacker can reach through the HTTP API', path: 'src', ...(team.auditArgs || {}) })
   const templates = task.turns[team.kind] || task.turns.harness
-  return templates.map((t) => fill(t, { spec, shipArgs, findingsTurn }))
+  return templates.map((t) => fill(t, { spec, shipArgs, reviewArgs, auditArgs, findingsTurn }))
+}
+
+// A team can move a plugin agent role to another model ("roleModels": { "builder": "claude-haiku-5-5" }).
+// It gets its own copy of the frozen plugin with that agent's `model:` line rewritten, so the role's
+// model changes wherever the role is used: workflow stages that name no model and direct subagent calls.
+function pluginDirFor(team, opts) {
+  if (!team.roleModels || !Object.keys(team.roleModels).length) return opts.pluginDir
+  return path.join(opts.work, 'plugin-snapshot', team.id, 'harness')
+}
+
+function snapshotPlugin(team, opts) {
+  const dir = pluginDirFor(team, opts)
+  if (dir === opts.pluginDir) return
+  rmSync(dir, { recursive: true, force: true })
+  cpSync(opts.pluginDir, dir, { recursive: true })
+  for (const [role, model] of Object.entries(team.roleModels)) {
+    const f = path.join(dir, 'agents', `${role}.md`)
+    if (!existsSync(f)) throw new Error(`team ${team.id}: no agent ${role} in the plugin`)
+    const src = readFileSync(f, 'utf8')
+    if (!/^model: .*$/m.test(src)) throw new Error(`team ${team.id}: agent ${role} has no model line`)
+    writeFileSync(f, src.replace(/^model: .*$/m, `model: ${model}`))
+  }
 }
 
 function runClaude({ prompt, cwd, env, args, timeoutMs, streamFile, stderrFile }) {
@@ -146,7 +170,7 @@ async function runJob(job, opts, log) {
   if (mock) Object.assign(extraEnv, { TYPESAFE_API_KEY: 'bench-mock', TYPESAFE_BASE_URL: mock.url, HARNESS_DEBUG: '1' })
   const env = childEnv({ configDir, extra: extraEnv })
   const common = ['--model', team.model, '--effort', team.effort, '--output-format', 'stream-json', '--verbose', '--include-hook-events', '--permission-mode', 'bypassPermissions', '--max-budget-usd', String(opts.budgetUsd)]
-  if (team.plugin) common.push('--plugin-dir', opts.pluginDir)
+  if (team.plugin) common.push('--plugin-dir', pluginDirFor(team, opts))
   if (team.settings) common.push('--settings', path.resolve(BENCH, team.settings))
 
   const startedAt = new Date().toISOString()
@@ -278,6 +302,7 @@ async function main() {
   if (!opts.dryRun) {
     rmSync(opts.pluginDir, { recursive: true, force: true })
     cpSync(PLUGIN_DIR, opts.pluginDir, { recursive: true })
+    for (const team of teams) if (team.plugin) snapshotPlugin(team, opts)
   }
   const progress = path.join(resultsDir, 'progress.log')
   const log = (m) => { const line = `${new Date().toISOString()} ${m}`; console.log(line); appendFileSync(progress, line + '\n') }

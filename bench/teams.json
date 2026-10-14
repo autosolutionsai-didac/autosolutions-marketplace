@@ -29,6 +29,19 @@
       "plugin": true,
       "settings": "../plugins/harness/templates/settings.recommended.json",
       "shipArgs": { "buildModel": "claude-opus-5-5" }
+    },
+    {
+      "id": "harness-haiku-builders",
+      "label": "Harness with Haiku 5.5 builders and finders; Opus 5.5 as architect and project manager (main session, plan, integrate, fix rounds, refuters); Fable 5.1 as final reviewer (ship gate, review and audit reports)",
+      "kind": "harness",
+      "model": "claude-opus-5-5",
+      "effort": "xhigh",
+      "plugin": true,
+      "settings": "../plugins/harness/templates/settings.recommended.json",
+      "shipArgs": { "buildModel": "claude-haiku-5-5" },
+      "reviewArgs": { "findModel": "claude-haiku-5-5", "rankModel": "claude-fable-5-1" },
+      "auditArgs": { "findModel": "claude-haiku-5-5", "rankModel": "claude-fable-5-1" },
+      "roleModels": { "builder": "claude-haiku-5-5" }
     }
   ]
 }

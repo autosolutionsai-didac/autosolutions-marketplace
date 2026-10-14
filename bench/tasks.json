@@ -63,7 +63,7 @@
       "tolerance": 4,
       "turns": {
         "harness": [
-          "/harness:review {\"base\": \"main\"}",
+          "/harness:review {{reviewArgs}}",
           "{{findingsTurn}}"
         ],
         "native": [
@@ -84,7 +84,7 @@
       "tolerance": 4,
       "turns": {
         "harness": [
-          "/harness:audit {\"concern\": \"security vulnerabilities an attacker can reach through the HTTP API\", \"path\": \"src\"}",
+          "/harness:audit {{auditArgs}}",
           "{{findingsTurn}}"
         ],
         "native": [

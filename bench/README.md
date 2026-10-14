@@ -13,6 +13,7 @@ A repeatable test of the harness plugin against plain Claude Code. Every team ge
 | `native-opus-xhigh` | No harness. Plain Claude Code, Opus 5.5 at xhigh, subagents forced to Opus 5.5 too |
 | `harness-sonnet-builders` | The harness as installed: Sonnet 5.5 builders at medium, Opus 5.5 fix rounds, Opus refuters, Fable 5.1 gate, recommended settings |
 | `harness-opus-builders` | The same, with Opus 5.5 builders at medium (`buildModel`) |
+| `harness-haiku-builders` | Haiku 5.5 builders and review/audit finders; Opus 5.5 as architect and project manager (main session, plan, integrate, fix rounds, refuters); Fable 5.1 as final reviewer (ship gate, review and audit reports) |
 
 **Comparative tasks** (`tasks.json`, run by every team):
 
@@ -68,7 +69,7 @@ Requirements: Claude Code 2.1.293+ on the PATH, logged in, Node 20+, git. Each r
 
 Timing depends on the machine. Claude Code runs at most min(16, CPUs - 2) workflow agents at once (at least 2), so on a 4-CPU machine a ship run's three refuters per unit queue two at a time. Compare wall times only between runs on the same machine, and prefer a machine with 18 or more CPUs for timing claims. A rerun with the same label skips finished runs, so an interrupted benchmark resumes. `--trials 3` repeats every cell; one trial cannot separate a real difference from noise.
 
-To add a team, add an entry to `teams.json` (any model, effort, env, settings file or `shipArgs`). To add a task, add a folder under `tasks/` with `spec.md`, hidden tests and a reference solution (or an answer key), add it to `tasks.json`, and make `node bench/selftest.mjs` pass.
+To add a team, add an entry to `teams.json`: any model, effort, env or settings file; `shipArgs`, `reviewArgs` and `auditArgs` for the workflows' model options; and `roleModels` to move a plugin agent role (for example `builder`) to another model. To add a task, add a folder under `tasks/` with `spec.md`, hidden tests and a reference solution (or an answer key), add it to `tasks.json`, and make `node bench/selftest.mjs` pass.
 
 ## Costs
 
