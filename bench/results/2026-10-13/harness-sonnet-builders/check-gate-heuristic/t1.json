@@ -123,6 +123,6 @@
   "finalMessage": "Done.\n\nI ran `node --check src/money.js` and `npm test`. The syntax check passed, all 16 tests passed with 0 failures, and the diff is the one added comment line.",
   "workDir": "/tmp/harness-bench/2026-10-13/harness-sonnet-builders/check-gate-heuristic/t1",
   "apiErrorTexts": [],
-  "rescoredAt": "2026-10-14T21:39:10.697Z",
+  "rescoredAt": "2026-10-14T21:58:25.682Z",
   "optionsDelivered": null
 }

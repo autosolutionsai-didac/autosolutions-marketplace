@@ -266,6 +266,6 @@
   "apiErrorTexts": [
     "API Error: Opus 5.5's safeguards flagged this session (https://www.anthropic.com/legal/aup). You may be seeing this for the first time: Opus 5.5 is more capable"
   ],
-  "rescoredAt": "2026-10-14T21:39:14.592Z",
+  "rescoredAt": "2026-10-14T21:58:31.932Z",
   "optionsDelivered": true
 }

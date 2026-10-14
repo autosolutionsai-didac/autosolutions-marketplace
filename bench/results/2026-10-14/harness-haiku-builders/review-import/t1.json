@@ -242,6 +242,6 @@
   "finalMessage": "I wrote the seven findings to `REVIEW.json` in the repository root, in the same order and with the same severities as in my review. The file parses as valid JSON. `git status` shows it's the only change; no other file was touched.\n\n| # | Severity | Location |\n|---|---|---|\n| 1 | blocking | `src/server.js:41`: bulk import bills the key in the body, not the caller's key |\n| 2 | blocking | `src/importer.js:10`: import stats are shared across requests and leak between keys |\n| 3 | major | `src/importer.js:16`: the row limit fires after 10,000 rows are already recorded |\n| 4 | major | `src/server.js:40`: no body size limit, so `maxBodyBytes` is skipped |\n| 5 | major | `src/importer.js:15`: a blank line stops the import |\n| 6 | major | `src/importer.js:25`: a `null` line causes a 500 |\n| 7 | minor | `test/importer.test.js:29`: the test server stays open if an assertion fails |\n\nWhere a finding covered a range of lines, I used the line where the defect actually happens. I left out the README follow-up because it was a note about updating the docs after the fixes, not a separate finding.",
   "workDir": "/tmp/harness-bench/2026-10-14/harness-haiku-builders/review-import/t1",
   "apiErrorTexts": [],
-  "rescoredAt": "2026-10-14T21:39:17.123Z",
+  "rescoredAt": "2026-10-14T21:58:34.649Z",
   "optionsDelivered": true
 }

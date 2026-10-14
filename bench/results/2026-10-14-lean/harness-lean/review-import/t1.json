@@ -249,6 +249,6 @@
   "finalMessage": "I wrote `REVIEW.json` to the repository root with all 8 findings in the order I reported them: 1 blocking, 4 major and 3 minor. It parses as valid JSON, and `git status` shows it as the only change.\n\nWhere my report gave a line range or no line, I had to pick one line per finding:\n- **Finding 1 (cross-tenant writes):** `src/server.js:41`, where `importEvents` is called without the caller's key. The `detail` also names `src/importer.js:30` and `README.md:24`.\n- **Finding 7 (test gaps and partial writes):** `test/importer.test.js:24`, the `maxRows` test that doesn't check what was already written to the ledger. My report didn't give a line for this one.\n- **Finding 8 (test can hang):** `test/importer.test.js:36`, where the server is closed only after the assertions pass.",
   "workDir": "/tmp/harness-bench/2026-10-14-lean/harness-lean/review-import/t1",
   "apiErrorTexts": [],
-  "rescoredAt": "2026-10-14T21:39:24.844Z",
+  "rescoredAt": "2026-10-14T21:58:45.439Z",
   "optionsDelivered": true
 }

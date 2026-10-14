@@ -239,7 +239,7 @@
   ],
   "finalMessage": "I wrote `REVIEW.json` to the repository root. It holds 7 findings, the 2 blocking and 5 major ones I reported, with the same severities. The file parses as valid JSON, and `git status` shows it as the only change; no other file was touched.\n\nA few choices you might want to check:\n- **Line numbers:** each object takes a single line, so where I had reported a range I used the line that causes the problem.\n  - Cross-tenant billing → `src/server.js:41`, the call that drops the caller's key. The detail text also points to `src/importer.js:30`, where the row's own key is recorded.\n  - Shared stats → `src/importer.js:10`\n  - Unbounded body → `src/server.js:40`\n  - Missing tests → `test/importer.test.js:28`, the endpoint test\n- **Left out:** the optional README note about documenting the 10,000-row limit. I had marked it as a suggestion, not one of the findings. Tell me if you want it added as a low-severity entry.",
   "workDir": "/tmp/harness-bench/2026-10-13/harness-opus-builders/review-import/t1",
-  "rescoredAt": "2026-10-14T21:39:09.307Z",
+  "rescoredAt": "2026-10-14T21:58:23.899Z",
   "apiErrorTexts": [],
   "optionsDelivered": null
 }

@@ -58,3 +58,14 @@
 2026-10-14T21:40:06.878Z   harness-lean bugfix-trio t1: turn 1/1 started
 2026-10-14T21:40:06.880Z [w3] start harness-lean rate-limit t2
 2026-10-14T21:40:07.054Z   harness-lean rate-limit t2: turn 1/1 started
+2026-10-14T21:43:59.416Z [w1] done  harness-lean rate-limit t1: SUCCESS in 232s, $1.05, plan 5h 38%
+2026-10-14T21:43:59.416Z [w1] start harness-lean bugfix-trio t2
+2026-10-14T21:43:59.593Z   harness-lean bugfix-trio t2: turn 1/1 started
+2026-10-14T21:47:09.971Z [w3] done  harness-lean rate-limit t2: SUCCESS in 422s, $1.36, plan 5h 38%
+2026-10-14T21:47:09.971Z [w3] start harness-lean review-import t2
+2026-10-14T21:47:10.245Z   harness-lean review-import t2: turn 1/2 started
+2026-10-14T21:50:12.445Z   harness-lean review-import t2: turn 2/2 started
+2026-10-14T21:50:36.380Z [w3] done  harness-lean review-import t2: SUCCESS in 206s, $0.73, plan 5h 38%
+2026-10-14T21:54:17.001Z [w2] done  harness-lean bugfix-trio t1: SUCCESS in 849s, $1.75, plan 5h 39%
+2026-10-14T21:55:42.694Z [w1] done  harness-lean bugfix-trio t2: SUCCESS in 702s, $1.45, plan 5h 39%
+2026-10-14T21:55:42.694Z all runs finished

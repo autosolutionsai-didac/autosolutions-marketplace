@@ -22,7 +22,7 @@ A repeatable test of the harness plugin against plain Claude Code. Every team ge
 | Task | What the team is asked | How it is scored |
 |---|---|---|
 | `rate-limit` | Add per-key fixed-window rate limiting: new module, server wiring, headers, tests, docs. Harness teams run `/harness:ship` | 9 hidden tests + the visible suite |
-| `bugfix-trio` | Fix three bug reports in three files, each with a regression test. Harness teams run `/harness:ship` | 9 hidden tests (3 per bug) + the visible suite |
+| `bugfix-trio` | Fix three bug reports in three files, each with a regression test. Harness teams run `/harness:ship` | 9 hidden tests (3 per bug) + the visible suite; a strict check on fractional discounts is reported apart |
 | `price-refresh` | Add the Claude 5.5 prices, which are newer than the models' training data and must be looked up. Same plain prompt for everyone, no slash command | 5 hidden tests against Anthropic's pricing page + the visible suite |
 | `review-import` | Review a feature branch with four seeded defects, then write `REVIEW.json`. Harness teams run `/harness:review` | Recall against `tasks/review-import/defects.json` |
 | `audit-input` | Audit `src/` for vulnerabilities reachable over HTTP, then write `AUDIT.json`. Harness teams run `/harness:audit` | Recall against `tasks/audit-input/vulns.json` |
@@ -39,6 +39,8 @@ Per run (`results/<label>/<team>/<task>/t<n>.json`):
 - **tokens**: per model: input, output, cache reads, cache writes. "Fresh" tokens exclude cache reads.
 - **where it went**: cost, API calls and output tokens per role (main session, `harness:builder (Build)`, `harness:refuter (Refute)`, `harness:judge (Gate)`, workflow scopes and finders, and so on).
 - **inside ship**: units, how many passed, fix rounds, the gate's verdict, and whether it agreed with the hidden tests.
+- **strict checks**: a task may add a `strict/` folder of tests that go past the hidden tests. They are reported as "strict check passed in X of N" and never change a run's success.
+- **options delivered**: for a team with workflow model options, whether each stage ran on the model the team asked for. A run that fell back to the defaults is flagged.
 - **hooks**: every SessionStart and Stop hook that fired, and every stop it blocked.
 - **hygiene**: timeouts, errors, permission denials, and whether any transcript touched the benchmark's own files or another run's directory. Such a run does not count as a success.
 - **validity**: a run that hit the account's usage limit, or crashed without a timeout, is written as `t<n>.invalid.json` and retried on the next invocation rather than scored. Before each run the runner checks the plan's usage windows and pauses while either is at 85% or more (`HARNESS_BENCH_USAGE_CEILING`). A run stopped by its timeout gets SIGINT first so Claude Code can record its cost; if it still records none, the cost comes from the transcripts and is marked as a lower bound.
@@ -57,7 +59,8 @@ Per run (`results/<label>/<team>/<task>/t<n>.json`):
 
 - [2026-10-13](results/2026-10-13/FINDINGS.md): first full run, 3 teams, 5 tasks, 9 checks ([report](results/2026-10-13/REPORT.md)).
 - [2026-10-14](results/2026-10-14/FINDINGS.md): Haiku builders with an Opus architect and a Fable final reviewer ([report](results/2026-10-14/REPORT.md)).
-- [2026-10-14-jev](results/2026-10-14-jev/FINDINGS.md): all four teams with the decision gate on Jev, plus a replay of the gate's calls with the fixed rules ([report](results/2026-10-14-jev/REPORT.md); [pooled report, all 8 teams](results/2026-10-13/REPORT-pooled.md)).
+- [2026-10-14-jev](results/2026-10-14-jev/FINDINGS.md): all four teams with the decision gate on Jev, plus a replay of the gate's calls with the fixed rules ([report](results/2026-10-14-jev/REPORT.md)).
+- [2026-10-14-lean](results/2026-10-14-lean/FINDINGS.md): the lean harness (Haiku builders, two Opus refuters at medium, Opus gate and reports, Sonnet verifiers), three trials per task, and the strict check on the bugfix task across all teams ([report](results/2026-10-14-lean/REPORT.md); [pooled report, all 9 teams](results/2026-10-13/REPORT-pooled.md)).
 
 ## Running it
 

@@ -42,9 +42,20 @@ export function scoreCodeTask(repo, task, taskDir) {
   const hidden = Object.values(perFile).reduce((a, r) => ({ tests: a.tests + r.tests, pass: a.pass + r.pass, fail: a.fail + r.fail + r.cancelled }), { tests: 0, pass: 0, fail: 0 })
   const visibleOk = visible.fail === 0 && visible.cancelled === 0 && visible.pass >= BASELINE_VISIBLE_TESTS && !visible.timedOut
   const hiddenOk = hidden.fail === 0 && hidden.pass > 0 && hidden.pass === hidden.tests
+  // Strict tests, where a task has them, probe what its spec implies beyond the hidden tests. Reported apart,
+  // never part of success, so runs scored before a strict test existed stay comparable.
+  let strict = null
+  if (existsSync(path.join(taskDir, 'strict'))) {
+    const strictDir = path.join(hiddenDir, 'strict')
+    mkdirSync(strictDir, { recursive: true })
+    const files = readdirSync(path.join(taskDir, 'strict')).map((f) => { cpSync(path.join(taskDir, 'strict', f), path.join(strictDir, f)); return path.join('.bench-hidden', 'strict', f) })
+    const r = runNodeTests(repo, files)
+    strict = { tests: r.tests, pass: r.pass, fail: r.fail + r.cancelled, failures: r.failures.slice(0, 5) }
+  }
   const compliance = specCompliance(task.id, repo)
   return {
     success: visibleOk && hiddenOk,
+    strict,
     specComplete: compliance ? compliance.complete : null,
     compliance,
     visible,

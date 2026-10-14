@@ -251,6 +251,6 @@
   "finalMessage": "I wrote `AUDIT.json` to the repository root. It has the 7 findings I reported, in the same order. The file parses as valid JSON, and `git status` shows it is the only change.\n\n| File | Line | Severity |\n|---|---|---|\n| `src/auth.js` | 3 | high |\n| `src/static.js` | 14 | high |\n| `src/backup.js` | 8 | high |\n| `src/prices.js` | 19 | medium |\n| `src/config.js` | 13 | medium |\n| `src/csv.js` | 12 | low |\n| `src/ledger.js` | 79 | low |\n\n- **Line numbers:** I re-checked each line against the current source. Where a finding spans several lines, I used the first one: `static.js:14-15` became 14, and `config.js:13-17` became 13.\n- **`config.js` severity:** I set this to `medium`. I had rated it \"Medium (High with #1)\", and the \"detail\" text says it becomes high if the `auth.js` bypass applies.\n- **Excluded:** the three items the verifiers dropped are not in the file, because I didn't report them as findings. These are the unauthenticated invoice read, writing events under any key, and setting the `at` timestamp.",
   "workDir": "/tmp/harness-bench/2026-10-14-lean/harness-lean/audit-input/t2",
   "apiErrorTexts": [],
-  "rescoredAt": "2026-10-14T21:39:17.469Z",
+  "rescoredAt": "2026-10-14T21:58:34.916Z",
   "optionsDelivered": true
 }

@@ -258,6 +258,6 @@
   },
   "invalidReason": null,
   "finalMessage": "I wrote `AUDIT.json` to the repository root. It has one entry for each of the 9 findings I reported (4 high, 2 medium, 3 low), and each entry has exactly the five fields you asked for. The file parses as valid JSON, and `git status` shows it is the only change in the repo.\n\nWhere a finding covers a range of lines, I used the line where the problem is:\n- **Finding 3:** `src/static.js:14`, where the name is decoded.\n- **Finding 4:** `src/config.js:12`, the `deepMerge` function.\n- **Finding 8:** `src/ledger.js:39`, the `events.push` line. My report said line 38.\n\nFindings 1 and 9 both point to `src/auth.js:3`. I left out the `GET /invoices/:key` issue, which was dropped on a split vote and wasn't one of the reported findings.",
-  "rescoredAt": "2026-10-14T21:39:09.391Z",
+  "rescoredAt": "2026-10-14T21:58:23.987Z",
   "optionsDelivered": null
 }

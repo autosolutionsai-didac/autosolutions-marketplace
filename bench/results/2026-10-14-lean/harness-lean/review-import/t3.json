@@ -250,6 +250,6 @@
   "finalMessage": "I wrote `REVIEW.json` to the repository root. It holds the 8 findings from my report and nothing else, in the same order and with the same severities: 2 blocking, 4 major, 2 minor. The file parses as valid JSON, and `git status` shows it as the only change in the repo.\n\nTwo findings span several places, and each gets one line in the file:\n- **Tenant key finding:** I used `src/server.js:41`, where `importEvents` is called without the header key. The `detail` also mentions `src/importer.js:30`, the README and the test.\n- **Body size limit and UTF-8 decoding findings:** both point to `src/server.js:40`, the `for await (const chunk of req) text += chunk` line, because both bugs are on that line.",
   "workDir": "/tmp/harness-bench/2026-10-14-lean/harness-lean/review-import/t3",
   "apiErrorTexts": [],
-  "rescoredAt": "2026-10-14T21:39:24.919Z",
+  "rescoredAt": "2026-10-14T21:58:45.505Z",
   "optionsDelivered": true
 }

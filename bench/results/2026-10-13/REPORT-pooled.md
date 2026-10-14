@@ -1,8 +1,8 @@
-# Harness benchmark: 2026-10-13 + 2026-10-14 + 2026-10-14-jev
+# Harness benchmark: 2026-10-13 + 2026-10-14 + 2026-10-14-jev + 2026-10-14-lean
 
-Runs: 49 (40 comparative, 9 harness checks). Claude Code 2.1.296 (Claude Code), Node v22.22.0, 4 CPUs, 3 runs at a time, trials per comparative cell: 1. Later invocations (resumes or reruns of a subset) are recorded in run-config-<n>.json.
+Runs: 64 (55 comparative, 9 harness checks). Claude Code 2.1.296 (Claude Code), Node v22.22.0, 4 CPUs, 3 runs at a time, trials per comparative cell: 3. Later invocations (resumes or reruns of a subset) are recorded in run-config-<n>.json.
 
-Versions by label: 2026-10-13: Claude Code 2.1.296; 2026-10-14: Claude Code 2.1.299; 2026-10-14-jev: Claude Code 2.1.299.
+Versions by label: 2026-10-13: Claude Code 2.1.296; 2026-10-14: Claude Code 2.1.299; 2026-10-14-jev: Claude Code 2.1.299; 2026-10-14-lean: Claude Code 2.1.300.
 
 Costs are API list-price equivalents as reported by Claude Code (subscription users pay in usage limits instead). Tokens count everything the models read and wrote, including cache reads; "fresh" leaves cache reads out. Times are wall clock for the whole run, all turns.
 
@@ -12,6 +12,7 @@ Costs are API list-price equivalents as reported by Claude Code (subscription us
 - **harness-sonnet-builders**: Harness defaults: Sonnet 5.5 builders (medium), Opus 5.5 fixes, Opus refuters, Fable gate
 - **harness-opus-builders**: Harness with Opus 5.5 builders (medium); everything else as the defaults
 - **harness-haiku-builders**: Harness with Haiku 5.5 builders and finders; Opus 5.5 as architect and project manager (main session, plan, integrate, fix rounds, refuters); Fable 5.1 as final reviewer (ship gate, review and audit reports)
+- **harness-lean**: Lean harness: Haiku 5.5 builders and finders; Opus 5.5 plans, integrates and fixes; two Opus refuters per unit at medium effort (correctness, edges and regressions) instead of three at high; Opus instead of Fable for the ship gate and the review and audit reports; Sonnet 5.5 verifiers at medium effort on review and audit
 - **native-opus-xhigh-jev**: native-opus-xhigh plus the harness decision gate on Jev (only the Stop hook, nothing else from the harness)
 - **harness-sonnet-builders-jev**: harness-sonnet-builders with the decision gate on Jev
 - **harness-opus-builders-jev**: harness-opus-builders with the decision gate on Jev
@@ -25,6 +26,7 @@ Costs are API list-price equivalents as reported by Claude Code (subscription us
 | harness-sonnet-builders | 5/5 (100%) | 5/5 | 41.3 min | $10.88 | $2.18 | 6.63M | 1.36M | 246k |
 | harness-opus-builders | 5/5 (100%) | 5/5 | 28.6 min | $10.67 | $2.13 | 5.74M | 1.22M | 224k |
 | harness-haiku-builders | 5/5 (100%) | 5/5 | 34.5 min | $10.47 | $2.09 | 6.01M | 1.36M | 254k |
+| harness-lean | 15/15 (100%) | 15/15 | 86.5 min | $15.90 | $1.06 | 16.40M | 3.18M | 629k |
 | native-opus-xhigh-jev | 5/5 (100%) | 5/5 | 19.2 min | $4.19 | $0.84 | 2.94M | 395k | 95k |
 | harness-sonnet-builders-jev | 5/5 (100%) | 5/5 | 39.8 min | $10.62 | $2.12 | 6.36M | 1.36M | 247k |
 | harness-opus-builders-jev | 5/5 (100%) | 5/5 | 30.1 min | $10.22 | $2.04 | 5.58M | 1.19M | 215k |
@@ -42,6 +44,7 @@ Feature: per-key rate limiting (new module, server wiring, tests, docs)
 | harness-sonnet-builders | 100% (n=1) | 100% | 100% | 14.6 min | $2.34 | 1.44M | 52k |  |
 | harness-opus-builders | 100% (n=1) | 100% | 100% | 4.7 min | $2.32 | 1.10M | 43k |  |
 | harness-haiku-builders | 100% (n=1) | 100% | 100% | 7.1 min | $1.85 | 1.22M | 45k |  |
+| harness-lean | 100% (n=3) | 100% | 100% | 6.8 min | $1.05 | 865k | 35k |  |
 | native-opus-xhigh-jev | 100% (n=1) | 100% | 100% | 6.6 min | $1.14 | 798k | 30k |  |
 | harness-sonnet-builders-jev | 100% (n=1) | 100% | 100% | 16.0 min | $2.07 | 1.36M | 45k |  |
 | harness-opus-builders-jev | 100% (n=1) | 100% | 100% | 7.1 min | $2.41 | 1.17M | 42k |  |
@@ -53,10 +56,11 @@ Three independent bug reports in three files, each with a regression test
 
 | Team | Works | Hidden tests passed | Spec complete | Time | Cost | Tokens (all) | Output tokens | Notes |
 |---|---|---|---|---|---|---|---|---|
-| native-opus-xhigh | 100% (n=1) | 100% | 100% | 7.3 min | $0.92 | 703k | 22k |  |
-| harness-sonnet-builders | 100% (n=1) | 100% | 100% | 13.0 min | $3.32 | 2.17M | 64k |  |
-| harness-opus-builders | 100% (n=1) | 100% | 100% | 7.7 min | $2.26 | 1.04M | 37k |  |
-| harness-haiku-builders | 100% (n=1) | 100% | 100% | 7.7 min | $2.32 | 1.25M | 41k |  |
+| native-opus-xhigh | 100% (n=1) | 100% | 100% | 7.3 min | $0.92 | 703k | 22k | strict check passed in 1 of 1 |
+| harness-sonnet-builders | 100% (n=1) | 100% | 100% | 13.0 min | $3.32 | 2.17M | 64k | strict check passed in 0 of 1 |
+| harness-opus-builders | 100% (n=1) | 100% | 100% | 7.7 min | $2.26 | 1.04M | 37k | strict check passed in 0 of 1 |
+| harness-haiku-builders | 100% (n=1) | 100% | 100% | 7.7 min | $2.32 | 1.25M | 41k | strict check passed in 0 of 1 |
+| harness-lean | 100% (n=3) | 100% | 100% | 11.7 min | $1.45 | 1.29M | 37k | strict check passed in 1 of 3 |
 | native-opus-xhigh-jev | 100% (n=1) | 100% | 100% | 6.0 min | $0.94 | 708k | 23k |  |
 | harness-sonnet-builders-jev | 100% (n=1) | 100% | 100% | 7.6 min | $2.45 | 1.46M | 44k | 1 ship run(s) got a changed spec |
 | harness-opus-builders-jev | 100% (n=1) | 100% | 100% | 8.2 min | $2.53 | 1.20M | 39k |  |
@@ -72,6 +76,7 @@ Add current Claude 5.5 prices, which postdate the models' training data
 | harness-sonnet-builders | 100% (n=1) | 100% | 100% | 1.1 min | $0.30 | 263k | 8k |  |
 | harness-opus-builders | 100% (n=1) | 100% | 100% | 1.2 min | $0.79 | 659k | 9k |  |
 | harness-haiku-builders | 100% (n=1) | 100% | 100% | 1.4 min | $0.55 | 364k | 10k |  |
+| harness-lean | 100% (n=3) | 100% | 100% | 2.1 min | $0.63 | 564k | 27k |  |
 | native-opus-xhigh-jev | 100% (n=1) | 100% | 100% | 1.8 min | $1.05 | 764k | 15k |  |
 | harness-sonnet-builders-jev | 100% (n=1) | 100% | 100% | 1.9 min | $0.54 | 498k | 17k |  |
 | harness-opus-builders-jev | 100% (n=1) | 100% | 100% | 1.4 min | $0.41 | 348k | 9k |  |
@@ -87,6 +92,7 @@ Review a feature branch with four seeded defects
 | harness-sonnet-builders | 100% (n=1) | 100% | 7 | 2 | 1 | 0 | 4.4 min | $1.87 | 902k | 47k |  |
 | harness-opus-builders | 100% (n=1) | 100% | 7 | 3 | 0 | 0 | 5.3 min | $2.08 | 1.03M | 54k |  |
 | harness-haiku-builders | 100% (n=1) | 100% | 7 | 3 | 0 | 0 | 5.9 min | $1.81 | 888k | 48k |  |
+| harness-lean | 100% (n=3) | 100% | 7.7 | 2.7 | 0.3 | 0.7 | 3.4 min | $0.73 | 769k | 35k |  |
 | native-opus-xhigh-jev | 100% (n=1) | 100% | 9 | 4 | 0 | 1 | 2.1 min | $0.46 | 331k | 11k |  |
 | harness-sonnet-builders-jev | 100% (n=1) | 100% | 8 | 3 | 1 | 0 | 4.9 min | $2.08 | 1.07M | 51k |  |
 | harness-opus-builders-jev | 100% (n=1) | 100% | 7 | 2 | 0 | 1 | 4.9 min | $1.86 | 980k | 48k |  |
@@ -102,6 +108,7 @@ Security audit with four seeded vulnerabilities reachable over HTTP
 | harness-sonnet-builders | 100% (n=1) | 100% | 9 | 1 | 3 | 1 | 8.2 min | $3.06 | 1.85M | 75k |  |
 | harness-opus-builders | 100% (n=1) | 100% | 8 | 2 | 2 | 0 | 9.6 min | $3.22 | 1.91M | 82k |  |
 | harness-haiku-builders | 100% (n=1) | 100% | 8 | 1 | 3 | 0 | 12.5 min | $3.95 | 2.28M | 110k |  |
+| harness-lean | 100% (n=3) | 100% | 7.7 | 1.3 | 2 | 0.3 | 6.4 min | $1.42 | 1.86M | 70k |  |
 | native-opus-xhigh-jev | 100% (n=1) | 100% | 12 | 4 | 3 | 1 | 2.7 min | $0.60 | 343k | 16k |  |
 | harness-sonnet-builders-jev | 100% (n=1) | 100% | 11 | 2 | 4 | 1 | 9.5 min | $3.47 | 1.98M | 89k |  |
 | harness-opus-builders-jev | 100% (n=1) | 100% | 9 | 1 | 3 | 1 | 8.5 min | $3.01 | 1.88M | 76k |  |
@@ -159,6 +166,23 @@ Security audit with four seeded vulnerabilities reachable over HTTP
 | harness:builder (Build) | 5 | 38 | 20k | $0.03 | claude-haiku-5-5 |
 | workflow:Scope | 1 | 2 | 1k | $0.00 | claude-haiku-5-5 |
 | harness:scout (Scope) | 1 | 3 | 2k | $0.00 | claude-haiku-5-5 |
+
+**harness-lean**, by model: claude-opus-5-5 $12.85 (7.99M tokens); claude-sonnet-5-5 $2.74 (2.64M tokens); claude-haiku-5-5 $0.25 (5.56M tokens)
+
+| Role | Agents | API calls | Output tokens | Cost | Models |
+|---|---|---|---|---|---|
+| main | 15 | 160 | 106k | $6.20 | claude-opus-5-5 |
+| harness:refuter (Verify) | 146 | 408 | 120k | $2.74 | claude-sonnet-5-5 |
+| harness:refuter (Refute) | 30 | 107 | 43k | $2.48 | claude-opus-5-5 |
+| workflow:Rank | 6 | 9 | 31k | $1.31 | claude-opus-5-5 |
+| workflow:Plan | 6 | 23 | 30k | $1.07 | claude-opus-5-5 |
+| harness:judge (Gate) | 6 | 38 | 22k | $0.90 | claude-opus-5-5 |
+| workflow:Integrate | 6 | 24 | 8k | $0.60 | claude-opus-5-5 |
+| harness:refuter | 1 | 9 | 8k | $0.28 | claude-opus-5-5 |
+| workflow:Find | 45 | 198 | 115k | $0.14 | claude-haiku-5-5 |
+| harness:builder (Build) | 15 | 117 | 91k | $0.10 | claude-haiku-5-5 |
+| workflow:Scope | 3 | 6 | 2k | $0.01 | claude-haiku-5-5 |
+| harness:scout (Scope) | 3 | 9 | 5k | $0.00 | claude-haiku-5-5 |
 
 **native-opus-xhigh-jev**, by model: claude-opus-5-5 $4.17 (2.87M tokens)
 
@@ -228,8 +252,14 @@ Role costs are recomputed from each agent's transcript at list price; they add u
 | harness-opus-builders-jev | rate-limit | 2 | 2 | 0 | PASS | works |
 | harness-sonnet-builders-jev | bugfix-trio | 3 | 3 | 0 | PASS | works |
 | harness-sonnet-builders-jev | rate-limit | 2 | 2 | 0 | PASS | works |
+| harness-lean | bugfix-trio | 3 | 3 | 0 | FAIL | works |
+| harness-lean | bugfix-trio | 3 | 3 | 0 | PASS | works |
+| harness-lean | bugfix-trio | 3 | 3 | 0 | PASS | works |
+| harness-lean | rate-limit | 2 | 2 | 0 | PASS | works |
+| harness-lean | rate-limit | 2 | 2 | 0 | PASS | works |
+| harness-lean | rate-limit | 2 | 2 | 0 | PASS | works |
 
-The final gate agreed with the hidden tests in 12 of 12 ship runs.
+The final gate agreed with the hidden tests in 17 of 18 ship runs.
 
 ## The decision gate (Jev)
 

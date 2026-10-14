@@ -25,6 +25,7 @@
   "success": true,
   "score": {
     "success": true,
+    "strict": null,
     "specComplete": true,
     "compliance": {
       "complete": true,
@@ -319,6 +320,6 @@
   "finalMessage": "The rate limiter is in and merged into `main` locally, nothing pushed. The final gate (Opus 5.5, per your `gateModel`) returned **PASS** with no blocking issues. I re-ran `npm test` on the merged `main` myself and all 38 tests pass.\n\n**What changed** (merged as `0466af7` and `9e139da`, 4 files, +322 lines)\n- **`src/rate-limit.js`** (new): a fixed-window limiter per API key, defaulting to 60 requests per 60000 ms. It gets its time from the clock `createServer` passes in.\n- **`src/server.js`**: takes the new `rateLimit` option and checks the limit on every request except `GET /health`, before authentication and routing. That means requests that end in a 401, 403 or 404 also count.\n- **`test/rate-limit.test.js`** (new): covers each of the 7 requirements, including the exact window boundary, `Retry-After` matching the body, the anonymous key, `/health` using no quota, and a test that fails if `Date.now` is called.\n- **`README.md`**: a new \"Rate limiting\" section; the gate checked it against the code.\n\nBoth units passed review on the first try (neither reviewer found a defect), so the fix phase never ran.\n\n**Worth knowing (not blocking)**\n- **Memory can grow without limit:** the limiter never removes entries for expired windows. Every distinct `x-api-key` value stays in memory for the life of the server, so a client sending many random keys can make it grow indefinitely. I'd add cleanup of expired windows before this goes to production.\n- **`createRateLimiter` falls back to `Date.now`** if no clock is passed in. The server always passes its own `now`, so this only matters if the module is used on its own. The server's own `now = Date.now` default was already there.\n- **Two choices the spec doesn't cover:** `HEAD /health` is rate limited (only `GET` is exempt), and an empty `x-api-key` header counts as `\"anonymous\"`.\n- **Existing bug, not caused by this change:** `GET /invoices/<key>?format=csv` for a key with no events crashes with `ERR_HTTP_HEADERS_SENT`, because the error handler tries to send a 500 after the headers have gone out. The new tests avoid it, and it is unchanged from the base commit `188887e`. The fix would be for that handler to check `res.headersSent` before sending.\n\nThere's no lint or type check set up in the repo, so `npm test` was the only check. The untracked `.claude/` folder in the repo is where the workflow kept its worktrees.",
   "workDir": "/tmp/harness-bench/2026-10-14-lean/harness-lean/rate-limit/t3",
   "apiErrorTexts": [],
-  "rescoredAt": "2026-10-14T21:39:24.812Z",
+  "rescoredAt": "2026-10-14T21:58:45.398Z",
   "optionsDelivered": true
 }

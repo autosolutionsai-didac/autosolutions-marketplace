@@ -251,6 +251,6 @@
   "finalMessage": "I wrote `AUDIT.json` to the repository root with the 8 findings I reported: 3 high, 4 medium and 1 low. It parses as valid JSON, every object has exactly the five fields you asked for, and every `line` is a number. `git status` shows `AUDIT.json` as the only change.\n\n- **Line numbers:** where my report gave a range, I used the first line (`static.js:14`, `config.js:12`, `csv.js:10`). I checked these against the source.\n- **Severity of #6:** I rated it \"Medium (disputed)\". The `severity` field says `medium`, and the `detail` says the finding is disputed and why.\n- **Left out:** the two findings the verifiers rejected (memory exhaustion via `/events` and the discount-lookup crash). I mentioned them as rejected, not as findings.",
   "workDir": "/tmp/harness-bench/2026-10-14-lean/harness-lean/audit-input/t3",
   "apiErrorTexts": [],
-  "rescoredAt": "2026-10-14T21:39:17.559Z",
+  "rescoredAt": "2026-10-14T21:58:34.995Z",
   "optionsDelivered": true
 }

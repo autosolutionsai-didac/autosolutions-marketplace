@@ -144,6 +144,6 @@
   "finalMessage": "I renamed `microToCents` to `microsToCents`, and all 16 tests pass after the change, the same as before.\n\n**Changes** (3 files, 7 lines):\n- `src/money.js:3`: the function definition.\n- `src/ledger.js:3` and `:78`: the only caller, which turns the invoice subtotal into cents.\n- `test/money.test.js`: the import, the test name and its three assertions.\n\nA search for the old name (including spelling variants, docs and README) now finds nothing. The function had no other callers.\n\nI left the parameter name `micro` as it was, since you only asked to rename the function. I haven't committed anything; the changes are in the working tree.\n\nThe Fable gate you turned on will review this turn before it ends, since files changed.",
   "workDir": "/tmp/harness-bench/2026-10-13/harness-sonnet-builders/check-fable-gate/t2",
   "apiErrorTexts": [],
-  "rescoredAt": "2026-10-14T21:39:10.683Z",
+  "rescoredAt": "2026-10-14T21:58:25.666Z",
   "optionsDelivered": null
 }

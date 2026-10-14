@@ -23,6 +23,7 @@
   "success": true,
   "score": {
     "success": true,
+    "strict": null,
     "specComplete": true,
     "compliance": {
       "complete": true,
@@ -329,7 +330,7 @@
   ],
   "finalMessage": "I've added per-API-key rate limiting and merged it into `main`. The final review gave it a **PASS** with high confidence and no blocking issues. I re-ran `npm test` myself: all 33 tests pass (the 16 existing ones plus 17 new ones). Nothing has been pushed.\n\n**What changed**\n- **`src/rate-limit.js` (new):** `createRateLimiter({ limit, windowMs, now })` keeps one window per key. A window starts at the key's first request. Once `now >= windowStart + windowMs`, the next request starts a new window. `Retry-After` is the seconds left in the window, rounded up, minimum 1. The remaining count never goes below 0.\n- **`src/server.js`:** `createServer` takes a new `rateLimit` option, defaulting to 60 requests per 60000 ms. The limiter always uses the server's injected `now`, and `Date.now` appears only as the existing default for that option. The limit is checked right after the `GET /health` early return and before any routing or auth, so 401 and 404 responses are counted too. The key is the `x-api-key` header, or `\"anonymous\"` when it's missing. Every limited response gets `X-RateLimit-Limit` and `X-RateLimit-Remaining`. A rejected request gets a 429 with a `Retry-After` header and the body `{\"error\":\"rate_limited\",\"retryAfter\":N}`.\n- **`test/rate-limit.test.js` (new):** 6 tests of the limiter on its own and 11 tests through the server.\n- **`README.md`:** documents the new option and how the limiting behaves.\n\n**Gaps the reviewers flagged.** These are missing tests, not bugs; the reviewers checked the actual behaviour by hand and it is correct:\n- No test checks the rate-limit headers on a 201 `POST /events` response, or `X-RateLimit-Limit` on a 401. A reviewer removed the headers from the 201 path and the tests still passed.\n- The `Retry-After` tests don't tell rounding up from ordinary rounding. A case with about 7.4 s left in the window (8 when rounded up, 7 otherwise) would catch it.\n- The \"at least 1\" floor on `Retry-After` can never take effect, because the window resets before the time left reaches 0. It does no harm.\n\n**Repo state:** `main` has the two feature commits and their two merge commits (`dbe6eec`, `ca92da1`). The workflow's worktrees are still under `.claude/worktrees/`, untracked. I left them alone; you can remove them with `git worktree remove` once you no longer need them.\n\nShould I add the three missing test assertions?",
   "workDir": "/tmp/harness-bench/2026-10-13/harness-sonnet-builders/rate-limit/t1",
-  "rescoredAt": "2026-10-14T21:39:11.984Z",
+  "rescoredAt": "2026-10-14T21:58:26.898Z",
   "apiErrorTexts": [],
   "optionsDelivered": null
 }

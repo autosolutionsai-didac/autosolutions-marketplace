@@ -63,6 +63,14 @@ for (const task of tasks.filter((t) => t.kind === 'code')) {
   check(`${task.id}: reference keeps the visible suite green`, rv.fail === 0 && rv.pass >= BASELINE_VISIBLE_TESTS, `${rv.pass}/${rv.tests}`)
   const rh = hiddenRun(ref, task.id)
   check(`${task.id}: reference passes every hidden test`, rh.fail === 0 && rh.pass === rh.tests && rh.pass > 0, `${rh.pass}/${rh.tests}${rh.failures.length ? ` failing: ${rh.failures.join('; ')}` : ''}`)
+  if (existsSync(path.join(BENCH, 'tasks', task.id, 'strict'))) {
+    const sc = scoreCodeTask(ref, task, path.join(BENCH, 'tasks', task.id))
+    check(`${task.id}: reference passes the strict tests`, sc.strict && sc.strict.fail === 0 && sc.strict.pass > 0, JSON.stringify(sc.strict))
+    const fx = copyFixture()
+    const fs = scoreCodeTask(fx, task, path.join(BENCH, 'tasks', task.id))
+    check(`${task.id}: the untouched fixture fails the strict tests`, fs.strict && fs.strict.fail > 0, JSON.stringify(fs.strict))
+    rmSync(fx, { recursive: true, force: true })
+  }
   rmSync(ref, { recursive: true, force: true })
 }
 

@@ -252,6 +252,6 @@
   "finalMessage": "I wrote `AUDIT.json` to the repository root. It has 8 entries, one for each finding I reported: 3 high, 1 medium and 4 low. Each entry has exactly the five fields you asked for, and the file parses as valid JSON. `git status` shows `AUDIT.json` as the only change.\n\n- **Line numbers:** I checked each one against the current source, and each points at the line with the defect. A few findings covered more than one place; for those I used the main line and named the other in `detail`:\n  - **Finding 5:** `src/prices.js:19`, with `src/ledger.js:79` in the detail.\n  - **Finding 6:** `src/csv.js:12`, with the header line 3 in the detail.\n  - **Finding 7:** `src/ledger.js:34`, with `src/cost.js:18` in the detail.\n- **Severity:** written in lowercase (`\"high\"`, `\"medium\"`, `\"low\"`).\n- **Left out:** the `POST /events` problem (any caller can write events under any customer's key). I described it as an underlying design gap, not as one of the ranked findings. I also left out the CSV newline claim, which turned out to be false. If you want the `/events` problem in the file as its own entry, I can add it.",
   "workDir": "/tmp/harness-bench/2026-10-14-lean/harness-lean/audit-input/t1",
   "apiErrorTexts": [],
-  "rescoredAt": "2026-10-14T21:39:17.381Z",
+  "rescoredAt": "2026-10-14T21:58:34.820Z",
   "optionsDelivered": true
 }

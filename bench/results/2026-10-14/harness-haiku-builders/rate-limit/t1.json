@@ -23,6 +23,7 @@
   "success": true,
   "score": {
     "success": true,
+    "strict": null,
     "specComplete": true,
     "compliance": {
       "complete": true,
@@ -327,6 +328,6 @@
   "finalMessage": "Per-API-key rate limiting is merged into `main` and working. The full suite passes (31/31: 16 existing tests plus 15 new), and the Fable gate returned PASS. Nothing was pushed.\n\n**What changed**\n- **`src/rate-limit.js` (new):** a fixed-window limiter that stores keys in a `Map`. Each key's window starts at its first request, and rejected requests don't extend the window.\n- **`src/server.js`:** `createServer` now takes `rateLimit` (default 60 requests per 60,000 ms) and uses the server's `now` clock. The limiter runs right after the `GET /health` check and before routing and auth. The headers are set with `setHeader`, so they survive the later `writeHead` calls, including on 400 and 500 error responses.\n- **`test/rate-limit.test.js` (new):** 15 tests, one or more for each of the required behaviours.\n- **`README.md`:** a new \"Rate limiting\" section, the new module in the file list, and `/health` marked as exempt.\n\n**What I checked myself:** I read the module and the diff, re-ran `npm test`, and sent live requests to the merged server. All of these behaved correctly:\n- A key of `__proto__` works like any other key.\n- A 400 for invalid JSON still carries the rate-limit headers.\n- `GET /health` has no rate-limit headers and doesn't count.\n- `POST /health` is limited.\n- With a 1,500 ms window, a request at 1,499 ms gets a 429 with `Retry-After: 1`, and one at exactly 1,500 ms starts a new window.\n\n**Bug found, not fixed (it was already there before this change):** a single request to `GET /invoices/<unknown-key>?format=csv` crashes the whole server process. `ledger.invoice()` returns `null` for a key with no events, but the handler has already sent the response headers. The error handler then tries to send them again, and that second error isn't caught. The base commit `744833c` crashes the same way. It's outside this task, so I left it alone. The fix is small: return a 404 when the invoice is `null`, before writing anything. The JSON branch has the same `null` problem but only returns a 500 rather than crashing. Want me to fix it?\n\n**Minor follow-ups:**\n- The limiter never forgets keys it has seen, so memory grows with every distinct `x-api-key` value. That matters if callers can send arbitrary keys.\n- Only `GET` is exempt on `/health`; `HEAD` and `POST` requests to it are counted. That's what the spec says, but it may surprise someone.\n\nThe harness left an untracked `.claude/` directory holding its worktrees, which I didn't touch.",
   "workDir": "/tmp/harness-bench/2026-10-14/harness-haiku-builders/rate-limit/t1",
   "apiErrorTexts": [],
-  "rescoredAt": "2026-10-14T21:39:17.068Z",
+  "rescoredAt": "2026-10-14T21:58:34.606Z",
   "optionsDelivered": true
 }
