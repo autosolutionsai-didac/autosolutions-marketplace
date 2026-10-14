@@ -123,5 +123,6 @@
   "finalMessage": "I renamed `microToCents` to `microsToCents` and updated every reference. All 16 tests pass (`npm test`).\n\nThere were three places to change:\n- `src/money.js:3`: the function itself.\n- `src/ledger.js:3,78`: its only caller, the import and the subtotal calculation.\n- `test/money.test.js`: the import, the test name and the three checks.\n\nA search afterwards finds no remaining `microToCents` anywhere in the repo, including `README.md` and `docs/api.md`. Nothing reaches the function any other way, such as `import * as money` or `money.microToCents`.\n\nThe Fable gate you turned on will review this change when the turn ends.",
   "workDir": "/tmp/harness-bench/2026-10-13/harness-sonnet-builders/check-fable-gate/t1",
   "apiErrorTexts": [],
-  "rescoredAt": "2026-10-13T20:41:56.880Z"
+  "rescoredAt": "2026-10-14T21:39:10.674Z",
+  "optionsDelivered": null
 }

@@ -1,0 +1,105 @@
+diff --git a/src/csv.js b/src/csv.js
+index f1dc79f..4a1297d 100644
+--- a/src/csv.js
++++ b/src/csv.js
+@@ -1,6 +1,6 @@
+ // Renders rows as CSV with a header line. Lines end with \n.
+ export function toCSV(rows, columns) {
+-  const lines = [columns.join(',')]
++  const lines = [columns.map(cell).join(',')]
+   for (const row of rows) {
+     lines.push(columns.map((column) => cell(row[column])).join(','))
+   }
+@@ -9,5 +9,6 @@ export function toCSV(rows, columns) {
+ 
+ function cell(value) {
+   if (value === null || value === undefined) return ''
+-  return String(value)
++  const s = String(value)
++  return /[",\r\n]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s
+ }
+diff --git a/src/money.js b/src/money.js
+index 95a7ad7..8192b81 100644
+--- a/src/money.js
++++ b/src/money.js
+@@ -13,7 +13,9 @@ export function formatUSD(cents) {
+ }
+ 
+ // Applies a percentage discount (0 to 100) to an amount in cents.
++// The result is rounded half up to the nearest cent.
+ export function applyDiscount(cents, percent) {
+   if (!(percent >= 0 && percent <= 100)) throw new RangeError('percent must be between 0 and 100')
+-  return Math.floor((cents * (100 - percent)) / 100)
++  const scaled = cents * (100 - percent)
++  return Math.floor((scaled + 50) / 100)
+ }
+diff --git a/src/server.js b/src/server.js
+index 0393cdd..8474e59 100644
+--- a/src/server.js
++++ b/src/server.js
+@@ -36,6 +36,7 @@ export function createServer({ ledger = new Ledger(), now = Date.now, dataDir =
+     const invoiceMatch = pathname.match(/^\/invoices\/([^/]+)$/)
+     if (req.method === 'GET' && invoiceMatch) {
+       const invoice = ledger.invoice(decodeURIComponent(invoiceMatch[1]))
++      if (!invoice) return send(res, 404, { error: 'not_found' })
+       if (url.searchParams.get('format') === 'csv') {
+         res.writeHead(200, { 'content-type': 'text/csv; charset=utf-8' })
+         return res.end(toCSV(invoice.lines, CSV_COLUMNS))
+diff --git a/test/csv.test.js b/test/csv.test.js
+index 9603268..3528761 100644
+--- a/test/csv.test.js
++++ b/test/csv.test.js
+@@ -10,6 +10,14 @@ test('toCSV renders a header and one line per row', () => {
+   assert.equal(toCSV(rows, ['model', 'requests']), 'model,requests\nclaude-sonnet-5,2\nclaude-opus-5,1\n')
+ })
+ 
++test('toCSV quotes fields with commas, quotes and line breaks per RFC 4180', () => {
++  const rows = [{ a: 'team, alpha', b: 'say "hi"', c: 'a\nb', d: 'a\rb', e: 'plain' }]
++  assert.equal(
++    toCSV(rows, ['a', 'b', 'c', 'd', 'e']),
++    'a,b,c,d,e\n"team, alpha","say ""hi""","a\nb","a\rb",plain\n',
++  )
++})
++
+ test('toCSV leaves missing values empty', () => {
+   assert.equal(toCSV([{ a: null }], ['a', 'b']), 'a,b\n,\n')
+ })
+diff --git a/test/money.test.js b/test/money.test.js
+index 917bae5..d5c9edb 100644
+--- a/test/money.test.js
++++ b/test/money.test.js
+@@ -22,3 +22,9 @@ test('applyDiscount', () => {
+   assert.throws(() => applyDiscount(1_000, 101), RangeError)
+   assert.throws(() => applyDiscount(1_000, -1), RangeError)
+ })
++
++test('applyDiscount rounds half up to the nearest cent', () => {
++  assert.equal(applyDiscount(1_001, 15), 851)
++  assert.equal(applyDiscount(10, 15), 9)
++  assert.equal(applyDiscount(1_004, 15), 853)
++})
+diff --git a/test/server.test.js b/test/server.test.js
+index fc813ff..17ef1c8 100644
+--- a/test/server.test.js
++++ b/test/server.test.js
+@@ -74,3 +74,15 @@ test('admin endpoints check the token', async () => {
+   await close()
+   delete process.env.LEDGER_ADMIN_TOKEN
+ })
++
++test('GET /invoices/:key returns 404 for a key without usage', async () => {
++  const { base, close } = await start()
++  await post(base, 'acme')
++  for (const url of [`${base}/invoices/nobody`, `${base}/invoices/nobody?format=csv`]) {
++    const res = await fetch(url)
++    assert.equal(res.status, 404)
++    assert.deepEqual(await res.json(), { error: 'not_found' })
++  }
++  assert.equal((await fetch(`${base}/invoices/acme`)).status, 200)
++  await close()
++})
+
+# untracked files
+.claude/worktrees/wf_1a404b32-6b4-2/
+.claude/worktrees/wf_1a404b32-6b4-3/
+.claude/worktrees/wf_1a404b32-6b4-4/

@@ -13,13 +13,18 @@ import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { gateEffect, shipInternals, summarizeStreams, summarizeTranscripts, summarizeWorkflows } from './lib/collect.mjs'
 import { scoreCodeTask, scoreFindingsTask } from './lib/score.mjs'
-import { contamination, specDelivered } from './lib/evaluate.mjs'
+import { contamination, optionsDelivered, specDelivered } from './lib/evaluate.mjs'
 
 const BENCH = path.dirname(fileURLToPath(import.meta.url))
 const label = process.argv[2]
 const recover = process.argv.includes('--recover')
 if (!label) { console.error('usage: node bench/rescore.mjs <label>'); process.exit(1) }
 const tasks = Object.fromEntries(JSON.parse(readFileSync(path.join(BENCH, 'tasks.json'), 'utf8')).tasks.map((t) => [t.id, t]))
+// Each result is judged against the team as it was configured for its own run.
+const cfgTeams = {}
+for (const f of existsSync(path.join(BENCH, 'results', label)) ? readdirSync(path.join(BENCH, 'results', label)).filter((n) => /^run-config(-\d+)?\.json$/.test(n)) : []) {
+  for (const t of JSON.parse(readFileSync(path.join(BENCH, 'results', label, f), 'utf8')).teams || []) cfgTeams[t.id] ||= t
+}
 
 function walk(dir, out = []) {
   for (const n of readdirSync(dir)) {
@@ -104,6 +109,7 @@ for (const file of files) {
     ship: shipInternals(workflows, transcripts),
     decisionGate,
     specDelivered: specDelivered(workflows, existsSync(path.join(taskDir, 'spec.md')) ? readFileSync(path.join(taskDir, 'spec.md'), 'utf8') : ''),
+    optionsDelivered: cfgTeams[r.team] ? optionsDelivered(workflows, transcripts.agents, cfgTeams[r.team]) : r.optionsDelivered,
     hooks: streams.hooks,
     stopBlocks: streams.stopBlocks,
     toolUses: streams.toolUses,

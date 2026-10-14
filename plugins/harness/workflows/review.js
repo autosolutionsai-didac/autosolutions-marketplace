@@ -13,12 +13,15 @@ export const meta = {
 // Accepts "main", or { base, maxFiles, focus, ... }. A string that is a JSON object is read as the
 // structured form, so the options survive being passed through a slash command as text.
 function parseArgs(a) {
-  if (a && typeof a === 'object') return a
-  const s = String(a || '').trim()
-  if (s.startsWith('{')) {
-    try { const o = JSON.parse(s); if (o && typeof o === 'object' && !Array.isArray(o)) return o } catch {}
+  // Claude passes the options as an object, as the JSON text, or now and then as that text JSON-encoded a
+  // second time ("\"{\\\"task\\\": ...}\""). Unwrap up to three layers so options are never silently lost.
+  for (let i = 0; i < 3 && typeof a === 'string'; i++) {
+    const t = a.trim()
+    if (!t.startsWith('{') && !t.startsWith('"')) break
+    try { a = JSON.parse(t) } catch { break }
   }
-  return { base: s }
+  if (a && typeof a === 'object' && !Array.isArray(a)) return a
+  return { base: String(a || '').trim() }
 }
 const input = parseArgs(args)
 const BASE = String(input.base || 'main').trim()

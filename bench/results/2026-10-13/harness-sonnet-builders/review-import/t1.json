@@ -240,6 +240,7 @@
   ],
   "finalMessage": "I wrote `REVIEW.json` to the repository root with the 7 findings I reported, using the same severities: 2 blocking and 5 major. The file parses as valid JSON, and `git status` shows it's the only change.\n\n| # | Location | Severity |\n|---|---|---|\n| 1 | `src/importer.js:30` (rows billed to the key in the row, not the caller's key) | blocking |\n| 2 | `src/importer.js:10` (stats shared across requests) | blocking |\n| 3 | `src/importer.js:15` (a blank line stops the import) | major |\n| 4 | `src/importer.js:16` (a rejected import still commits rows) | major |\n| 5 | `src/server.js:39` (no body-size limit; non-ASCII text garbled) | major |\n| 6 | `src/importer.js:25` (a `null` line crashes the import) | major |\n| 7 | `README.md:24` (endpoint description doesn't match behaviour) | major |\n\nThe format allows one line per finding, so where an issue spans several places I used the line where it happens:\n- **Finding 1:** I used the line in the importer that records `row.key`. The missing key hand-off in `src/server.js:41` is described in the detail text.\n- **Finding 2:** I used line 10, where the shared default object gets overwritten. It's declared at line 4.",
   "workDir": "/tmp/harness-bench/2026-10-13/harness-sonnet-builders/review-import/t1",
-  "rescoredAt": "2026-10-13T20:41:58.131Z",
-  "apiErrorTexts": []
+  "rescoredAt": "2026-10-14T21:39:12.026Z",
+  "apiErrorTexts": [],
+  "optionsDelivered": null
 }

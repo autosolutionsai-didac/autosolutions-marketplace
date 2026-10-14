@@ -25,7 +25,7 @@ import { gateEffect, shipInternals, summarizeStreams, summarizeTranscripts, summ
 import { scoreCodeTask, scoreFindingsTask } from './lib/score.mjs'
 import { startMockDecisionServer } from './lib/mock-decision.mjs'
 import { CHECKS } from './lib/checks.mjs'
-import { contamination, specDelivered } from './lib/evaluate.mjs'
+import { contamination, optionsDelivered, specDelivered } from './lib/evaluate.mjs'
 
 const BENCH = path.dirname(fileURLToPath(import.meta.url))
 const REPO_ROOT = path.dirname(BENCH)
@@ -319,6 +319,7 @@ async function runJob(job, opts, log) {
     errors: streams.errors,
     contamination: contam,
     specDelivered: specDelivered(workflows, existsSync(path.join(taskDir, 'spec.md')) ? readFileSync(path.join(taskDir, 'spec.md'), 'utf8') : ''),
+    optionsDelivered: optionsDelivered(workflows, transcripts.agents, team),
     changedFiles: (spawnSync('git', ['diff', '--name-only', baseSha], { cwd: repo, encoding: 'utf8' }).stdout.trim() + '\n' + untracked).split('\n').filter(Boolean),
     finalMessage: streams.finalMessage.slice(0, 4000),
     workDir: dir,

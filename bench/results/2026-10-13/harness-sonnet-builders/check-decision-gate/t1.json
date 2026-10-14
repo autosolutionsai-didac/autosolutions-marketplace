@@ -139,5 +139,6 @@
   "finalMessage": "Done.\n\nI ran `npm test` (node --test) after the edit; it showed 16 tests, 16 passing and 0 failing.\nThe only change in the diff is the new comment line above `formatUSD` in `src/money.js`.",
   "workDir": "/tmp/harness-bench/2026-10-13/harness-sonnet-builders/check-decision-gate/t1",
   "apiErrorTexts": [],
-  "rescoredAt": "2026-10-13T20:41:56.869Z"
+  "rescoredAt": "2026-10-14T21:39:10.665Z",
+  "optionsDelivered": null
 }

@@ -14,10 +14,14 @@ export const meta = {
 // object is read as the structured form, so the options survive being passed through a slash command as text.
 const input = typeof args === 'string' ? parseFreeform(args) : (args || {})
 function parseFreeform(s) {
-  const t = String(s).trim()
-  if (t.startsWith('{')) {
-    try { const o = JSON.parse(t); if (o && typeof o === 'object' && !Array.isArray(o)) return o } catch {}
+  // Claude passes the options as the JSON text or, now and then, as that text JSON-encoded a second time.
+  // Unwrap up to three layers so options are never silently lost.
+  for (let i = 0; i < 3 && typeof s === 'string'; i++) {
+    const t = s.trim()
+    if (!t.startsWith('{') && !t.startsWith('"')) break
+    try { s = JSON.parse(t) } catch { break }
   }
+  if (s && typeof s === 'object' && !Array.isArray(s)) return s
   const m = String(s).match(/^(.*?)\s+in\s+(\S+)\s*$/i)
   return m ? { concern: m[1], path: m[2] } : { concern: String(s), path: '.' }
 }

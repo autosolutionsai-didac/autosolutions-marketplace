@@ -38,6 +38,8 @@
       "cancelled": 0,
       "timedOut": null,
       "exitCode": 0,
+      "signal": null,
+      "interrupted": false,
       "failures": []
     },
     "hidden": {
@@ -49,17 +51,20 @@
       "b1-discount.test.js": {
         "pass": 3,
         "fail": 0,
-        "failures": []
+        "failures": [],
+        "interrupted": false
       },
       "b2-csv.test.js": {
         "pass": 3,
         "fail": 0,
-        "failures": []
+        "failures": [],
+        "interrupted": false
       },
       "b3-not-found.test.js": {
         "pass": 3,
         "fail": 0,
-        "failures": []
+        "failures": [],
+        "interrupted": false
       }
     },
     "partial": 1,
@@ -351,5 +356,6 @@
   "finalMessage": "All three bugs are fixed on `main`, and each fix has a regression test that fails before the fix and passes after it. I re-ran `npm test` on the final commit and all 21 tests pass. The final review approved shipping it with no blocking issues. Nothing has been pushed.\n\n**1. Discount rounding** (`src/money.js:18`): `applyDiscount` now adds 50 before the floor division, which rounds half up. $10.01 at 15% off now gives $8.51, and 10 cents at 15% off gives 9. A reviewer compared every integer amount from 0 to 200,000 cents at every whole-number percent with exact half-up rounding and found no differences.\n\n**2. CSV quoting** (`src/csv.js`): fields containing a comma, double quote, CR or LF are wrapped in quotes, and inner quotes are doubled. All other fields stay unquoted, lines still end in `\\n`, and header names go through the same rule. A key like `\"team, alpha\"` now exports as `\"team, alpha\",…`.\n\n**3. Missing key** (`src/server.js:39`): an invoice for a key with no usage now returns 404 with `{\"error\":\"not_found\"}` in both JSON and CSV format, instead of the 500.\n\nEach fix is its own commit plus a merge commit on `main`. Two things you might want to act on:\n- **Test hang:** in `test/server.test.js`, the new 404 test, like the existing ones, only stops the test server when the test passes. If an assertion fails, the run hangs instead of reporting the failure. Wrapping the shutdown in `try/finally` would fix it.\n- **Fractional discounts:** the rounding is exact for whole-number percents, but `setDiscount` also accepts something like 12.5%, where floating-point error can round the wrong way. The bug report didn't cover that case.\n\nThe workflow's working copies are still in the untracked `.claude/worktrees/` folder, and you can delete it.",
   "workDir": "/tmp/harness-bench/2026-10-14/harness-haiku-builders/bugfix-trio/t1",
   "apiErrorTexts": [],
-  "rescoredAt": "2026-10-14T09:41:49.109Z"
+  "rescoredAt": "2026-10-14T21:39:15.764Z",
+  "optionsDelivered": true
 }

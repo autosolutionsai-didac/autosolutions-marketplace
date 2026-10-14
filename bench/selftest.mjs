@@ -13,7 +13,7 @@ import os from 'node:os'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { BASELINE_VISIBLE_TESTS, matchFindings, runNodeTests, specCompliance } from './lib/score.mjs'
-import { contamination } from './lib/evaluate.mjs'
+import { contamination, optionsDelivered, specDelivered, unwrapArgs } from './lib/evaluate.mjs'
 import { mkdirSync, writeFileSync } from 'node:fs'
 import { spawn } from 'node:child_process'
 import { resolveTeams } from './lib/teams.mjs'
@@ -270,6 +270,21 @@ rmSync(branch, { recursive: true, force: true })
   const eff4 = gateEffect({ gateLog, gateSnapshots: snaps, configDir: home, repo, task, taskDir, turns, finalScore, backend: 'mock' })
   check('gate effect: work by an agent already running at the block is not charged to it', eff4.events[0].afterCostUSD < 1, `$${eff4.events[0].afterCostUSD}`)
   for (const d of [repo, scripts, home]) rmSync(d, { recursive: true, force: true })
+}
+
+// 8. Workflow options: unwrapped however Claude encodes them, and checked against the models that actually ran.
+{
+  const opts = { task: 'do it', buildModel: 'claude-haiku-5-5' }
+  const once = JSON.stringify(opts)
+  check('options: unwrapped from an object, JSON text, and JSON text encoded twice', [opts, once, JSON.stringify(once)].every((a) => JSON.stringify(unwrapArgs(a)) === once))
+  check('options: plain text stays text', unwrapArgs('"fix" the login bug') === '"fix" the login bug')
+  check('options: the spec check reads double-encoded args', specDelivered([{ name: 'ship', args: JSON.stringify(once) }], 'do it') === true)
+  const team = { shipArgs: { buildModel: 'claude-haiku-5-5', gateModel: 'claude-opus-5-5' } }
+  const ran = (build, gate) => [{ role: 'harness:builder (Build)', model: build }, { role: 'harness:judge (Gate)', model: gate }, { role: 'main', model: 'claude-opus-5-5' }]
+  check('options: delivered when every stage ran the team\'s model', optionsDelivered([{ name: 'ship' }], ran('claude-haiku-5-5', 'claude-opus-5-5'), team) === true)
+  check('options: lost when a stage fell back to the default model', optionsDelivered([{ name: 'ship' }], ran('claude-sonnet-5-5', 'fable'), team) === false)
+  check('options: nothing to check for a team on the defaults', optionsDelivered([{ name: 'ship' }], ran('claude-sonnet-5-5', 'fable'), {}) === null)
+  check('options: the fable alias matches its model id', optionsDelivered([{ name: 'ship' }], ran('claude-haiku-5-5', 'fable'), { shipArgs: { gateModel: 'claude-fable-5-1' } }) === true)
 }
 
 console.log(failures ? `\n${failures} check(s) failed` : '\nselftest: all checks passed')

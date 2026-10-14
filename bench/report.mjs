@@ -163,7 +163,8 @@ for (const task of comparative) {
     if (!c) continue
     const estimated = runs.filter((r) => r.team === team && r.task === task.id && r.costSource !== 'claude-code').length
     const specMiss = runs.filter((r) => r.team === team && r.task === task.id && r.specDelivered === false).length
-    const notes = [c.timeouts ? `${c.timeouts} timed out` : '', c.errors ? `${c.errors} with errors` : '', c.contaminated ? `${c.contaminated} touched bench files` : '', estimated ? `${estimated} cost estimated from transcripts (lower bound)` : '', specMiss ? `${specMiss} ship run(s) got a changed spec` : ''].filter(Boolean).join(', ')
+    const optMiss = runs.filter((r) => r.team === team && r.task === task.id && r.optionsDelivered === false).length
+    const notes = [c.timeouts ? `${c.timeouts} timed out` : '', c.errors ? `${c.errors} with errors` : '', c.contaminated ? `${c.contaminated} touched bench files` : '', estimated ? `${estimated} cost estimated from transcripts (lower bound)` : '', specMiss ? `${specMiss} ship run(s) got a changed spec` : '', optMiss ? `${optMiss} run(s) lost the team's workflow options and ran the defaults` : ''].filter(Boolean).join(', ')
     const f1 = (x) => (x == null ? 'n/a' : Number.isInteger(x) ? String(x) : x.toFixed(1))
     L.push(`| ${team} | ${pct(c.successRate)} (n=${c.n}) | ${findings ? `${pct(c.recall)} | ${f1(c.findings)} | ${f1(c.validExtras)} | ${f1(c.extras)} | ${f1(c.duplicates)}` : `${pct(c.hiddenPass)} | ${pct(c.completeRate)}`} | ${mins(c.wallSec)} | ${usd(c.costUSD)} | ${ktok(c.tokens)} | ${ktok(c.output)} | ${notes} |`)
   }

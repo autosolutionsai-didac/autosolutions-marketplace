@@ -1,0 +1,324 @@
+{
+  "benchVersion": 2,
+  "label": "2026-10-14-lean",
+  "team": "harness-lean",
+  "teamKind": "harness",
+  "task": "rate-limit",
+  "taskKind": "code",
+  "trial": 3,
+  "sessionId": "f4720d90-9c58-4956-aec6-f4541912a64b",
+  "startedAt": "2026-10-14T21:22:23.517Z",
+  "finishedAt": "2026-10-14T21:29:13.375Z",
+  "wallSec": 409.857,
+  "timedOut": false,
+  "turns": [
+    {
+      "turn": 1,
+      "exitCode": 0,
+      "signal": null,
+      "timedOut": false,
+      "wallSec": 409.857,
+      "startedAt": "2026-10-14T21:22:23.518Z",
+      "endedAt": "2026-10-14T21:29:13.375Z"
+    }
+  ],
+  "success": true,
+  "score": {
+    "success": true,
+    "specComplete": true,
+    "compliance": {
+      "complete": true,
+      "items": {
+        "testFile": true,
+        "readmeDocumented": true
+      }
+    },
+    "visible": {
+      "tests": 38,
+      "pass": 38,
+      "fail": 0,
+      "cancelled": 0,
+      "timedOut": null,
+      "exitCode": 0,
+      "signal": null,
+      "interrupted": false,
+      "failures": []
+    },
+    "hidden": {
+      "tests": 9,
+      "pass": 9,
+      "fail": 0
+    },
+    "hiddenPerFile": {
+      "rate-limit.test.js": {
+        "pass": 9,
+        "fail": 0,
+        "failures": [],
+        "interrupted": false
+      }
+    },
+    "partial": 1,
+    "notes": []
+  },
+  "check": null,
+  "costUSD": 0.9738868649999999,
+  "costSource": "claude-code",
+  "costUSDFromStream": 0.9738868649999999,
+  "costUSDFromTranscripts": 0.9738868649999999,
+  "invalidReason": null,
+  "apiErrors": 0,
+  "usageWindows": {
+    "five_hour": {
+      "utilization": 0.35,
+      "resetsAt": 1792020000
+    },
+    "seven_day": {
+      "utilization": 0.54,
+      "resetsAt": 1792162800
+    }
+  },
+  "modelUsage": {
+    "claude-opus-5-5": {
+      "inputTokens": 64,
+      "outputTokens": 19403,
+      "cacheReadInputTokens": 345192,
+      "cacheCreationInputTokens": 90924,
+      "thinkingTokens": 3319,
+      "webSearchRequests": 0,
+      "costUSD": 0.9559693999999997
+    },
+    "claude-haiku-5-5": {
+      "inputTokens": 30,
+      "outputTokens": 15877,
+      "cacheReadInputTokens": 316909,
+      "cacheCreationInputTokens": 54455,
+      "thinkingTokens": 4022,
+      "webSearchRequests": 0,
+      "costUSD": 0.017917465
+    }
+  },
+  "tokensByModel": {
+    "claude-haiku-5-5": {
+      "requests": 15,
+      "input": 30,
+      "output": 15877,
+      "cacheRead": 316909,
+      "cacheWrite": 54455,
+      "costUSD": 0.017917465
+    },
+    "claude-opus-5-5": {
+      "requests": 32,
+      "input": 64,
+      "output": 19403,
+      "cacheRead": 345192,
+      "cacheWrite": 90924,
+      "costUSD": 0.9559693999999999
+    }
+  },
+  "byRole": {
+    "harness:builder (Build)": {
+      "agents": 2,
+      "requests": 15,
+      "input": 30,
+      "output": 15877,
+      "cacheRead": 316909,
+      "cacheWrite": 54455,
+      "costUSD": 0.017917465,
+      "models": {
+        "claude-haiku-5-5": 15
+      }
+    },
+    "harness:judge (Gate)": {
+      "agents": 1,
+      "requests": 3,
+      "input": 6,
+      "output": 1725,
+      "cacheRead": 12847,
+      "cacheWrite": 9132,
+      "costUSD": 0.0827534,
+      "models": {
+        "claude-opus-5-5": 3
+      }
+    },
+    "harness:refuter (Refute)": {
+      "agents": 4,
+      "requests": 16,
+      "input": 32,
+      "output": 7784,
+      "cacheRead": 133025,
+      "cacheWrite": 33591,
+      "costUSD": 0.35036800000000007,
+      "models": {
+        "claude-opus-5-5": 16
+      }
+    },
+    "workflow:Plan": {
+      "agents": 1,
+      "requests": 4,
+      "input": 8,
+      "output": 5111,
+      "cacheRead": 43590,
+      "cacheWrite": 17716,
+      "costUSD": 0.19954999999999998,
+      "models": {
+        "claude-opus-5-5": 4
+      }
+    },
+    "workflow:Integrate": {
+      "agents": 1,
+      "requests": 4,
+      "input": 8,
+      "output": 1483,
+      "cacheRead": 38216,
+      "cacheWrite": 15820,
+      "costUSD": 0.11643519999999999,
+      "models": {
+        "claude-opus-5-5": 4
+      }
+    },
+    "main": {
+      "agents": 1,
+      "requests": 5,
+      "input": 10,
+      "output": 3300,
+      "cacheRead": 117514,
+      "cacheWrite": 14665,
+      "costUSD": 0.2068628,
+      "models": {
+        "claude-opus-5-5": 5
+      }
+    }
+  },
+  "agentCount": 9,
+  "workflows": [
+    {
+      "runId": "wf_80bbd30c-792",
+      "name": "ship",
+      "status": "completed",
+      "durationMs": 376688,
+      "agentCount": 9,
+      "totalTokens": 144059,
+      "totalToolCalls": 48,
+      "args": {
+        "task": "Add per-API-key rate limiting to the HTTP server in src/server.js. Put the limiter in a new module, src/rate-limit.js.\n\nRequired behaviour:\n\n1. createServer(options) accepts options.rateLimit = { limit, windowMs }. The default is { limit: 60, windowMs: 60000 }. All timing uses the existing options.now() clock, never Date.now() directly.\n2. The limiter runs before routing and authentication, so every request is limited, including ones that would get a 401 or 404. A request's key is its x-api-key header. Requests without that header share the key \"anonymous\".\n3. Fixed windows per key: a key's window starts at the first request in that window and lasts windowMs. Within a window the first `limit` requests are allowed and the rest are rejected. Once now >= windowStart + windowMs, the next request from that key starts a new window at that moment.\n4. A rejected request gets status 429, a Retry-After header holding the whole number of seconds until the current window ends (rounded up, at least 1), and the JSON body {\"error\":\"rate_limited\",\"retryAfter\":<the same number>}.\n5. Every response to a limited request, allowed or rejected, has an X-RateLimit-Limit header (the limit) and an X-RateLimit-Remaining header (requests still allowed in the current window after this one, never below 0).\n6. GET /health is exempt: it is never rejected, never counts toward any key's limit, and has no rate-limit headers.\n7. Add tests in test/rate-limit.test.js and document the behaviour in README.md.\n\nThe existing test suite (npm test) must keep passing.",
+        "buildModel": "claude-haiku-5-5",
+        "refuteLenses": [
+          "correctness",
+          "edges-and-regressions"
+        ],
+        "refuteEffort": "medium",
+        "gateModel": "claude-opus-5-5"
+      },
+      "logs": [
+        "Planning: Add per-API-key rate limiting to the HTTP server in src/server.js. Put the limiter in a new module, src/rate-limit.js.\n\nRequired behaviour:\n",
+        "2 unit(s) on base main: u1, u2",
+        "2 passed, 0 failed or unbuilt"
+      ],
+      "ship": {
+        "verdict": "PASS",
+        "gate": {
+          "verdict": "PASS",
+          "confidence": "high",
+          "blocking": [],
+          "summary": "The fixed-window rate limiter per API key (src/rate-limit.js), its wiring into createServer and its tests meet all seven requirements. I checked them against the code. The full suite passes (38/38) on merged main, and the README section matches the code. The only real advisory is that per-key state is never cleaned up, so memory can grow."
+        },
+        "integration": {
+          "merged": [
+            "worktree-wf_80bbd30c-792-2",
+            "worktree-wf_80bbd30c-792-3"
+          ],
+          "skipped": [],
+          "conflicts": [],
+          "checks": {
+            "ran": true,
+            "passed": true,
+            "commands": [
+              "npm test"
+            ],
+            "notes": "npm test (node --test) ran 38 tests: 38 passed, 0 failed. The repo has no lint or type check configured (no eslint config, no tsconfig, and package.json has only a test script). Before merging, main had nothing uncommitted except the untracked .claude/ worktree directory. Nothing was stashed or discarded. Nothing was pushed."
+          }
+        },
+        "units": [
+          {
+            "id": "u1",
+            "title": "Rate limiter module, server wiring and tests",
+            "status": "passed",
+            "refuted_by": "0/2",
+            "findings": 3
+          },
+          {
+            "id": "u2",
+            "title": "Document rate limiting in README",
+            "status": "passed",
+            "refuted_by": "0/2",
+            "findings": 2
+          }
+        ]
+      }
+    }
+  ],
+  "ship": {
+    "runs": 1,
+    "verdict": "PASS",
+    "gateVerdict": "PASS",
+    "units": 2,
+    "unitsPassed": 2,
+    "unitsFailed": 0,
+    "fixRounds": 0,
+    "unitStatuses": [
+      "u1:passed:0/2",
+      "u2:passed:0/2"
+    ],
+    "merged": [
+      "worktree-wf_80bbd30c-792-2",
+      "worktree-wf_80bbd30c-792-3"
+    ],
+    "integrationChecks": {
+      "ran": true,
+      "passed": true,
+      "commands": [
+        "npm test"
+      ],
+      "notes": "npm test (node --test) ran 38 tests: 38 passed, 0 failed. The repo has no lint or type check configured (no eslint config, no tsconfig, and package.json has only a test script). Before merging, main had nothing uncommitted except the untracked .claude/ worktree directory. Nothing was stashed or discarded. Nothing was pushed."
+    },
+    "firstPassRefutedApprox": 0
+  },
+  "decisionGate": null,
+  "hooks": {
+    "SessionStart:started": 1,
+    "SessionStart:success": 1,
+    "Stop:started": 2,
+    "Stop:success": 2
+  },
+  "stopBlocks": [],
+  "toolUses": {
+    "Workflow": 1,
+    "Bash": 3
+  },
+  "agentSpawns": [],
+  "workflowCalls": [
+    {
+      "name": "harness:ship",
+      "scriptPath": null,
+      "args": "{\"task\":\"Add per-API-key rate limiting to the HTTP server in src/server.js. Put the limiter in a new module, src/rate-limit.js.\\n\\nRequired behaviour:\\n\\n1. createServer(options) accepts options.rateLimit = { limit, windowMs }. The default is { limit: 60, windowMs: 60000 }. All timing uses the exist"
+    }
+  ],
+  "testCommands": 1,
+  "permissionDenials": 0,
+  "errors": [],
+  "contamination": [],
+  "specDelivered": true,
+  "changedFiles": [
+    "README.md",
+    "src/rate-limit.js",
+    "src/server.js",
+    "test/rate-limit.test.js",
+    ".claude/worktrees/wf_80bbd30c-792-2/",
+    ".claude/worktrees/wf_80bbd30c-792-3/"
+  ],
+  "finalMessage": "The rate limiter is in and merged into `main` locally, nothing pushed. The final gate (Opus 5.5, per your `gateModel`) returned **PASS** with no blocking issues. I re-ran `npm test` on the merged `main` myself and all 38 tests pass.\n\n**What changed** (merged as `0466af7` and `9e139da`, 4 files, +322 lines)\n- **`src/rate-limit.js`** (new): a fixed-window limiter per API key, defaulting to 60 requests per 60000 ms. It gets its time from the clock `createServer` passes in.\n- **`src/server.js`**: takes the new `rateLimit` option and checks the limit on every request except `GET /health`, before authentication and routing. That means requests that end in a 401, 403 or 404 also count.\n- **`test/rate-limit.test.js`** (new): covers each of the 7 requirements, including the exact window boundary, `Retry-After` matching the body, the anonymous key, `/health` using no quota, and a test that fails if `Date.now` is called.\n- **`README.md`**: a new \"Rate limiting\" section; the gate checked it against the code.\n\nBoth units passed review on the first try (neither reviewer found a defect), so the fix phase never ran.\n\n**Worth knowing (not blocking)**\n- **Memory can grow without limit:** the limiter never removes entries for expired windows. Every distinct `x-api-key` value stays in memory for the life of the server, so a client sending many random keys can make it grow indefinitely. I'd add cleanup of expired windows before this goes to production.\n- **`createRateLimiter` falls back to `Date.now`** if no clock is passed in. The server always passes its own `now`, so this only matters if the module is used on its own. The server's own `now = Date.now` default was already there.\n- **Two choices the spec doesn't cover:** `HEAD /health` is rate limited (only `GET` is exempt), and an empty `x-api-key` header counts as `\"anonymous\"`.\n- **Existing bug, not caused by this change:** `GET /invoices/<key>?format=csv` for a key with no events crashes with `ERR_HTTP_HEADERS_SENT`, because the error handler tries to send a 500 after the headers have gone out. The new tests avoid it, and it is unchanged from the base commit `188887e`. The fix would be for that handler to check `res.headersSent` before sending.\n\nThere's no lint or type check set up in the repo, so `npm test` was the only check. The untracked `.claude/` folder in the repo is where the workflow kept its worktrees.",
+  "workDir": "/tmp/harness-bench/2026-10-14-lean/harness-lean/rate-limit/t3",
+  "apiErrorTexts": [],
+  "rescoredAt": "2026-10-14T21:39:24.812Z",
+  "optionsDelivered": true
+}
