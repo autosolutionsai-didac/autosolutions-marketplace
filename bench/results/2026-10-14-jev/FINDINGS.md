@@ -39,7 +39,7 @@ Two changes to the harness (1.1.0 changelog):
 1. **A turn that only changes documents or data files is not asked for a test run.** Package manifests, TypeScript configs and CI files still count as code.
 2. **The unresolved-problem question now excludes problems the message reports as fixed.** It used to ask whether the message "mentions a failing test, an error, a crash, a TODO, a known bug". A summary of a bug fix names the bug, and decision models read questions literally.
 
-`bench/jev-replay.mjs` asked Jev again about all 20 real stops, once with the old questions and rules and once with the new ones, plus six made-up turns whose right answer is known. That was 52 calls for $0.002. The replay rebuilds each stop from the gate log, so its probabilities differ somewhat from the live run. The old and new rules were judged on the same rebuilt stops.
+`bench/jev-replay.mjs` asked Jev again about all 20 real stops, once with the old questions and rules and once with the new ones, plus six made-up turns whose right answer is known. That was 52 calls for $0.002. The replay rebuilds each stop from the gate log, so its probabilities differ somewhat from the live run. The old and new rules were judged on the same rebuilt stops. With the old rules the replay sent back 9 of the 14 stops the live run sent back, and nothing else. The other 5 scored just under the thresholds on the rebuilt input: four on "unresolved", one on "no verification". Those answers sit close to the line, so expect some run-to-run variation in how often the gate fires.
 
 | | Old rules | New rules |
 |---|---|---|
@@ -58,7 +58,7 @@ A clean bug-fix summary with passing tests had scored 0.50 on "still unresolved"
 - a deliberate test failure plus an out-of-scope pricing gap
 - three follow-ups, one of them a crash in a route the task didn't touch
 
-That is what the question is for. The gate makes Claude either deal with what it mentions or say it is out of scope.
+By the hidden tests these are still false alarms: all three runs already passed. By the gate's own purpose they are fair, since the gate makes Claude either deal with what it mentions or say it is out of scope.
 
 ## Two harness bugs found on the way
 
