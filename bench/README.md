@@ -55,7 +55,8 @@ Per run (`results/<label>/<team>/<task>/t<n>.json`):
 ## Results
 
 - [2026-10-13](results/2026-10-13/FINDINGS.md): first full run, 3 teams, 5 tasks, 9 checks ([report](results/2026-10-13/REPORT.md)).
-- [2026-10-14](results/2026-10-14/FINDINGS.md): Haiku builders with an Opus architect and a Fable final reviewer ([pooled report, 4 teams](results/2026-10-13/REPORT-pooled.md)).
+- [2026-10-14](results/2026-10-14/FINDINGS.md): Haiku builders with an Opus architect and a Fable final reviewer ([report](results/2026-10-14/REPORT.md)).
+- [2026-10-14-jev](results/2026-10-14-jev/FINDINGS.md): all four teams with the decision gate on Jev, plus a replay of the gate's calls with the fixed rules ([report](results/2026-10-14-jev/REPORT.md); [pooled report, all 8 teams](results/2026-10-13/REPORT-pooled.md)).
 
 ## Running it
 
@@ -65,6 +66,8 @@ node bench/run.mjs --label 2026-10-13       # the full matrix, 3 runs at a time
 node bench/run.mjs --label 2026-10-13 --teams native-opus-xhigh --tasks rate-limit   # a subset
 node bench/report.mjs 2026-10-13            # results/2026-10-13/REPORT.md
 node bench/report.mjs 2026-10-13 2026-11-02 # pool several runs into one comparison
+node bench/jev-smoke.mjs                    # before a *-jev run: does the live Jev API answer?
+node bench/jev-replay.mjs 2026-10-14-jev    # re-ask Jev about a run's gate calls with the current rules
 ```
 
 Requirements: Claude Code 2.1.293+ on the PATH, logged in, Node 20+, git. Each run uses a fresh `CLAUDE_CONFIG_DIR`, so your own settings, plugins and memory do not leak in, and the child environment drops anything that would change thinking or model choice (`MAX_THINKING_TOKENS`, autocompact and model overrides). The harness teams load a copy of `plugins/harness` frozen when the benchmark starts. Headless runs wait for their workflows (`CLAUDE_CODE_PRINT_BG_WAIT_CEILING_MS=0`); without that, `claude -p` stops background work 10 minutes after the last turn.
