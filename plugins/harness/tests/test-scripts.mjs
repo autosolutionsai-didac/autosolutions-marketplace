@@ -118,6 +118,48 @@ const check = (name, cond, extra = '') => { console.log(`${cond ? 'PASS' : 'FAIL
     r = await runAsync([join(ROOT, 'scripts/decision-gate.mjs')], { input: gateIn(shellTurn('Bash', { command: 'grep -rn foo .' }), repo), env })
     check('gate: read-only shell turn on a dirty tree -> allow', r.status === 0 && r.stdout === '', r.stderr.split('\n').pop())
   }
+  // A ship workflow runs in the background, merges its work (clean tree, new commits), and reports back
+  // through a <task-notification>. The turn that ends after that notice is the one claiming completion.
+  {
+    const repo = mkdtempSync(join(tmpdir(), 'harness-gate-wf-'))
+    const g = (...a) => spawnSync('git', a, { cwd: repo, env: { ...process.env, GIT_AUTHOR_NAME: 't', GIT_AUTHOR_EMAIL: 't@t', GIT_COMMITTER_NAME: 't', GIT_COMMITTER_EMAIL: 't@t' } })
+    g('init', '-q')
+    writeFileSync(join(repo, 'a.js'), 'x\n')
+    g('add', '-A')
+    g('commit', '-q', '-m', 'merge unit 1')
+    const wfTurn = (promptAt, notificationRow) => {
+      const p = join(dir, `t-wf-${promptAt.replace(/\W/g, '')}.jsonl`)
+      writeFileSync(p, [
+        { type: 'user', timestamp: promptAt, message: { role: 'user', content: '<command-name>/harness:ship</command-name> add rate limiting' } },
+        { type: 'user', isMeta: true, timestamp: promptAt, message: { role: 'user', content: [{ type: 'text', text: 'Run the "harness:ship" workflow.' }] } },
+        { type: 'assistant', message: { content: [{ type: 'tool_use', name: 'Workflow', input: { name: 'harness:ship', args: 'x' } }] } },
+        { type: 'user', message: { content: [{ type: 'tool_result', content: 'started in the background' }] } },
+        { type: 'assistant', message: { content: [{ type: 'text', text: 'The ship workflow is running in the background.' }] } },
+        notificationRow,
+        { type: 'assistant', message: { content: [{ type: 'tool_use', name: 'Bash', input: { command: 'git log --oneline -3' } }] } },
+        { type: 'user', message: { content: [{ type: 'tool_result', content: 'abc merge unit 1' }] } },
+        { type: 'assistant', message: { content: [{ type: 'text', text: 'Done: rate limiting is merged into main.' }] } },
+      ].map((x) => JSON.stringify(x)).join('\n') + '\n')
+      return p
+    }
+    const note = { type: 'user', origin: { kind: 'task-notification' }, message: { role: 'user', content: '<task-notification>\n<task-id>w1</task-id>\n<status>completed</status>\n</task-notification>' } }
+    const noteNoOrigin = { type: 'user', message: { role: 'user', content: [{ type: 'text', text: '<task-notification><task-id>w1</task-id></task-notification>' }] } }
+    const logFile = join(dir, 'gate-log-wf.jsonl')
+    const env = { ...process.env, HARNESS_DEBUG: '1', TYPESAFE_API_KEY: 'k', TYPESAFE_BASE_URL: base, HARNESS_GATE_LOG: logFile }
+    const gateIn = (transcript_path) => JSON.stringify({ hook_event_name: 'Stop', stop_hook_active: false, cwd: repo, transcript_path, last_assistant_message: 'Done: rate limiting is merged into main.' })
+    const hourAgo = new Date(Date.now() - 3600_000).toISOString()
+    r = await runAsync([join(ROOT, 'scripts/decision-gate.mjs')], { input: gateIn(wfTurn(hourAgo, note)), env })
+    check('gate: turn ending after a workflow notification, work merged as commits, clean tree -> checked and blocked', r.status === 0 && /"decision":"block"/.test(r.stdout), (r.stdout || r.stderr).slice(0, 120))
+    r = await runAsync([join(ROOT, 'scripts/decision-gate.mjs')], { input: gateIn(wfTurn(new Date(Date.now() - 3000_000).toISOString(), noteNoOrigin)), env })
+    check('gate: a <task-notification> text row without origin is not a new prompt either', r.status === 0 && /"decision":"block"/.test(r.stdout), (r.stdout || r.stderr).slice(0, 120))
+    const future = new Date(Date.now() + 3600_000).toISOString()
+    r = await runAsync([join(ROOT, 'scripts/decision-gate.mjs')], { input: gateIn(wfTurn(future, note)), env })
+    check('gate: clean tree and no commits since the turn started -> allow without a call', r.status === 0 && r.stdout === '' && /no edits this turn/.test(r.stderr), r.stderr.split('\n').pop())
+    const logged = existsSync(logFile) ? readFileSync(logFile, 'utf8').trim().split('\n').map((l) => JSON.parse(l)) : []
+    check('gate: the log records commits, backend usage, request size and the block reasons', logged.length === 2 && logged[0].commits === 1 && logged[0].usage && logged[0].usage.input_tokens === 400 && logged[0].model === 'jev-1.13.0' && logged[0].request_bytes > 0 && Array.isArray(logged[0].reasons) && logged[0].reasons.length === 1, JSON.stringify(logged[0] || {}).slice(0, 200))
+    const q = requests.filter((x) => x.url === '/v1/systemone').pop()
+    check('gate: Jev sees the commits made this turn', q && q.json.state.commits_made_this_turn === 1 && /merge unit 1/.test(q.json.state.commit_sample), q && JSON.stringify(q.json.state).slice(0, 120))
+  }
   // Free backends
   {
     const before = requests.length

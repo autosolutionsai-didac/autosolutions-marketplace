@@ -89,9 +89,17 @@ function pickFallback(primary) {
   return providers()[name] || null
 }
 
+// A background workflow or agent reports back as a user row carrying a <task-notification>. That row is
+// not a new request: the work it reports belongs to the turn that started it.
+function isTaskNotification(row) {
+  const c = row.message && row.message.content
+  const text = typeof c === 'string' ? c : Array.isArray(c) ? c.map((b) => (b && b.type === 'text' ? b.text : '')).join('') : ''
+  return (row.origin && row.origin.kind === 'task-notification') || /^\s*<task-notification>/.test(text)
+}
+
 // Walk the transcript backwards to the last real user prompt and collect what happened since.
 function turnEvidence(transcriptPath) {
-  const ev = { edits: 0, editedFiles: new Set(), bash: [], shellWrites: 0, testCommands: [], subagents: [], parsed: false }
+  const ev = { edits: 0, editedFiles: new Set(), bash: [], shellWrites: 0, testCommands: [], subagents: [], parsed: false, startedAt: null }
   try {
     if (!transcriptPath || !existsSync(transcriptPath)) return ev
     const lines = readFileSync(transcriptPath, 'utf8').split('\n').filter(Boolean)
@@ -102,7 +110,7 @@ function turnEvidence(transcriptPath) {
       if (row.type === 'user') {
         const c = row.message && row.message.content
         const isPrompt = typeof c === 'string' || (Array.isArray(c) && c.some((b) => b && b.type === 'text') && !c.some((b) => b && b.type === 'tool_result'))
-        if (isPrompt) break
+        if (isPrompt && !row.isMeta && !isTaskNotification(row)) { ev.startedAt = row.timestamp || null; break }
       }
       turn.push(row)
     }
@@ -129,12 +137,24 @@ function turnEvidence(transcriptPath) {
   return ev
 }
 
-function gitChanges(cwd) {
+// Uncommitted changes, plus commits made since the turn started: a workflow that merges its work leaves a
+// clean tree, so the commits are the only trace of what it changed.
+function gitChanges(cwd, since) {
+  let res = { isRepo: false, count: 0, sample: '', commits: 0, commitSample: '' }
   try {
     const out = execFileSync('git', ['-C', cwd, 'status', '--porcelain', '--untracked-files=normal'], { encoding: 'utf8', timeout: 4000, stdio: ['ignore', 'pipe', 'ignore'] })
     const rows = out.split('\n').filter(Boolean)
-    return { isRepo: true, count: rows.length, sample: rows.slice(0, 12).join('\n') }
-  } catch { return { isRepo: false, count: 0, sample: '' } }
+    res = { ...res, isRepo: true, count: rows.length, sample: rows.slice(0, 12).join('\n') }
+  } catch { return res }
+  if (since && !Number.isNaN(Date.parse(since))) {
+    try {
+      const out = execFileSync('git', ['-C', cwd, 'log', `--since=${since}`, '--format=%h %s', 'HEAD'], { encoding: 'utf8', timeout: 4000, stdio: ['ignore', 'pipe', 'ignore'] })
+      const rows = out.split('\n').filter(Boolean)
+      res.commits = rows.length
+      res.commitSample = rows.slice(0, 8).join('\n')
+    } catch {}
+  }
+  return res
 }
 
 const QUESTIONS = {
@@ -143,6 +163,9 @@ const QUESTIONS = {
   unresolved_problem: 'The final message mentions a failing test, an error, a crash, a TODO, a known bug or a part of the request that is still not done.',
   deferred_to_user: 'The final message asks or expects the user to run a test, check a result, verify behaviour, or complete a step that the assistant could have done itself.',
 }
+
+// What the last backend call reported about itself (token usage, request id), for the gate log.
+let callMeta = {}
 
 async function askJev(p, state) {
   const body = {
@@ -153,6 +176,7 @@ async function askJev(p, state) {
   const res = await fetch(p.url, { method: 'POST', headers: { Authorization: `Bearer ${p.key}`, 'Content-Type': 'application/json' }, body: JSON.stringify(body), signal: AbortSignal.timeout(9000) })
   if (!res.ok) throw new Error(`${p.name} HTTP ${res.status}: ${(await res.text()).slice(0, 200)}`)
   const json = await res.json()
+  callMeta = { model: json.model || p.model, usage: json.usage || null, request_id: res.headers.get('x-typesafe-request-id') || res.headers.get('x-request-id') || null, request_bytes: JSON.stringify(body).length }
   const answers = json.answers || {}
   const out = {}
   for (const k of Object.keys(QUESTIONS)) {
@@ -174,6 +198,7 @@ function renderState(s) {
     `file-changing shell commands this turn: ${s.file_changing_shell_commands_this_turn}`,
     `test or check commands run this turn: ${s.test_or_check_commands_run_this_turn.join(' | ') || 'NONE'}`,
     `subagents or workflows used this turn: ${s.subagents_used_this_turn.join(', ') || 'none'}`,
+    `commits made this turn (${s.commits_made_this_turn || 0}): ${s.commit_sample || 'none'}`,
     'git status:',
     s.git_status_sample || '(clean or not a git repository)',
   ].join('\n')
@@ -297,6 +322,7 @@ async function askOpenAI(p, state) {
   const res = await fetch(p.url, { method: 'POST', headers: { Authorization: `Bearer ${p.key}`, 'Content-Type': 'application/json' }, body: JSON.stringify(body), signal: AbortSignal.timeout(9000) })
   if (!res.ok) throw new Error(`openai HTTP ${res.status}: ${(await res.text()).slice(0, 200)}`)
   const json = await res.json()
+  callMeta = { model: json.model || p.model, usage: json.usage || null, request_id: res.headers.get('x-request-id') || null, request_bytes: JSON.stringify(body).length }
   const out = {}
   for (const a of json.answers || []) {
     if (a && a.type === 'predicate' && typeof a.probability === 'number') out[a.name] = a.probability
@@ -321,9 +347,9 @@ async function main() {
 
   const cwd = input.cwd || process.cwd()
   const ev = turnEvidence(input.transcript_path)
-  const git = gitChanges(cwd)
+  const git = gitChanges(cwd, ev.startedAt)
   const indirect = ev.shellWrites > 0 || ev.subagents.length > 0
-  const changedSomething = ev.edits > 0 || (git.count > 0 && (indirect || !ev.parsed))
+  const changedSomething = ev.edits > 0 || ((git.count > 0 || git.commits > 0) && (indirect || !ev.parsed))
   if (!changedSomething) { log('no edits this turn, allowing'); return allow() }
 
   const finalMessage = String(input.last_assistant_message || '').slice(0, 6000)
@@ -336,6 +362,8 @@ async function main() {
     file_changing_shell_commands_this_turn: ev.shellWrites,
     test_or_check_commands_run_this_turn: ev.testCommands.slice(0, 15),
     subagents_used_this_turn: ev.subagents.slice(0, 10),
+    commits_made_this_turn: git.commits,
+    commit_sample: git.commitSample,
     git_status_sample: git.sample,
   }
 
@@ -358,7 +386,7 @@ async function main() {
   if (p.claims_done >= T && !verified) reasons.push(`you report the work as done but no test, build or check command ran this turn and the message cites no verification (p_done=${p.claims_done.toFixed(2)}, p_verified=${p.cites_verification.toFixed(2)})`)
   if (p.unresolved_problem >= T + 0.05) reasons.push(`the message still mentions an unresolved error, failing check or TODO (p=${p.unresolved_problem.toFixed(2)})`)
   if (p.deferred_to_user >= T + 0.05) reasons.push(`the message leaves verification or a step to the user that you can do yourself (p=${p.deferred_to_user.toFixed(2)})`)
-  record({ provider: used.name, ms: Date.now() - started, probs: p, tests_run: ev.testCommands.length, edits: ev.edits, shell_writes: ev.shellWrites, blocked: reasons.length > 0, message_sha256: createHash('sha256').update(finalMessage).digest('hex').slice(0, 16), ...(env('HARNESS_GATE_LOG_TEXT') === '1' ? { message: finalMessage.slice(0, 2000) } : {}) })
+  record({ provider: used.name, ms: Date.now() - started, probs: p, tests_run: ev.testCommands.length, edits: ev.edits, shell_writes: ev.shellWrites, subagents: ev.subagents.length, commits: git.commits, ...callMeta, blocked: reasons.length > 0, reasons, message_sha256: createHash('sha256').update(finalMessage).digest('hex').slice(0, 16), ...(env('HARNESS_GATE_LOG_TEXT') === '1' ? { message: finalMessage.slice(0, 2000) } : {}) })
   if (!reasons.length) return allow()
 
   const reason = `Decision gate (${used.name}): ${reasons.join('; ')}. Before finishing: run the relevant tests or checks for the files you changed (${[...ev.editedFiles].slice(0, 6).join(', ') || 'see git status'}), fix anything that fails, resolve or explicitly scope out any open item, and end with a two-line verification summary (what you ran, what it showed). If no automated check exists, say so in one line and describe the manual check you performed.`
