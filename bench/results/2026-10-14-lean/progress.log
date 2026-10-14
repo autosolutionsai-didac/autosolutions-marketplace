@@ -1,0 +1,14 @@
+2026-10-14T21:00:16.061Z bench 2026-10-14-lean: 15 runs planned, 0 already done, 15 to run, 3 at a time. Work dir /tmp/harness-bench/2026-10-14-lean
+2026-10-14T21:00:16.089Z [w1] start harness-lean rate-limit t1
+2026-10-14T21:00:16.242Z   harness-lean rate-limit t1: turn 1/1 started
+2026-10-14T21:00:16.246Z [w2] start harness-lean bugfix-trio t1
+2026-10-14T21:00:16.377Z   harness-lean bugfix-trio t1: turn 1/1 started
+2026-10-14T21:00:16.379Z [w3] start harness-lean price-refresh t1
+2026-10-14T21:00:16.572Z   harness-lean price-refresh t1: turn 1/1 started
+2026-10-14T21:02:23.468Z [w3] done  harness-lean price-refresh t1: SUCCESS in 126s, $0.71, plan 5h 25%
+2026-10-14T21:02:23.468Z [w3] start harness-lean review-import t1
+2026-10-14T21:02:23.723Z   harness-lean review-import t1: turn 1/2 started
+2026-10-14T21:05:15.001Z   harness-lean review-import t1: turn 2/2 started
+2026-10-14T21:05:49.035Z [w3] done  harness-lean review-import t1: SUCCESS in 205s, $0.75, plan 5h 27%
+2026-10-14T21:05:49.035Z [w3] start harness-lean audit-input t1
+2026-10-14T21:05:49.160Z   harness-lean audit-input t1: turn 1/2 started
