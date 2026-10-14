@@ -14,6 +14,7 @@ A repeatable test of the harness plugin against plain Claude Code. Every team ge
 | `harness-sonnet-builders` | The harness as installed: Sonnet 5.5 builders at medium, Opus 5.5 fix rounds, Opus refuters, Fable 5.1 gate, recommended settings |
 | `harness-opus-builders` | The same, with Opus 5.5 builders at medium (`buildModel`) |
 | `harness-haiku-builders` | Haiku 5.5 builders and review/audit finders; Opus 5.5 as architect and project manager (main session, plan, integrate, fix rounds, refuters); Fable 5.1 as final reviewer (ship gate, review and audit reports) |
+| `*-jev` (four teams) | Each team above plus the harness decision gate on Jev. The native twin gets only the gate's Stop hook. A wrapper saves the work tree whenever the gate sends Claude back, so each block can be scored as the run would have ended without the gate. Needs `TYPESAFE_API_KEY` or `OPENROUTER_API_KEY`; check it first with `node bench/jev-smoke.mjs` |
 
 **Comparative tasks** (`tasks.json`, run by every team):
 
@@ -54,6 +55,7 @@ Per run (`results/<label>/<team>/<task>/t<n>.json`):
 ## Results
 
 - [2026-10-13](results/2026-10-13/FINDINGS.md): first full run, 3 teams, 5 tasks, 9 checks ([report](results/2026-10-13/REPORT.md)).
+- [2026-10-14](results/2026-10-14/FINDINGS.md): Haiku builders with an Opus architect and a Fable final reviewer ([pooled report, 4 teams](results/2026-10-13/REPORT-pooled.md)).
 
 ## Running it
 

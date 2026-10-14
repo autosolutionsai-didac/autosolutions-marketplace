@@ -14,3 +14,6 @@
 2026-10-14T09:29:14.743Z   harness-haiku-builders audit-input t1: turn 1/2 started
 2026-10-14T09:29:26.305Z [w3] done  harness-haiku-builders review-import t1: SUCCESS in 353s, $1.81, plan 5h 7%
 2026-10-14T09:29:51.490Z [w2] done  harness-haiku-builders bugfix-trio t1: SUCCESS in 461s, $2.32, plan 5h 7%
+2026-10-14T09:41:14.261Z   harness-haiku-builders audit-input t1: turn 2/2 started
+2026-10-14T09:41:42.953Z [w1] done  harness-haiku-builders audit-input t1: SUCCESS in 748s, $3.95, plan 5h 11%
+2026-10-14T09:41:42.953Z all runs finished
