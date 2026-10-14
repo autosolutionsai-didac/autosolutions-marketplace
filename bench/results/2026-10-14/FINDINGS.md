@@ -1,6 +1,6 @@
 # What the 2026-10-14 run says: Haiku builders
 
-One new team on the same five tasks as [2026-10-13](../2026-10-13/FINDINGS.md), one trial per task, same machine (4 CPUs, 2 workflow agents at a time), Claude Code 2.1.296. The pooled numbers for all four teams are in [REPORT-pooled.md](../2026-10-13/REPORT-pooled.md); this run alone is in [REPORT.md](REPORT.md).
+One new team on the same five tasks as [2026-10-13](../2026-10-13/FINDINGS.md), one trial per task, same machine type (4 CPUs, 2 workflow agents at a time). Claude Code updated itself between the two days: the 2026-10-13 teams ran on 2.1.296, this one on 2.1.299, so the comparison includes any change in the CLI as well as in the team. The pooled numbers for all four teams are in [REPORT-pooled.md](../2026-10-13/REPORT-pooled.md); this run alone is in [REPORT.md](REPORT.md).
 
 **The team, `harness-haiku-builders`:** Haiku 5.5 writes the code (ship's build stage and the `harness:builder` role) and does the first per-file pass on review and audit. Opus 5.5 is the architect and project manager: the main session at xhigh, the plan, the integration, the fix rounds and the three refuters per unit. Fable 5.1 is the final reviewer: ship's gate, and the final report of review and audit.
 
