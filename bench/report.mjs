@@ -135,7 +135,7 @@ L.push(`Runs: ${runs.length} (${runs.filter((r) => r.taskKind !== 'check').lengt
 const versions = labels.map((l) => {
   const dir = path.join(BENCH, 'results', l)
   const cfgs = existsSync(dir) ? readdirSync(dir).filter((f) => /^run-config(-\d+)?\.json$/.test(f)).map((f) => JSON.parse(readFileSync(path.join(dir, f), 'utf8'))) : []
-  return `${l}: Claude Code ${[...new Set(cfgs.map((c) => c.claudeVersion).filter(Boolean))].join(', ') || '?'}`
+  return `${l}: Claude Code ${[...new Set(cfgs.map((c) => String(c.claudeVersion || '').replace(/\s*\(Claude Code\)$/, '')).filter(Boolean))].join(', ') || '?'}`
 })
 const versionOf = (label) => (versions.find((v) => v.startsWith(`${label}:`)) || '').replace(/^[^:]+: Claude Code /, '')
 if (labels.length > 1) L.push(`Versions by label: ${versions.join('; ')}.`, '')
@@ -213,7 +213,7 @@ if (gateRuns.length) {
     return base.length && base.every((r) => r.success)
   })
   if (ceiling.length) L.push(`**Ceiling:** on ${ceiling.map((t) => t.id).join(', ')} every team without the gate already succeeded, so a gain in success cannot show there; those tasks measure only what the gate costs and whether it breaks anything.`, '')
-  L.push(`Across ${gateRuns.length} runs with the gate: ${blocked.length} had at least one block (${sum(gateRuns.map((r) => r.decisionGate.blocks))} blocks in all). Of the ${measurable.length} runs where the result without the gate can be scored, the gate turned ${fixed.length} broken result(s) into working ones and ${broke.length} working result(s) into broken ones. Jev itself cost ${usd(sum(gateRuns.map(jevCost)))} in all; the Claude work it triggered cost ${usd(sum(gateRuns.map((r) => r.decisionGate.extraCostUSD || 0)))} and took ${mins(sum(gateRuns.map((r) => r.decisionGate.extraSec || 0)))}.`, '')
+  L.push(`Across ${gateRuns.length} runs with the gate: ${blocked.length} had at least one block (${sum(gateRuns.map((r) => r.decisionGate.blocks))} blocks in all). Of the ${measurable.length} runs where the result without the gate can be scored, the gate turned ${fixed.length} broken result(s) into working ones and ${broke.length} working result(s) into broken ones. Jev itself cost $${sum(gateRuns.map(jevCost)).toFixed(4)} in all; the Claude work it triggered cost ${usd(sum(gateRuns.map((r) => r.decisionGate.extraCostUSD || 0)))} and took ${mins(sum(gateRuns.map((r) => r.decisionGate.extraSec || 0)))}.`, '')
   const pairs = teams.filter((t) => t.extends && t.decisionGate && teamIds.includes(t.id) && teamIds.includes(t.extends))
   if (pairs.length) {
     L.push('**Each team with and without the gate**, over the tasks both sides ran (per task the median run, summed). The two sides ran at different times and possibly on different Claude Code versions, so differences include run-to-run variance; the gate table above shows what the blocks themselves did.', '')
