@@ -1,8 +1,11 @@
 // Turns the raw output of one benchmark run (stream-json from each turn, the transcripts Claude Code
 // wrote under CLAUDE_CONFIG_DIR, and the persisted workflow records) into metrics.
-import { existsSync, readdirSync, readFileSync, statSync } from 'node:fs'
+import { spawnSync } from 'node:child_process'
+import { existsSync, mkdtempSync, readdirSync, readFileSync, rmSync, statSync } from 'node:fs'
+import os from 'node:os'
 import path from 'node:path'
-import { canonicalModel, requestCost } from './prices.mjs'
+import { JEV_INPUT_PER_MTOK, canonicalModel, requestCost } from './prices.mjs'
+import { scoreCodeTask, scoreFindingsTask } from './score.mjs'
 
 export function readJsonl(file) {
   if (!existsSync(file)) return []
@@ -217,5 +220,109 @@ export function shipInternals(workflows, transcripts) {
     merged: last.ship.integration ? last.ship.integration.merged : null,
     integrationChecks: last.ship.integration ? last.ship.integration.checks : null,
     firstPassRefutedApprox: firstPassRefuted,
+  }
+}
+
+// ---- the decision gate (Jev) -------------------------------------------------------------------------
+// What the gate did in one run and what it changed. gate.jsonl is the gate's own log (one line per backend
+// call); gate-snapshots.jsonl is gate-probe.mjs's (one line per Stop hook, with a commit of the work tree
+// whenever the gate sent Claude back). For each block: the time and API cost Claude spent after it until
+// the turn ended, and, for a block at the run's last stop, the score of the work as it stood at the block,
+// which is what the run would have delivered without the gate.
+const isNotification = (row) => {
+  if (row.type !== 'user') return false
+  const c = row.message && row.message.content
+  const text = typeof c === 'string' ? c : Array.isArray(c) ? c.map((b) => (b && b.type === 'text' ? b.text : '')).join('') : ''
+  return (row.origin && row.origin.kind === 'task-notification') || /^\s*<task-notification>/.test(text)
+}
+
+function transcriptRows(configDir) {
+  return walk(path.join(configDir, 'projects')).filter((f) => f.endsWith('.jsonl') && path.basename(f) !== 'journal.jsonl').map((f) => ({ file: f, main: !path.basename(f).startsWith('agent-'), rows: readJsonl(f) }))
+}
+
+function costBetween(files, from, to) {
+  const msgs = new Map()
+  for (const { rows } of files) {
+    for (const row of rows) {
+      if (row.type !== 'assistant' || !row.message || !row.message.usage || !row.timestamp) continue
+      const t = Date.parse(row.timestamp)
+      if (t < from || t > to) continue
+      const id = `${row.message.id || row.uuid}:${row.requestId || ''}`
+      const prev = msgs.get(id)
+      if (!prev || (row.message.usage.output_tokens || 0) >= (prev.usage.output_tokens || 0)) msgs.set(id, { model: row.message.model, usage: row.message.usage })
+    }
+  }
+  let cost = 0
+  for (const m of msgs.values()) if (canonicalModel(m.model) !== '<synthetic>') cost += requestCost(m.model, m.usage)
+  return { costUSD: cost, requests: msgs.size }
+}
+
+function scoreCommit(repo, commit, task, taskDir) {
+  const dir = mkdtempSync(path.join(os.tmpdir(), 'bench-gate-snap-'))
+  try {
+    const archive = spawnSync('git', ['-C', repo, 'archive', '--format=tar', commit], { maxBuffer: 256 * 1024 * 1024 })
+    if (archive.status !== 0) return { error: `git archive failed: ${String(archive.stderr).slice(0, 200)}` }
+    const untar = spawnSync('tar', ['-x', '-C', dir], { input: archive.stdout })
+    if (untar.status !== 0) return { error: 'tar failed' }
+    if (task.kind === 'code') return scoreCodeTask(dir, task, taskDir)
+    if (task.kind === 'findings') return scoreFindingsTask(dir, task, taskDir)
+    return null
+  } finally {
+    rmSync(dir, { recursive: true, force: true })
+  }
+}
+
+const brief = (s) => (s ? { success: !!s.success, hidden: s.hidden ? `${s.hidden.pass}/${s.hidden.tests}` : undefined, specComplete: s.specComplete, recall: s.recall, error: s.error } : null)
+
+export function gateEffect({ gateLog, gateSnapshots, configDir, repo, task, taskDir, turns, finalScore, backend }) {
+  const calls = readJsonl(gateLog)
+  const stops = readJsonl(gateSnapshots)
+  const files = transcriptRows(configDir)
+  const notifications = files.filter((f) => f.main).flatMap((f) => f.rows.filter(isNotification).map((r) => Date.parse(r.timestamp)).filter((t) => !Number.isNaN(t)))
+  const turnOf = (t) => turns.find((x) => x.startedAt && Date.parse(x.startedAt) <= t && t <= Date.parse(x.endedAt) + 1000)
+  const lastTurn = turns.filter((x) => x.startedAt).slice(-1)[0]
+  const jevTokens = (c) => (c.usage && (c.usage.input_tokens ?? c.usage.prompt_tokens)) ?? (c.request_bytes ? Math.ceil(c.request_bytes / 4) : 0)
+  const answered = calls.filter((c) => !c.error)
+  const blockedCalls = answered.filter((c) => c.blocked)
+  const events = []
+  let bi = 0
+  for (const s of stops) {
+    const t = Date.parse(s.ts)
+    const turn = turnOf(t)
+    const ev = { ts: s.ts, turn: turn ? turn.turn : null, blocked: s.blocked, gateMs: s.gateMs }
+    if (s.blocked) {
+      const c = blockedCalls[bi++] || {}
+      const end = turn ? Date.parse(turn.endedAt) : t
+      // Without the gate the run stops here only if nothing else was still coming: no background workflow
+      // or agent reported back later in the same turn.
+      const terminal = !!turn && !notifications.some((n) => n > t && n <= end)
+      const after = costBetween(files, t, end)
+      Object.assign(ev, { probs: c.probs, reasons: c.reasons, message: String(c.message || '').slice(0, 600), terminal, finalTurn: !!turn && turn === lastTurn, afterSec: Math.max(0, (end - t) / 1000), afterCostUSD: after.costUSD, afterRequests: after.requests, commit: s.commit || null })
+      if (ev.terminal && ev.finalTurn && s.commit) ev.scoreAtBlock = brief(scoreCommit(repo, s.commit, task, taskDir))
+    }
+    events.push(ev)
+  }
+  const blocks = events.filter((e) => e.blocked)
+  const decisive = blocks.find((e) => e.scoreAtBlock)
+  let counterfactual
+  if (!blocks.length) counterfactual = { applicable: true, note: 'the gate never sent Claude back, so the result is what the run delivers without it', withoutGate: brief(finalScore), withGate: brief(finalScore) }
+  else if (decisive) counterfactual = { applicable: true, note: 'scored from the work tree at the block on the run\'s last stop', withoutGate: decisive.scoreAtBlock, withGate: brief(finalScore) }
+  else counterfactual = { applicable: false, note: 'blocks happened before the run\'s last stop (an earlier turn, or while a workflow was still running), so the run without them cannot be reconstructed', withGate: brief(finalScore) }
+  const tokens = calls.reduce((a, c) => a + jevTokens(c), 0)
+  const ms = answered.map((c) => c.ms).filter((x) => typeof x === 'number').sort((a, b) => a - b)
+  return {
+    backend,
+    stops: stops.length,
+    calls: answered.length,
+    blocks: blocks.length,
+    errors: calls.filter((c) => c.error).length,
+    errorTexts: [...new Set(calls.filter((c) => c.error).map((c) => String(c.error).slice(0, 160)))].slice(0, 3),
+    msMedian: ms.length ? ms[Math.floor(ms.length / 2)] : null,
+    msMax: ms.length ? ms[ms.length - 1] : null,
+    jev: { inputTokens: tokens, costUSD: backend === 'mock' ? 0 : (tokens * JEV_INPUT_PER_MTOK) / 1e6, estimated: calls.some((c) => !(c.usage && (c.usage.input_tokens ?? c.usage.prompt_tokens) != null)) },
+    extraSec: blocks.reduce((a, e) => a + (e.afterSec || 0), 0),
+    extraCostUSD: blocks.reduce((a, e) => a + (e.afterCostUSD || 0), 0),
+    counterfactual,
+    events,
   }
 }

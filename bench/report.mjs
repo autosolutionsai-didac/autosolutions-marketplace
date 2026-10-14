@@ -28,6 +28,7 @@ const latest = Math.max(...allRuns.map((r) => r.benchVersion || 1))
 const runs = allRuns.filter((r) => (r.benchVersion || 1) === latest && !r.invalidReason)
 if (runs.length < allRuns.length) console.error(`ignoring ${allRuns.length - runs.length} run(s) from an older bench version or marked invalid`)
 const teams = JSON.parse(readFileSync(path.join(BENCH, 'teams.json'), 'utf8')).teams
+const jevCost = (r) => (r.decisionGate && r.decisionGate.jev ? r.decisionGate.jev.costUSD || 0 : 0)
 const tasks = JSON.parse(readFileSync(path.join(BENCH, 'tasks.json'), 'utf8')).tasks
 const teamIds = teams.map((t) => t.id).filter((id) => runs.some((r) => r.team === id))
 const comparative = tasks.filter((t) => t.kind !== 'check' && runs.some((r) => r.task === t.id))
@@ -181,6 +182,43 @@ if (shipRuns.length) {
   for (const r of shipRuns) L.push(`| ${r.team} | ${r.task} | ${r.ship.units} | ${r.ship.unitsPassed} | ${r.ship.fixRounds} | ${r.ship.gateVerdict || r.ship.verdict || 'none'} | ${r.success ? 'works' : 'broken'} |`)
   const agree = judgeTruth.filter((j) => (j.gate === 'PASS') === (j.truth === 'works')).length
   L.push('', `The final gate agreed with the hidden tests in ${agree} of ${judgeTruth.length} ship runs.`, '')
+}
+
+const gateRuns = runs.filter((r) => r.decisionGate && r.taskKind !== 'check')
+if (gateRuns.length) {
+  const backends = [...new Set(gateRuns.map((r) => r.decisionGate.backend))]
+  L.push('## The decision gate (Jev)', '')
+  L.push(`Backend: ${backends.join(', ')}.${backends.includes('mock') ? ' **Mock runs test the wiring only; they say nothing about Jev.**' : ''} The gate runs when Claude stops after changing files and can send it back once per stop. A wrapper records the work tree whenever it does, so each block can be scored twice: as the run would have ended without the gate (the tree at the block) and as it did end. That comparison is only possible for a block at the run's last stop; a block in an earlier turn, or while a workflow was still running, changed what came after it in ways a snapshot cannot replay.`, '')
+  L.push('| Team | Task | Stops checked | Jev calls | Blocks | Errors | Jev latency (median) | Jev cost | Claude time after blocks | Claude cost after blocks | Without the gate | With the gate |', '|---|---|---|---|---|---|---|---|---|---|---|---|')
+  const sc = (x) => (!x ? 'n/a' : x.error ? `error: ${x.error.slice(0, 40)}` : `${x.success ? 'works' : 'broken'}${x.hidden ? ` (${x.hidden})` : ''}${x.recall != null ? ` (recall ${pct(x.recall)})` : ''}`)
+  for (const r of gateRuns) {
+    const d = r.decisionGate
+    const cf = d.counterfactual || {}
+    L.push(`| ${r.team} | ${r.task} | ${d.stops} | ${d.calls} | ${d.blocks} | ${d.errors}${d.errorTexts && d.errorTexts.length ? ` (${d.errorTexts[0].replace(/\|/g, '/').slice(0, 60)})` : ''} | ${d.msMedian == null ? 'n/a' : `${d.msMedian} ms`} | ${d.jev ? `$${d.jev.costUSD.toFixed(4)}${d.jev.estimated ? ' (est.)' : ''}` : 'n/a'} | ${d.blocks ? mins(d.extraSec) : '-'} | ${d.blocks ? usd(d.extraCostUSD) : '-'} | ${cf.applicable ? sc(cf.withoutGate) : 'not measurable'} | ${sc(cf.withGate)} |`)
+  }
+  L.push('')
+  const measurable = gateRuns.filter((r) => r.decisionGate.counterfactual && r.decisionGate.counterfactual.applicable)
+  const fixed = measurable.filter((r) => !r.decisionGate.counterfactual.withoutGate.success && r.decisionGate.counterfactual.withGate.success)
+  const broke = measurable.filter((r) => r.decisionGate.counterfactual.withoutGate.success && !r.decisionGate.counterfactual.withGate.success)
+  const blocked = gateRuns.filter((r) => r.decisionGate.blocks > 0)
+  L.push(`Across ${gateRuns.length} runs with the gate: ${blocked.length} had at least one block (${sum(gateRuns.map((r) => r.decisionGate.blocks))} blocks in all). Of the ${measurable.length} runs where the result without the gate can be scored, the gate turned ${fixed.length} broken result(s) into working ones and ${broke.length} working result(s) into broken ones. Jev itself cost ${usd(sum(gateRuns.map(jevCost)))} in all; the Claude work it triggered cost ${usd(sum(gateRuns.map((r) => r.decisionGate.extraCostUSD || 0)))} and took ${mins(sum(gateRuns.map((r) => r.decisionGate.extraSec || 0)))}.`, '')
+  const pairs = teams.filter((t) => t.extends && t.decisionGate && teamIds.includes(t.id) && teamIds.includes(t.extends))
+  if (pairs.length) {
+    L.push('**Each team with and without the gate** (comparative tasks; the two sides ran at different times, so differences in cost and time include run-to-run variance; the table above isolates what the gate itself did):', '')
+    L.push('| Team | Works without / with | Cost without / with (incl. Jev) | Time without / with |', '|---|---|---|---|')
+    for (const t of pairs) {
+      const a = totals[t.extends], b = totals[t.id]
+      const bj = b.costUSD + sum(runs.filter((r) => r.team === t.id && comparative.some((c) => c.id === r.task)).map(jevCost))
+      L.push(`| ${t.extends} | ${a.successes}/${a.runs} / ${b.successes}/${b.runs} | ${usd(a.costUSD)} / ${usd(bj)} | ${mins(a.wallSec)} / ${mins(b.wallSec)} |`)
+    }
+    L.push('')
+  }
+  const blockList = gateRuns.flatMap((r) => (r.decisionGate.events || []).filter((e) => e.blocked).map((e) => ({ r, e })))
+  if (blockList.length) {
+    L.push('**Every block**', '')
+    for (const { r, e } of blockList) L.push(`- ${r.team} / ${r.task}, turn ${e.turn ?? '?'}${e.terminal && e.finalTurn ? ', last stop' : ''}: ${(e.reasons || []).join('; ').slice(0, 300)}. Claude then worked ${mins(e.afterSec)} more for ${usd(e.afterCostUSD)}.${e.scoreAtBlock ? ` At the block the work was ${sc(e.scoreAtBlock)}.` : ''} Message judged: "${String(e.message || '').replace(/\s+/g, ' ').slice(0, 200)}"`)
+    L.push('')
+  }
 }
 
 if (checks.length) {

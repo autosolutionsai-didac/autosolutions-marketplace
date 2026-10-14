@@ -12,6 +12,11 @@ export const PRICES = {
   'claude-sonnet-5': { input: 2, output: 10, write5m: 2.5, write1h: 4, read: 0.2 },
   'claude-haiku-4-5': { input: 1, output: 5, write5m: 1.25, write1h: 2, read: 0.1 },
 }
+// TypeSafe Jev (the decision gate's backend): input tokens only, output is free. From TypeSafe's launch post
+// (https://typesafe.ai/blog/introducing-system-one-models-and-jev, September 2026); OpenRouter is assumed
+// to charge the same. Used when the API reports no cost of its own.
+export const JEV_INPUT_PER_MTOK = 0.042
+
 // Haiku 5.5 prompts over 100k tokens (input + cache reads + cache writes) are billed at these rates.
 const HAIKU_LONG = { input: 0.5, output: 2.5, write5m: 0.625, write1h: 1, read: 0.05 }
 

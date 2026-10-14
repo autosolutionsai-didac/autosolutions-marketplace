@@ -11,7 +11,7 @@
 import { existsSync, mkdirSync, readdirSync, readFileSync, statSync, writeFileSync } from 'node:fs'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
-import { shipInternals, summarizeStreams, summarizeTranscripts, summarizeWorkflows } from './lib/collect.mjs'
+import { gateEffect, shipInternals, summarizeStreams, summarizeTranscripts, summarizeWorkflows } from './lib/collect.mjs'
 import { scoreCodeTask, scoreFindingsTask } from './lib/score.mjs'
 import { contamination, specDelivered } from './lib/evaluate.mjs'
 
@@ -84,6 +84,7 @@ for (const file of files) {
   if (task.kind === 'code') score = scoreCodeTask(repo, task, taskDir)
   else if (task.kind === 'findings') score = scoreFindingsTask(repo, task, taskDir)
   const contam = contamination(path.join(dir, 'home'), dir, work)
+  const decisionGate = r.decisionGate ? gateEffect({ gateLog: path.join(raw, 'gate.jsonl'), gateSnapshots: path.join(raw, 'gate-snapshots.jsonl'), configDir: path.join(dir, 'home'), repo, task, taskDir, turns: r.turns || [], finalScore: score, backend: r.decisionGate.backend }) : r.decisionGate
   const transcriptCost = Object.values(transcripts.byModel).reduce((a, m) => a + m.costUSD, 0)
   const incomplete = streams.turns.some((t) => t.results === 0) || (r.turns || []).some((t) => t.timedOut || t.signal || t.skipped)
   const before = { success: r.success, costUSD: r.costUSD || 0, contamination: r.contamination }
@@ -101,6 +102,7 @@ for (const file of files) {
     agentCount: transcripts.agents.filter((a) => a.role !== 'main').length,
     workflows,
     ship: shipInternals(workflows, transcripts),
+    decisionGate,
     specDelivered: specDelivered(workflows, existsSync(path.join(taskDir, 'spec.md')) ? readFileSync(path.join(taskDir, 'spec.md'), 'utf8') : ''),
     hooks: streams.hooks,
     stopBlocks: streams.stopBlocks,

@@ -15,6 +15,11 @@ import { fileURLToPath } from 'node:url'
 import { BASELINE_VISIBLE_TESTS, matchFindings, runNodeTests, specCompliance } from './lib/score.mjs'
 import { contamination } from './lib/evaluate.mjs'
 import { mkdirSync, writeFileSync } from 'node:fs'
+import { spawn } from 'node:child_process'
+import { resolveTeams } from './lib/teams.mjs'
+import { gateEffect, readJsonl } from './lib/collect.mjs'
+import { scoreCodeTask } from './lib/score.mjs'
+import { startMockDecisionServer } from './lib/mock-decision.mjs'
 
 const BENCH = path.dirname(fileURLToPath(import.meta.url))
 const FIXTURE = path.join(BENCH, 'fixture', 'usage-ledger')
@@ -178,6 +183,75 @@ rmSync(branch, { recursive: true, force: true })
   const hits = contamination(path.join(t, 'home'), own, W)
   check('contamination: a sibling run and the answer key are flagged', hits.length === 2, JSON.stringify(hits))
   rmSync(t, { recursive: true, force: true })
+}
+
+// 7. Decision-gate teams: inheritance, and the probe's record of what a run would have delivered without
+// the gate. The gate (unchanged harness code) answers from the mock in "block" mode; the probe must pass its
+// block through and commit the work tree as it was at that moment, and the scorer must grade that commit,
+// not the final tree.
+{
+  const teams = resolveTeams(JSON.parse(readFileSync(path.join(BENCH, 'teams.json'), 'utf8')).teams)
+  const byId = Object.fromEntries(teams.map((t) => [t.id, t]))
+  const jevIds = teams.filter((t) => t.decisionGate).map((t) => t.id)
+  check('teams: every team has a decision-gate twin that differs only by the gate', teams.filter((t) => !t.decisionGate).every((t) => {
+    const twin = byId[`${t.id}-jev`]
+    if (!twin) return false
+    const strip = (x) => JSON.stringify({ ...x, id: null, label: null, extends: null, decisionGate: null })
+    return strip(twin) === strip(t)
+  }), jevIds.join(','))
+
+  const g = (cwd, ...a) => spawnSync('git', a, { cwd, encoding: 'utf8' })
+  const repo = copyFixture()
+  g(repo, 'init', '-q', '-b', 'main'); g(repo, 'config', 'user.email', 'b@e'); g(repo, 'config', 'user.name', 'b'); g(repo, 'add', '-A'); g(repo, 'commit', '-q', '-m', 'base')
+  cpSync(path.join(BENCH, 'tasks', 'bugfix-trio', 'reference'), repo, { recursive: true })
+  const scripts = mkdtempSync(path.join(os.tmpdir(), 'bench-probe-'))
+  cpSync(path.join(path.dirname(BENCH), 'plugins', 'harness', 'scripts', 'decision-gate.mjs'), path.join(scripts, 'decision-gate.mjs'))
+  cpSync(path.join(BENCH, 'lib', 'gate-probe.mjs'), path.join(scripts, 'bench-gate-probe.mjs'))
+  const home = mkdtempSync(path.join(os.tmpdir(), 'bench-probe-home-'))
+  mkdirSync(path.join(home, 'projects', 'p'), { recursive: true })
+  const t0 = new Date(Date.now() - 60_000).toISOString()
+  const transcript = path.join(home, 'projects', 'p', 'sess.jsonl')
+  const rows = [
+    { type: 'user', timestamp: t0, message: { role: 'user', content: 'Fix these three bug reports.' } },
+    { type: 'assistant', timestamp: t0, message: { id: 'm1', model: 'claude-opus-5-5', usage: { input_tokens: 1000, output_tokens: 100 }, content: [{ type: 'tool_use', name: 'Edit', input: { file_path: `${repo}/src/discount.js` } }] } },
+    { type: 'assistant', timestamp: t0, message: { id: 'm2', model: 'claude-opus-5-5', usage: { input_tokens: 10, output_tokens: 10 }, content: [{ type: 'text', text: 'All three bugs are fixed.' }] } },
+  ]
+  writeFileSync(transcript, rows.map((r) => JSON.stringify(r)).join('\n') + '\n')
+  const mock = await startMockDecisionServer({ mode: 'block' })
+  const gateLog = path.join(home, 'gate.jsonl')
+  const snaps = path.join(home, 'gate-snapshots.jsonl')
+  const env = { ...process.env, TYPESAFE_API_KEY: 'bench-mock', TYPESAFE_BASE_URL: mock.url, HARNESS_DECISION_PROVIDER: 'typesafe', HARNESS_GATE_LOG: gateLog, HARNESS_GATE_LOG_TEXT: '1', BENCH_GATE_SNAPSHOTS: snaps }
+  const probe = (input) => new Promise((resolve) => {
+    const c = spawn(process.execPath, [path.join(scripts, 'bench-gate-probe.mjs')], { env })
+    let out = ''
+    c.stdout.on('data', (d) => (out += d))
+    c.on('close', (status) => resolve({ status, out }))
+    c.stdin.end(JSON.stringify(input))
+  })
+  const stopIn = { hook_event_name: 'Stop', stop_hook_active: false, cwd: repo, transcript_path: transcript, last_assistant_message: 'All three bugs are fixed.' }
+  const r1 = await probe(stopIn)
+  const s1 = readJsonl(snaps)
+  check('probe: passes the gate\'s block through and commits the work tree at the block', r1.status === 0 && /"decision":"block"/.test(r1.out) && s1.length === 1 && s1[0].blocked && /^[0-9a-f]{40}$/.test(s1[0].commit || ''), JSON.stringify(s1[0] || r1.out.slice(0, 80)))
+  check('probe: the snapshot leaves HEAD, the index and the work tree alone', g(repo, 'rev-list', '--count', 'HEAD').stdout.trim() === '1' && g(repo, 'diff', '--cached', '--name-only').stdout.trim() === '' && g(repo, 'status', '--porcelain').stdout.includes('src/'))
+  const r2 = await probe({ ...stopIn, stop_hook_active: true })
+  check('probe: a stop that continues from the block is allowed and logged without a snapshot', r2.out === '' && readJsonl(snaps).length === 2 && !readJsonl(snaps)[1].commit)
+  await mock.close()
+
+  // After the block the run breaks the fix, so the final tree fails while the tree at the block passes.
+  cpSync(FIXTURE + '/src', path.join(repo, 'src'), { recursive: true })
+  const task = tasks.find((t) => t.id === 'bugfix-trio')
+  const taskDir = path.join(BENCH, 'tasks', 'bugfix-trio')
+  const finalScore = scoreCodeTask(repo, task, taskDir)
+  const later = new Date(Date.now() + 1000).toISOString()
+  const turns = [{ turn: 1, startedAt: t0, endedAt: later }]
+  const eff = gateEffect({ gateLog, gateSnapshots: snaps, configDir: home, repo, task, taskDir, turns, finalScore, backend: 'mock' })
+  check('gate effect: one stop blocked, scored from the tree at the block, not the final tree', eff.blocks === 1 && eff.calls === 1 && eff.counterfactual.applicable && eff.counterfactual.withoutGate.success === true && eff.counterfactual.withGate.success === false, JSON.stringify(eff.counterfactual))
+  check('gate effect: the block records the gate\'s reasons and the message it judged', eff.events[0].reasons && eff.events[0].reasons.length >= 1 && /bugs are fixed/.test(eff.events[0].message), JSON.stringify(eff.events[0]).slice(0, 400))
+  rows.push({ type: 'user', timestamp: new Date(Date.parse(s1[0].ts) + 10).toISOString(), origin: { kind: 'task-notification' }, message: { role: 'user', content: '<task-notification><task-id>w</task-id></task-notification>' } })
+  writeFileSync(transcript, rows.map((r) => JSON.stringify(r)).join('\n') + '\n')
+  const eff2 = gateEffect({ gateLog, gateSnapshots: snaps, configDir: home, repo, task, taskDir, turns, finalScore, backend: 'mock' })
+  check('gate effect: a block followed by a workflow reporting back is not the run\'s last stop', eff2.counterfactual.applicable === false && eff2.events[0].terminal === false)
+  for (const d of [repo, scripts, home]) rmSync(d, { recursive: true, force: true })
 }
 
 console.log(failures ? `\n${failures} check(s) failed` : '\nselftest: all checks passed')

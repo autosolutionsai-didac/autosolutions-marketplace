@@ -2,7 +2,12 @@
 // Harness benchmark runner.
 //
 //   node bench/run.mjs [--label NAME] [--teams a,b] [--tasks x,y] [--trials N] [--parallel N]
-//                      [--budget-usd N] [--work DIR] [--dry-run] [--force]
+//                      [--budget-usd N] [--work DIR] [--dry-run] [--force] [--decision-mock[=block]]
+//
+// Teams with "decisionGate" (the *-jev teams) run the harness decision gate on Jev. They need
+// TYPESAFE_API_KEY (or OPENROUTER_API_KEY) in the runner's environment. --decision-mock answers with the
+// local rule-based stand-in instead, and --decision-mock=block makes it send Claude back at every turn's
+// first stop; both are for testing the wiring only.
 //
 // Every run gets a fresh copy of the fixture as its own git repository, a fresh CLAUDE_CONFIG_DIR
 // (so no user settings, plugins, memory or transcripts leak in), and one headless `claude -p` per turn.
@@ -15,7 +20,8 @@ import { appendFileSync, cpSync, existsSync, mkdirSync, readFileSync, rmSync, wr
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { childEnv } from './lib/env.mjs'
-import { shipInternals, summarizeStreams, summarizeTranscripts, summarizeWorkflows } from './lib/collect.mjs'
+import { resolveTeams } from './lib/teams.mjs'
+import { gateEffect, shipInternals, summarizeStreams, summarizeTranscripts, summarizeWorkflows } from './lib/collect.mjs'
 import { scoreCodeTask, scoreFindingsTask } from './lib/score.mjs'
 import { startMockDecisionServer } from './lib/mock-decision.mjs'
 import { CHECKS } from './lib/checks.mjs'
@@ -28,7 +34,7 @@ const FIXTURE = path.join(BENCH, 'fixture', 'usage-ledger')
 export const BENCH_VERSION = 2
 
 function parseArgs(argv) {
-  const o = { label: null, teams: null, tasks: null, trials: 1, parallel: 3, budgetUsd: 60, work: null, dryRun: false, force: false }
+  const o = { label: null, teams: null, tasks: null, trials: 1, parallel: 3, budgetUsd: 60, work: null, dryRun: false, force: false, decisionMock: false }
   for (let i = 0; i < argv.length; i++) {
     const a = argv[i]
     const next = () => argv[++i]
@@ -41,6 +47,7 @@ function parseArgs(argv) {
     else if (a === '--work') o.work = next()
     else if (a === '--dry-run') o.dryRun = true
     else if (a === '--force') o.force = true
+    else if (a === '--decision-mock' || a.startsWith('--decision-mock=')) o.decisionMock = a.split('=')[1] || 'rules'
     else throw new Error(`unknown argument ${a}`)
   }
   o.label ||= new Date().toISOString().slice(0, 10)
@@ -50,6 +57,14 @@ function parseArgs(argv) {
 
 const readJson = (p) => JSON.parse(readFileSync(p, 'utf8'))
 let lastUsage = null
+
+// Which Jev endpoint the decision-gate teams use, from the runner's own environment.
+function decisionBackend(opts) {
+  if (opts.decisionMock) return { provider: 'typesafe', mock: opts.decisionMock }
+  if (process.env.TYPESAFE_API_KEY) return { provider: 'typesafe', env: { TYPESAFE_API_KEY: process.env.TYPESAFE_API_KEY } }
+  if (process.env.OPENROUTER_API_KEY) return { provider: 'openrouter', env: { OPENROUTER_API_KEY: process.env.OPENROUTER_API_KEY } }
+  return null
+}
 
 // Waits before a new run while the account's plan window is nearly used up, so the benchmark neither
 // fails runs on rate limits nor leaves the account unusable. HARNESS_BENCH_USAGE_CEILING (default 0.85).
@@ -111,17 +126,40 @@ function turnsFor(team, task) {
 // A team can move a plugin agent role to another model ("roleModels": { "builder": "claude-haiku-5-5" }).
 // It gets its own copy of the frozen plugin with that agent's `model:` line rewritten, so the role's
 // model changes wherever the role is used: workflow stages that name no model and direct subagent calls.
+// A team with a decision gate also gets its own copy: the gate's Stop hook runs through gate-probe.mjs,
+// which records the work tree whenever the gate sends Claude back. A team without the plugin gets only that
+// Stop hook, through a settings file next to the copy.
 function pluginDirFor(team, opts) {
-  if (!team.roleModels || !Object.keys(team.roleModels).length) return opts.pluginDir
+  if (!team.decisionGate && (!team.roleModels || !Object.keys(team.roleModels).length)) return opts.pluginDir
   return path.join(opts.work, 'plugin-snapshot', team.id, 'harness')
+}
+
+function gateSettingsFor(team, opts) {
+  return team.decisionGate && !team.plugin ? path.join(path.dirname(pluginDirFor(team, opts)), 'settings.json') : null
 }
 
 function snapshotPlugin(team, opts) {
   const dir = pluginDirFor(team, opts)
   if (dir === opts.pluginDir) return
-  rmSync(dir, { recursive: true, force: true })
+  rmSync(path.dirname(dir), { recursive: true, force: true })
   cpSync(opts.pluginDir, dir, { recursive: true })
-  for (const [role, model] of Object.entries(team.roleModels)) {
+  if (team.decisionGate) {
+    cpSync(path.join(BENCH, 'lib', 'gate-probe.mjs'), path.join(dir, 'scripts', 'bench-gate-probe.mjs'))
+    const hooksFile = path.join(dir, 'hooks', 'hooks.json')
+    const hooks = readJson(hooksFile)
+    const stop = hooks.hooks.Stop.flatMap((h) => h.hooks).find((h) => (h.args || []).some((a) => a.endsWith('/decision-gate.mjs')))
+    if (!stop) throw new Error('plugin hooks.json has no decision-gate Stop hook')
+    stop.args = stop.args.map((a) => a.replace(/decision-gate\.mjs$/, 'bench-gate-probe.mjs'))
+    writeFileSync(hooksFile, JSON.stringify(hooks, null, 2))
+    const settingsFile = gateSettingsFor(team, opts)
+    if (settingsFile) {
+      const settings = team.settings ? readJson(path.resolve(BENCH, team.settings)) : {}
+      settings.hooks ||= {}
+      settings.hooks.Stop = [...(settings.hooks.Stop || []), { hooks: [{ type: 'command', command: `node ${path.join(dir, 'scripts', 'bench-gate-probe.mjs')}`, timeout: stop.timeout || 25 }] }]
+      writeFileSync(settingsFile, JSON.stringify(settings, null, 2))
+    }
+  }
+  for (const [role, model] of Object.entries(team.roleModels || {})) {
     const f = path.join(dir, 'agents', `${role}.md`)
     if (!existsSync(f)) throw new Error(`team ${team.id}: no agent ${role} in the plugin`)
     const src = readFileSync(f, 'utf8')
@@ -165,13 +203,20 @@ async function runJob(job, opts, log) {
   const baseSha = prepareRepo(task, repo)
   const turns = turnsFor(team, task)
   const sessionId = randomUUID()
-  const mock = task.mockDecision ? await startMockDecisionServer() : null
+  const gateBackend = team.decisionGate ? opts.decisionBackend : null
+  const mock = task.mockDecision || (gateBackend && gateBackend.mock) ? await startMockDecisionServer({ mode: (gateBackend && gateBackend.mock) || 'rules' }) : null
   const extraEnv = { ...(team.env || {}), ...(task.env || {}) }
   if (mock) Object.assign(extraEnv, { TYPESAFE_API_KEY: 'bench-mock', TYPESAFE_BASE_URL: mock.url, HARNESS_DEBUG: '1' })
+  const gateLog = path.join(raw, 'gate.jsonl')
+  const gateSnapshots = path.join(raw, 'gate-snapshots.jsonl')
+  if (gateBackend) {
+    Object.assign(extraEnv, gateBackend.env || {}, { HARNESS_DECISION_PROVIDER: gateBackend.provider, HARNESS_GATE_LOG: gateLog, HARNESS_GATE_LOG_TEXT: '1', BENCH_GATE_SNAPSHOTS: gateSnapshots })
+  }
   const env = childEnv({ configDir, extra: extraEnv })
   const common = ['--model', team.model, '--effort', team.effort, '--output-format', 'stream-json', '--verbose', '--include-hook-events', '--permission-mode', 'bypassPermissions', '--max-budget-usd', String(opts.budgetUsd)]
   if (team.plugin) common.push('--plugin-dir', pluginDirFor(team, opts))
-  if (team.settings) common.push('--settings', path.resolve(BENCH, team.settings))
+  const settingsFile = gateSettingsFor(team, opts) || (team.settings && path.resolve(BENCH, team.settings))
+  if (settingsFile) common.push('--settings', settingsFile)
 
   const startedAt = new Date().toISOString()
   const deadline = Date.now() + task.timeoutMin * 60_000
@@ -189,8 +234,9 @@ async function runJob(job, opts, log) {
     if (remaining <= 0) { turnResults.push({ turn: i + 1, skipped: 'task deadline passed' }); break }
     const args = [...common, ...(i === 0 ? ['--session-id', sessionId] : ['--resume', sessionId])]
     log(`  ${team.id} ${task.id} t${trial}: turn ${i + 1}/${turns.length} started`)
+    const turnStarted = new Date().toISOString()
     const r = await runClaude({ prompt: turns[i], cwd: repo, env, args, timeoutMs: remaining, streamFile, stderrFile })
-    turnResults.push({ turn: i + 1, exitCode: r.exitCode, signal: r.signal, timedOut: r.timedOut, wallSec: r.wallSec })
+    turnResults.push({ turn: i + 1, exitCode: r.exitCode, signal: r.signal, timedOut: r.timedOut, wallSec: r.wallSec, startedAt: turnStarted, endedAt: new Date().toISOString() })
     if (r.timedOut) break
   }
   const finishedAt = new Date().toISOString()
@@ -209,6 +255,7 @@ async function runJob(job, opts, log) {
   } catch (e) {
     score = { success: false, error: `scoring failed: ${e.message}` }
   }
+  const decisionGate = gateBackend ? gateEffect({ gateLog, gateSnapshots, configDir, repo, task, taskDir, turns: turnResults, finalScore: score, backend: gateBackend.mock ? 'mock' : gateBackend.provider }) : null
   const diff = spawnSync('git', ['diff', baseSha, '--', '.', ':(exclude).bench-hidden'], { cwd: repo, encoding: 'utf8', maxBuffer: 64 * 1024 * 1024 }).stdout || ''
   const untracked = spawnSync('git', ['ls-files', '--others', '--exclude-standard', '--', '.', ':(exclude).bench-hidden'], { cwd: repo, encoding: 'utf8' }).stdout.trim()
   const transcriptCost = Object.values(transcripts.byModel).reduce((a, m) => a + m.costUSD, 0)
@@ -252,6 +299,7 @@ async function runJob(job, opts, log) {
     agentCount: transcripts.agents.filter((a) => a.role !== 'main').length,
     workflows,
     ship: shipInternals(workflows, transcripts),
+    decisionGate,
     hooks: streams.hooks,
     stopBlocks: streams.stopBlocks,
     toolUses: streams.toolUses,
@@ -281,7 +329,12 @@ async function runJob(job, opts, log) {
 
 async function main() {
   const opts = parseArgs(process.argv.slice(2))
-  const teams = readJson(path.join(BENCH, 'teams.json')).teams.filter((t) => !opts.teams || opts.teams.includes(t.id))
+  const teams = resolveTeams(readJson(path.join(BENCH, 'teams.json')).teams).filter((t) => !opts.teams || opts.teams.includes(t.id))
+  if (opts.teams) for (const id of opts.teams) if (!teams.some((t) => t.id === id)) throw new Error(`unknown team ${id}`)
+  opts.decisionBackend = decisionBackend(opts)
+  if (teams.some((t) => t.decisionGate) && !opts.decisionBackend && !opts.dryRun) {
+    throw new Error('the decision-gate teams need TYPESAFE_API_KEY or OPENROUTER_API_KEY in the environment (or --decision-mock to test the wiring)')
+  }
   const tasks = readJson(path.join(BENCH, 'tasks.json')).tasks.filter((t) => !opts.tasks || opts.tasks.includes(t.id))
   // Task-major order, so the teams run the same task at about the same time and see the same API conditions.
   const jobs = []
@@ -302,7 +355,7 @@ async function main() {
   if (!opts.dryRun) {
     rmSync(opts.pluginDir, { recursive: true, force: true })
     cpSync(PLUGIN_DIR, opts.pluginDir, { recursive: true })
-    for (const team of teams) if (team.plugin) snapshotPlugin(team, opts)
+    for (const team of teams) if (team.plugin || team.decisionGate) snapshotPlugin(team, opts)
   }
   const progress = path.join(resultsDir, 'progress.log')
   const log = (m) => { const line = `${new Date().toISOString()} ${m}`; console.log(line); appendFileSync(progress, line + '\n') }
@@ -321,7 +374,7 @@ async function main() {
   // add run-config-<n>.json so the original settings stay on record.
   let cfgName = 'run-config.json'
   for (let n = 2; existsSync(path.join(resultsDir, cfgName)); n++) cfgName = `run-config-${n}.json`
-  writeFileSync(path.join(resultsDir, cfgName), JSON.stringify({ label: opts.label, benchVersion: BENCH_VERSION, startedAt: new Date().toISOString(), claudeVersion: spawnSync('claude', ['--version'], { encoding: 'utf8' }).stdout.trim(), gitSha: spawnSync('git', ['rev-parse', 'HEAD'], { cwd: REPO_ROOT, encoding: 'utf8' }).stdout.trim(), gitDirty: spawnSync('git', ['status', '--porcelain'], { cwd: REPO_ROOT, encoding: 'utf8' }).stdout.trim().length > 0, node: process.version, cpus: (await import('node:os')).cpus().length, workflowAgentConcurrency: Math.min(16, Math.max(2, (await import('node:os')).availableParallelism() - 2)), childEnvKeys: Object.keys(childEnv({ configDir: '/tmp/x' })).sort(), teams, tasks: tasks.map((t) => t.id), trials: opts.trials, parallel: opts.parallel, budgetUsdPerTurn: opts.budgetUsd }, null, 2))
+  writeFileSync(path.join(resultsDir, cfgName), JSON.stringify({ label: opts.label, benchVersion: BENCH_VERSION, startedAt: new Date().toISOString(), claudeVersion: spawnSync('claude', ['--version'], { encoding: 'utf8' }).stdout.trim(), gitSha: spawnSync('git', ['rev-parse', 'HEAD'], { cwd: REPO_ROOT, encoding: 'utf8' }).stdout.trim(), gitDirty: spawnSync('git', ['status', '--porcelain'], { cwd: REPO_ROOT, encoding: 'utf8' }).stdout.trim().length > 0, node: process.version, cpus: (await import('node:os')).cpus().length, workflowAgentConcurrency: Math.min(16, Math.max(2, (await import('node:os')).availableParallelism() - 2)), childEnvKeys: Object.keys(childEnv({ configDir: '/tmp/x' })).sort(), teams, tasks: tasks.map((t) => t.id), trials: opts.trials, parallel: opts.parallel, budgetUsdPerTurn: opts.budgetUsd, decisionBackend: opts.decisionBackend ? (opts.decisionBackend.mock ? `mock (${opts.decisionBackend.mock})` : opts.decisionBackend.provider) : null }, null, 2))
   let next = 0
   async function worker(w) {
     while (next < pending.length) {
@@ -332,7 +385,8 @@ async function main() {
       try {
         const r = await runJob(job, opts, log)
         const usage = r.usageWindows && r.usageWindows.five_hour ? `, plan 5h ${Math.round(r.usageWindows.five_hour.utilization * 100)}%` : ''
-        log(`[w${w}] done  ${job.team.id} ${job.task.id} t${job.trial}: ${r.invalidReason ? `INVALID (${r.invalidReason}, will retry on rerun)` : r.success ? 'SUCCESS' : 'FAIL'} in ${Math.round(r.wallSec)}s, $${r.costUSD.toFixed(2)}${usage}${r.errors.length ? `, errors: ${r.errors.join('; ').slice(0, 200)}` : ''}`)
+        const g = r.decisionGate ? `, gate ${r.decisionGate.calls} calls ${r.decisionGate.blocks} blocks${r.decisionGate.errors ? ` ${r.decisionGate.errors} errors` : ''}` : ''
+        log(`[w${w}] done  ${job.team.id} ${job.task.id} t${job.trial}: ${r.invalidReason ? `INVALID (${r.invalidReason}, will retry on rerun)` : r.success ? 'SUCCESS' : 'FAIL'} in ${Math.round(r.wallSec)}s, $${r.costUSD.toFixed(2)}${g}${usage}${r.errors.length ? `, errors: ${r.errors.join('; ').slice(0, 200)}` : ''}`)
       } catch (e) {
         log(`[w${w}] crash ${job.team.id} ${job.task.id} t${job.trial}: ${e.stack || e.message}`)
       }

@@ -1,0 +1,244 @@
+{
+  "benchVersion": 2,
+  "label": "2026-10-14",
+  "team": "harness-haiku-builders",
+  "teamKind": "harness",
+  "task": "review-import",
+  "taskKind": "findings",
+  "trial": 1,
+  "sessionId": "cfa80c67-afd2-4752-87a1-41186f0c30e2",
+  "startedAt": "2026-10-14T09:23:33.663Z",
+  "finishedAt": "2026-10-14T09:29:26.236Z",
+  "wallSec": 352.57199999999995,
+  "timedOut": false,
+  "turns": [
+    {
+      "turn": 1,
+      "exitCode": 0,
+      "signal": null,
+      "timedOut": false,
+      "wallSec": 325.381
+    },
+    {
+      "turn": 2,
+      "exitCode": 0,
+      "signal": null,
+      "timedOut": false,
+      "wallSec": 27.191
+    }
+  ],
+  "success": true,
+  "score": {
+    "success": true,
+    "recall": 1,
+    "found": [
+      "D1",
+      "D2",
+      "D3",
+      "D4"
+    ],
+    "missed": [],
+    "duplicates": 0,
+    "validExtras": 3,
+    "validExtraIds": [
+      "a",
+      "b",
+      "f"
+    ],
+    "unmatched": 0,
+    "extras": 0,
+    "unmatchedTitles": [],
+    "findings": 7
+  },
+  "check": null,
+  "costUSD": 1.8083031200000002,
+  "costSource": "claude-code",
+  "costUSDFromStream": 1.8083031200000002,
+  "costUSDFromTranscripts": 1.8083031200000006,
+  "invalidReason": null,
+  "apiErrors": 0,
+  "usageWindows": {
+    "five_hour": {
+      "utilization": 0.07,
+      "resetsAt": 1791984000
+    },
+    "seven_day": {
+      "utilization": 0.22,
+      "resetsAt": 1792162800
+    }
+  },
+  "modelUsage": {
+    "claude-opus-5-5": {
+      "inputTokens": 106,
+      "outputTokens": 29909,
+      "cacheReadInputTokens": 467744,
+      "cacheCreationInputTokens": 108066,
+      "thinkingTokens": 3713,
+      "webSearchRequests": 0,
+      "costUSD": 1.2868368000000001
+    },
+    "claude-haiku-5-5": {
+      "inputTokens": 34,
+      "outputTokens": 14452,
+      "cacheReadInputTokens": 178092,
+      "cacheCreationInputTokens": 60388,
+      "thinkingTokens": 7390,
+      "webSearchRequests": 0,
+      "costUSD": 0.01655882
+    },
+    "claude-fable-5-1": {
+      "inputTokens": 2,
+      "outputTokens": 3844,
+      "cacheReadInputTokens": 0,
+      "cacheCreationInputTokens": 25015,
+      "thinkingTokens": 542,
+      "webSearchRequests": 0,
+      "costUSD": 0.5049075000000001
+    }
+  },
+  "tokensByModel": {
+    "claude-haiku-5-5": {
+      "requests": 17,
+      "input": 34,
+      "output": 14452,
+      "cacheRead": 178092,
+      "cacheWrite": 60388,
+      "costUSD": 0.01655882
+    },
+    "claude-opus-5-5": {
+      "requests": 53,
+      "input": 106,
+      "output": 29909,
+      "cacheRead": 467744,
+      "cacheWrite": 108066,
+      "costUSD": 1.2868368000000006
+    },
+    "claude-fable-5-1": {
+      "requests": 1,
+      "input": 2,
+      "output": 3844,
+      "cacheRead": 0,
+      "cacheWrite": 25015,
+      "costUSD": 0.5049075
+    }
+  },
+  "byRole": {
+    "workflow:Find": {
+      "agents": 4,
+      "requests": 15,
+      "input": 30,
+      "output": 13926,
+      "cacheRead": 166662,
+      "cacheWrite": 48098,
+      "costUSD": 0.014644869999999999,
+      "models": {
+        "claude-haiku-5-5": 15
+      }
+    },
+    "harness:refuter (Verify)": {
+      "agents": 13,
+      "requests": 44,
+      "input": 88,
+      "output": 24806,
+      "cacheRead": 252076,
+      "cacheWrite": 89948,
+      "costUSD": 0.9966272000000003,
+      "models": {
+        "claude-opus-5-5": 44
+      }
+    },
+    "workflow:Scope": {
+      "agents": 1,
+      "requests": 2,
+      "input": 4,
+      "output": 526,
+      "cacheRead": 11430,
+      "cacheWrite": 12290,
+      "costUSD": 0.0019139500000000002,
+      "models": {
+        "claude-haiku-5-5": 2
+      }
+    },
+    "workflow:Rank": {
+      "agents": 1,
+      "requests": 1,
+      "input": 2,
+      "output": 3844,
+      "cacheRead": 0,
+      "cacheWrite": 25015,
+      "costUSD": 0.5049075,
+      "models": {
+        "claude-fable-5-1": 1
+      }
+    },
+    "main": {
+      "agents": 1,
+      "requests": 9,
+      "input": 18,
+      "output": 5103,
+      "cacheRead": 215668,
+      "cacheWrite": 18118,
+      "costUSD": 0.2902096,
+      "models": {
+        "claude-opus-5-5": 9
+      }
+    }
+  },
+  "agentCount": 19,
+  "workflows": [
+    {
+      "runId": "wf_b5d108a1-b4c",
+      "name": "review",
+      "status": "completed",
+      "durationMs": 303734,
+      "agentCount": 19,
+      "totalTokens": 236279,
+      "totalToolCalls": 63,
+      "args": {
+        "base": "main",
+        "findModel": "claude-haiku-5-5",
+        "rankModel": "claude-fable-5-1"
+      },
+      "logs": [
+        "Reviewing 4 file(s) against main",
+        "13 confirmed finding(s) across 4 file(s)"
+      ],
+      "findings": {
+        "verdict": "needs-changes",
+        "issues": 7,
+        "files": 4
+      }
+    }
+  ],
+  "ship": null,
+  "hooks": {
+    "SessionStart:started": 2,
+    "SessionStart:success": 2,
+    "Stop:started": 3,
+    "Stop:success": 3
+  },
+  "stopBlocks": [],
+  "toolUses": {
+    "Workflow": 1,
+    "Bash": 4,
+    "Write": 1
+  },
+  "agentSpawns": [],
+  "workflowCalls": [
+    {
+      "name": "harness:review",
+      "scriptPath": null,
+      "args": "{\"base\":\"main\",\"findModel\":\"claude-haiku-5-5\",\"rankModel\":\"claude-fable-5-1\"}"
+    }
+  ],
+  "testCommands": 0,
+  "permissionDenials": 0,
+  "errors": [],
+  "contamination": [],
+  "specDelivered": null,
+  "changedFiles": [
+    "REVIEW.json"
+  ],
+  "finalMessage": "I wrote the seven findings to `REVIEW.json` in the repository root, in the same order and with the same severities as in my review. The file parses as valid JSON. `git status` shows it's the only change; no other file was touched.\n\n| # | Severity | Location |\n|---|---|---|\n| 1 | blocking | `src/server.js:41`: bulk import bills the key in the body, not the caller's key |\n| 2 | blocking | `src/importer.js:10`: import stats are shared across requests and leak between keys |\n| 3 | major | `src/importer.js:16`: the row limit fires after 10,000 rows are already recorded |\n| 4 | major | `src/server.js:40`: no body size limit, so `maxBodyBytes` is skipped |\n| 5 | major | `src/importer.js:15`: a blank line stops the import |\n| 6 | major | `src/importer.js:25`: a `null` line causes a 500 |\n| 7 | minor | `test/importer.test.js:29`: the test server stays open if an assertion fails |\n\nWhere a finding covered a range of lines, I used the line where the defect actually happens. I left out the README follow-up because it was a note about updating the docs after the fixes, not a separate finding.",
+  "workDir": "/tmp/harness-bench/2026-10-14/harness-haiku-builders/review-import/t1"
+}
