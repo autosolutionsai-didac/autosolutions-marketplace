@@ -20,6 +20,9 @@ export function contamination(configDir, runDir, work) {
     if (m.startsWith(path.join(work, 'plugin-snapshot'))) continue
     // Only another run's directory counts: <work>/<team>/<task>/t<n>
     if (m.startsWith(work) && !/^[^/]+\/[^/]+\/t\d+/.test(m.slice(work.length + 1))) continue
+    // Runs share the machine's process table, so a `ps` listing shows the other runs' shells, which source
+    // their Claude Code shell snapshot. Those files hold shell setup only, nothing from a task.
+    if (m.startsWith(work) && /^[^/]+\/[^/]+\/t\d+\/home\/shell-snapshots\//.test(m.slice(work.length + 1))) continue
     hits.add(m.slice(0, 200))
   }
   return [...hits].slice(0, 20)
