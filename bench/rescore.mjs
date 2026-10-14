@@ -53,11 +53,11 @@ if (recover) {
         const endLine = progress.find((l) => (l.includes(`crash ${tag}`) || l.includes(`done  ${tag}`)))
         if (!starts.length || !endLine) { console.log(`skip ${tag}: no start or end in progress.log (still running?)`); continue }
         const end = Date.parse(endLine.slice(0, 24))
-        const turns = starts.map((t, i) => ({ turn: i + 1, exitCode: 0, signal: null, timedOut: false, wallSec: ((starts[i + 1] || end) - t) / 1000 }))
+        const turns = starts.map((t, i) => ({ turn: i + 1, exitCode: 0, signal: null, timedOut: false, wallSec: ((starts[i + 1] || end) - t) / 1000, startedAt: new Date(t).toISOString(), endedAt: new Date(starts[i + 1] || end).toISOString() }))
         const streamFiles = readdirSync(raw).filter((f) => f.endsWith('.stream.jsonl')).sort().map((f) => path.join(raw, f))
         let sessionId = null
         for (const f of streamFiles) for (const l of readFileSync(f, 'utf8').split('\n')) { if (!sessionId && l.includes('"session_id"')) { try { sessionId = JSON.parse(l).session_id } catch {} } }
-        const skeleton = { benchVersion: cfg.benchVersion, label, team: teamId, teamKind: teams[teamId].kind, task: taskId, taskKind: (tasks[taskId] || {}).kind, trial, sessionId, startedAt: new Date(starts[0]).toISOString(), finishedAt: new Date(end).toISOString(), wallSec: turns.reduce((a, t) => a + t.wallSec, 0), timedOut: false, turns, workDir: dir, recovered: 'rebuilt from the work directory after the runner crashed while collecting this run; turn times from progress.log' }
+        const skeleton = { benchVersion: cfg.benchVersion, label, team: teamId, teamKind: teams[teamId].kind, task: taskId, taskKind: (tasks[taskId] || {}).kind, trial, sessionId, startedAt: new Date(starts[0]).toISOString(), finishedAt: new Date(end).toISOString(), wallSec: turns.reduce((a, t) => a + t.wallSec, 0), timedOut: false, turns, workDir: dir, recovered: 'rebuilt from the work directory after the runner crashed while collecting this run; turn times from progress.log', ...(teams[teamId].decisionGate ? { decisionGate: { backend: String(cfg.decisionBackend || '').startsWith('mock') ? 'mock' : cfg.decisionBackend } } : {}) }
         mkdirSync(path.dirname(out), { recursive: true })
         writeFileSync(out, JSON.stringify(skeleton, null, 2))
         files.push(out)
@@ -84,7 +84,7 @@ for (const file of files) {
   if (task.kind === 'code') score = scoreCodeTask(repo, task, taskDir)
   else if (task.kind === 'findings') score = scoreFindingsTask(repo, task, taskDir)
   const contam = contamination(path.join(dir, 'home'), dir, work)
-  const decisionGate = r.decisionGate ? gateEffect({ gateLog: path.join(raw, 'gate.jsonl'), gateSnapshots: path.join(raw, 'gate-snapshots.jsonl'), configDir: path.join(dir, 'home'), repo, task, taskDir, turns: r.turns || [], finalScore: score, backend: r.decisionGate.backend }) : r.decisionGate
+  const decisionGate = r.decisionGate ? gateEffect({ gateLog: path.join(raw, 'gate.jsonl'), gateSnapshots: path.join(raw, 'gate-snapshots.jsonl'), configDir: path.join(dir, 'home'), repo, task, taskDir, turns: r.turns || [], finalScore: score && { ...score, success: !!score.success && contam.length === 0 }, backend: r.decisionGate.backend }) : r.decisionGate
   const transcriptCost = Object.values(transcripts.byModel).reduce((a, m) => a + m.costUSD, 0)
   const incomplete = streams.turns.some((t) => t.results === 0) || (r.turns || []).some((t) => t.timedOut || t.signal || t.skipped)
   const before = { success: r.success, costUSD: r.costUSD || 0, contamination: r.contamination }

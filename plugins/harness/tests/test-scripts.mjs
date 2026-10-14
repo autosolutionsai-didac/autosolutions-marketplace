@@ -127,14 +127,18 @@ const check = (name, cond, extra = '') => { console.log(`${cond ? 'PASS' : 'FAIL
     writeFileSync(join(repo, 'a.js'), 'x\n')
     g('add', '-A')
     g('commit', '-q', '-m', 'merge unit 1')
-    const wfTurn = (promptAt, notificationRow) => {
-      const p = join(dir, `t-wf-${promptAt.replace(/\W/g, '')}.jsonl`)
+    let n = 0
+    const wfTurn = (promptAt, notificationRow, { before = [], after = [] } = {}) => {
+      const p = join(dir, `t-wf-${n++}.jsonl`)
       writeFileSync(p, [
         { type: 'user', timestamp: promptAt, message: { role: 'user', content: '<command-name>/harness:ship</command-name> add rate limiting' } },
-        { type: 'user', isMeta: true, timestamp: promptAt, message: { role: 'user', content: [{ type: 'text', text: 'Run the "harness:ship" workflow.' }] } },
-        { type: 'assistant', message: { content: [{ type: 'tool_use', name: 'Workflow', input: { name: 'harness:ship', args: 'x' } }] } },
-        { type: 'user', message: { content: [{ type: 'tool_result', content: 'started in the background' }] } },
+        ...before,
+        { type: 'assistant', message: { content: [{ type: 'tool_use', id: 'toolu_wf1', name: 'Workflow', input: { name: 'harness:ship', args: 'x' } }] } },
+        { type: 'user', message: { content: [{ type: 'tool_result', tool_use_id: 'toolu_wf1', content: 'started in the background' }] } },
+        // Mid-turn meta row (as skills and hooks inject): not a prompt, so it must not end the turn.
+        { type: 'user', isMeta: true, message: { role: 'user', content: [{ type: 'text', text: '<command-message>harness:ship</command-message>' }] } },
         { type: 'assistant', message: { content: [{ type: 'text', text: 'The ship workflow is running in the background.' }] } },
+        ...after,
         notificationRow,
         { type: 'assistant', message: { content: [{ type: 'tool_use', name: 'Bash', input: { command: 'git log --oneline -3' } }] } },
         { type: 'user', message: { content: [{ type: 'tool_result', content: 'abc merge unit 1' }] } },
@@ -142,8 +146,8 @@ const check = (name, cond, extra = '') => { console.log(`${cond ? 'PASS' : 'FAIL
       ].map((x) => JSON.stringify(x)).join('\n') + '\n')
       return p
     }
-    const note = { type: 'user', origin: { kind: 'task-notification' }, message: { role: 'user', content: '<task-notification>\n<task-id>w1</task-id>\n<status>completed</status>\n</task-notification>' } }
-    const noteNoOrigin = { type: 'user', message: { role: 'user', content: [{ type: 'text', text: '<task-notification><task-id>w1</task-id></task-notification>' }] } }
+    const note = { type: 'user', origin: { kind: 'task-notification' }, message: { role: 'user', content: '<task-notification>\n<task-id>w1</task-id>\n<tool-use-id>toolu_wf1</tool-use-id>\n<status>completed</status>\n</task-notification>' } }
+    const noteNoOrigin = { type: 'user', message: { role: 'user', content: [{ type: 'text', text: '<task-notification><task-id>w1</task-id><tool-use-id>toolu_wf1</tool-use-id></task-notification>' }] } }
     const logFile = join(dir, 'gate-log-wf.jsonl')
     const env = { ...process.env, HARNESS_DEBUG: '1', TYPESAFE_API_KEY: 'k', TYPESAFE_BASE_URL: base, HARNESS_GATE_LOG: logFile }
     const gateIn = (transcript_path) => JSON.stringify({ hook_event_name: 'Stop', stop_hook_active: false, cwd: repo, transcript_path, last_assistant_message: 'Done: rate limiting is merged into main.' })
@@ -159,6 +163,47 @@ const check = (name, cond, extra = '') => { console.log(`${cond ? 'PASS' : 'FAIL
     check('gate: the log records commits, backend usage, request size and the block reasons', logged.length === 2 && logged[0].commits === 1 && logged[0].usage && logged[0].usage.input_tokens === 400 && logged[0].model === 'jev-1.13.0' && logged[0].request_bytes > 0 && Array.isArray(logged[0].reasons) && logged[0].reasons.length === 1, JSON.stringify(logged[0] || {}).slice(0, 200))
     const q = requests.filter((x) => x.url === '/v1/systemone').pop()
     check('gate: Jev sees the commits made this turn', q && q.json.state.commits_made_this_turn === 1 && /merge unit 1/.test(q.json.state.commit_sample), q && JSON.stringify(q.json.state).slice(0, 120))
+    // A test run before the workflow reported back does not verify what it merged.
+    r = await runAsync([join(ROOT, 'scripts/decision-gate.mjs')], { input: gateIn(wfTurn(hourAgo, note, { before: [{ type: 'assistant', message: { content: [{ type: 'tool_use', name: 'Bash', input: { command: 'npm test' } }] } }] })), env })
+    check('gate: a test run before the workflow reported back does not count as verification', /"decision":"block"/.test(r.stdout), (r.stdout || r.stderr).slice(0, 100))
+    // A compaction summary in the middle of the turn is not a prompt.
+    r = await runAsync([join(ROOT, 'scripts/decision-gate.mjs')], { input: gateIn(wfTurn(hourAgo, note, { after: [{ type: 'user', isCompactSummary: true, isVisibleInTranscriptOnly: true, message: { role: 'user', content: 'This session is being continued from a previous conversation.' } }] })), env })
+    check('gate: a compaction summary mid-turn does not end the turn', /"decision":"block"/.test(r.stdout), (r.stdout || r.stderr).slice(0, 100))
+
+    // Notifications that carry no work of the turn's own (a monitor event, a background shell command) still
+    // end the turn: the reply to them is checked on its own, not with the edits of the turn before.
+    const plain = (rows) => { const p = join(dir, `t-plain-${n++}.jsonl`); writeFileSync(p, rows.map((x) => JSON.stringify(x)).join('\n') + '\n'); return p }
+    const editTurn = [
+      { type: 'user', timestamp: hourAgo, message: { role: 'user', content: 'fix a.js and keep an eye on the run' } },
+      { type: 'assistant', message: { content: [{ type: 'tool_use', name: 'Edit', input: { file_path: join(repo, 'a.js') } }] } },
+      { type: 'assistant', message: { content: [{ type: 'tool_use', name: 'Bash', input: { command: 'npm test' } }] } },
+      { type: 'assistant', message: { content: [{ type: 'text', text: 'Fixed and tested.' }] } },
+    ]
+    const monitor = { type: 'user', origin: { kind: 'task-notification' }, message: { role: 'user', content: '<task-notification>\n<task-id>m1</task-id>\n<summary>Monitor event: w3 finished</summary>\n</task-notification>' } }
+    const before = requests.length
+    r = await runAsync([join(ROOT, 'scripts/decision-gate.mjs')], { input: JSON.stringify({ hook_event_name: 'Stop', stop_hook_active: false, cwd: repo, transcript_path: plain([...editTurn, monitor, { type: 'assistant', message: { content: [{ type: 'text', text: 'w3 finished: bugfix-trio still fails.' }] } }]), last_assistant_message: 'w3 finished: bugfix-trio still fails.' }), env })
+    check('gate: a monitor event is a turn boundary, so the reply to it is not checked against older edits', r.stdout === '' && requests.length === before, (r.stdout || r.stderr.split('\n').pop()).slice(0, 100))
+    const bgTest = [
+      { type: 'user', timestamp: hourAgo, message: { role: 'user', content: 'run the suite in the background and fix failures' } },
+      { type: 'assistant', message: { content: [{ type: 'tool_use', id: 'toolu_bg', name: 'Bash', input: { command: 'npm test', run_in_background: true } }] } },
+      { type: 'user', origin: { kind: 'task-notification' }, message: { role: 'user', content: '<task-notification><task-id>b1</task-id><tool-use-id>toolu_bg</tool-use-id><status>failed</status></task-notification>' } },
+      { type: 'assistant', message: { content: [{ type: 'tool_use', name: 'Edit', input: { file_path: join(repo, 'a.js') } }] } },
+      { type: 'assistant', message: { content: [{ type: 'text', text: 'Fixed the failing test in a.js.' }] } },
+    ]
+    r = await runAsync([join(ROOT, 'scripts/decision-gate.mjs')], { input: JSON.stringify({ hook_event_name: 'Stop', stop_hook_active: false, cwd: repo, transcript_path: plain(bgTest), last_assistant_message: 'Fixed the failing test in a.js.' }), env })
+    check('gate: an edit after a background test reported a failure, with no new test run -> block', /"decision":"block"/.test(r.stdout), (r.stdout || r.stderr).slice(0, 100))
+    // Committing finished work is not a change to check.
+    const commitOnly = [
+      { type: 'user', timestamp: hourAgo, message: { role: 'user', content: 'commit my changes' } },
+      { type: 'assistant', message: { content: [{ type: 'tool_use', name: 'Bash', input: { command: 'git add -A && git commit -m "Add a.js -> b"' } }] } },
+      { type: 'assistant', message: { content: [{ type: 'text', text: 'Done: committed as abc123.' }] } },
+    ]
+    const before2 = requests.length
+    r = await runAsync([join(ROOT, 'scripts/decision-gate.mjs')], { input: JSON.stringify({ hook_event_name: 'Stop', stop_hook_active: false, cwd: repo, transcript_path: plain(commitOnly), last_assistant_message: 'Done: committed as abc123.' }), env })
+    check('gate: a turn that only commits existing work on a clean tree -> allow without a call', r.stdout === '' && requests.length === before2, (r.stdout || r.stderr.split('\n').pop()).slice(0, 100))
+    const sedCommit = [commitOnly[0], { type: 'assistant', message: { content: [{ type: 'tool_use', name: 'Bash', input: { command: "sed -i 's/x/y/' a.js && git commit -am fix" } }] } }, commitOnly[2]]
+    r = await runAsync([join(ROOT, 'scripts/decision-gate.mjs')], { input: JSON.stringify({ hook_event_name: 'Stop', stop_hook_active: false, cwd: repo, transcript_path: plain(sedCommit), last_assistant_message: 'Done: committed as abc123.' }), env })
+    check('gate: a shell edit committed in the same turn is still checked', /"decision":"block"/.test(r.stdout), (r.stdout || r.stderr).slice(0, 100))
   }
   // Free backends
   {

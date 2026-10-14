@@ -13,14 +13,19 @@ export const BASELINE_VISIBLE_TESTS = 16
 export function runNodeTests(cwd, files = null, timeoutMs = 180_000) {
   // --test-force-exit: a failing assertion before server.close() must not leave the run hanging.
   const args = ['--test', '--test-reporter=tap', '--test-force-exit', '--test-timeout=60000', ...(files || [])]
-  const r = spawnSync(process.execPath, args, { cwd, encoding: 'utf8', timeout: timeoutMs, env: { ...process.env, NODE_OPTIONS: '' }, maxBuffer: 64 * 1024 * 1024 })
+  const once = () => spawnSync(process.execPath, args, { cwd, encoding: 'utf8', timeout: timeoutMs, env: { ...process.env, NODE_OPTIONS: '' }, maxBuffer: 64 * 1024 * 1024 })
+  // A run with no TAP summary was killed from outside (a signal, or something's pkill): run it once more
+  // rather than score a killed run as failing tests.
+  let r = once()
+  let interrupted = !/^# tests \d+/m.test(r.stdout || '')
+  if (interrupted && !(r.error && r.error.code === 'ETIMEDOUT')) { r = once(); interrupted = !/^# tests \d+/m.test(r.stdout || '') }
   const out = `${r.stdout || ''}`
   const num = (name) => {
     const m = out.match(new RegExp(`^# ${name} (\\d+)`, 'm'))
     return m ? Number(m[1]) : 0
   }
   const failures = [...out.matchAll(/^\s*not ok \d+ - (.*)$/gm)].map((m) => m[1].trim())
-  return { tests: num('tests'), pass: num('pass'), fail: num('fail'), cancelled: num('cancelled'), timedOut: r.error ? String(r.error.code || r.error.message) : null, exitCode: r.status, failures: [...new Set(failures)].slice(0, 40) }
+  return { tests: num('tests'), pass: num('pass'), fail: num('fail'), cancelled: num('cancelled'), timedOut: r.error ? String(r.error.code || r.error.message) : null, exitCode: r.status, signal: r.signal || null, interrupted, failures: [...new Set(failures)].slice(0, 40) }
 }
 
 export function scoreCodeTask(repo, task, taskDir) {
@@ -44,7 +49,7 @@ export function scoreCodeTask(repo, task, taskDir) {
     compliance,
     visible,
     hidden,
-    hiddenPerFile: Object.fromEntries(Object.entries(perFile).map(([k, r]) => [k, { pass: r.pass, fail: r.fail + r.cancelled, failures: r.failures }])),
+    hiddenPerFile: Object.fromEntries(Object.entries(perFile).map(([k, r]) => [k, { pass: r.pass, fail: r.fail + r.cancelled, failures: r.failures, interrupted: r.interrupted }])),
     partial: Object.values(perFile).filter((r) => r.fail === 0 && r.cancelled === 0 && r.pass > 0).length / Math.max(1, hiddenFiles.length),
     notes: [
       ...(visible.pass < BASELINE_VISIBLE_TESTS ? [`visible suite has ${visible.pass} passing tests, fewer than the ${BASELINE_VISIBLE_TESTS} it started with`] : []),

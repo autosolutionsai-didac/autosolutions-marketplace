@@ -132,6 +132,13 @@ const cfgFile = path.join(BENCH, 'results', labels[0], 'run-config.json')
 const cfg = existsSync(cfgFile) ? JSON.parse(readFileSync(cfgFile, 'utf8')) : {}
 L.push(`# Harness benchmark: ${label}`, '')
 L.push(`Runs: ${runs.length} (${runs.filter((r) => r.taskKind !== 'check').length} comparative, ${runs.filter((r) => r.taskKind === 'check').length} harness checks). Claude Code ${cfg.claudeVersion || '?'}, Node ${cfg.node || '?'}, ${cfg.cpus || '?'} CPUs, ${cfg.parallel || '?'} runs at a time, trials per comparative cell: ${Math.max(1, ...runs.filter((r) => r.taskKind !== 'check').map((r) => r.trial))}.${existsSync(path.join(BENCH, 'results', labels[0], 'run-config-2.json')) ? ' Later invocations (resumes or reruns of a subset) are recorded in run-config-<n>.json.' : ''}`, '')
+const versions = labels.map((l) => {
+  const dir = path.join(BENCH, 'results', l)
+  const cfgs = existsSync(dir) ? readdirSync(dir).filter((f) => /^run-config(-\d+)?\.json$/.test(f)).map((f) => JSON.parse(readFileSync(path.join(dir, f), 'utf8'))) : []
+  return `${l}: Claude Code ${[...new Set(cfgs.map((c) => c.claudeVersion).filter(Boolean))].join(', ') || '?'}`
+})
+const versionOf = (label) => (versions.find((v) => v.startsWith(`${label}:`)) || '').replace(/^[^:]+: Claude Code /, '')
+if (labels.length > 1) L.push(`Versions by label: ${versions.join('; ')}.`, '')
 L.push('Costs are API list-price equivalents as reported by Claude Code (subscription users pay in usage limits instead). Tokens count everything the models read and wrote, including cache reads; "fresh" leaves cache reads out. Times are wall clock for the whole run, all turns.', '')
 
 L.push('## Teams', '')
@@ -188,7 +195,7 @@ const gateRuns = runs.filter((r) => r.decisionGate && r.taskKind !== 'check')
 if (gateRuns.length) {
   const backends = [...new Set(gateRuns.map((r) => r.decisionGate.backend))]
   L.push('## The decision gate (Jev)', '')
-  L.push(`Backend: ${backends.join(', ')}.${backends.includes('mock') ? ' **Mock runs test the wiring only; they say nothing about Jev.**' : ''} The gate runs when Claude stops after changing files and can send it back once per stop. A wrapper records the work tree whenever it does, so each block can be scored twice: as the run would have ended without the gate (the tree at the block) and as it did end. That comparison is only possible for a block at the run's last stop; a block in an earlier turn, or while a workflow was still running, changed what came after it in ways a snapshot cannot replay.`, '')
+  L.push(`Backend: ${backends.join(', ')}.${backends.includes('mock') ? ' **Mock runs test the wiring only; they say nothing about Jev.**' : ''} The gate runs when Claude stops after changing files and can send it back once per stop. A wrapper records the work tree whenever it does, so each block can be scored twice: as the run would have ended without the gate (the tree at the block) and as it did end. That comparison is only possible when the run's first block came at what would have been its last stop; a block in an earlier turn, or while a workflow was still running, changed what came after it in ways a snapshot cannot replay. The time and cost after a block run until Claude stopped again. Harness teams are also told at session start that the gate is on (the native team is not), so a block's direct effect is not the whole effect of adding Jev; the team-against-team comparison below includes the rest, along with run-to-run variance.`, '')
   L.push('| Team | Task | Stops checked | Jev calls | Blocks | Errors | Jev latency (median) | Jev cost | Claude time after blocks | Claude cost after blocks | Without the gate | With the gate |', '|---|---|---|---|---|---|---|---|---|---|---|---|')
   const sc = (x) => (!x ? 'n/a' : x.error ? `error: ${x.error.slice(0, 40)}` : `${x.success ? 'works' : 'broken'}${x.hidden ? ` (${x.hidden})` : ''}${x.recall != null ? ` (recall ${pct(x.recall)})` : ''}`)
   for (const r of gateRuns) {
@@ -201,15 +208,30 @@ if (gateRuns.length) {
   const fixed = measurable.filter((r) => !r.decisionGate.counterfactual.withoutGate.success && r.decisionGate.counterfactual.withGate.success)
   const broke = measurable.filter((r) => r.decisionGate.counterfactual.withoutGate.success && !r.decisionGate.counterfactual.withGate.success)
   const blocked = gateRuns.filter((r) => r.decisionGate.blocks > 0)
+  const ceiling = comparative.filter((t) => {
+    const base = runs.filter((r) => r.task === t.id && !(teams.find((x) => x.id === r.team) || {}).decisionGate)
+    return base.length && base.every((r) => r.success)
+  })
+  if (ceiling.length) L.push(`**Ceiling:** on ${ceiling.map((t) => t.id).join(', ')} every team without the gate already succeeded, so a gain in success cannot show there; those tasks measure only what the gate costs and whether it breaks anything.`, '')
   L.push(`Across ${gateRuns.length} runs with the gate: ${blocked.length} had at least one block (${sum(gateRuns.map((r) => r.decisionGate.blocks))} blocks in all). Of the ${measurable.length} runs where the result without the gate can be scored, the gate turned ${fixed.length} broken result(s) into working ones and ${broke.length} working result(s) into broken ones. Jev itself cost ${usd(sum(gateRuns.map(jevCost)))} in all; the Claude work it triggered cost ${usd(sum(gateRuns.map((r) => r.decisionGate.extraCostUSD || 0)))} and took ${mins(sum(gateRuns.map((r) => r.decisionGate.extraSec || 0)))}.`, '')
   const pairs = teams.filter((t) => t.extends && t.decisionGate && teamIds.includes(t.id) && teamIds.includes(t.extends))
   if (pairs.length) {
-    L.push('**Each team with and without the gate** (comparative tasks; the two sides ran at different times, so differences in cost and time include run-to-run variance; the table above isolates what the gate itself did):', '')
-    L.push('| Team | Works without / with | Cost without / with (incl. Jev) | Time without / with |', '|---|---|---|---|')
+    L.push('**Each team with and without the gate**, over the tasks both sides ran (per task the median run, summed). The two sides ran at different times and possibly on different Claude Code versions, so differences include run-to-run variance; the gate table above shows what the blocks themselves did.', '')
+    L.push('| Team | Tasks compared | Works without / with | Cost without / with (incl. Jev) | Time without / with | Claude Code without / with |', '|---|---|---|---|---|---|')
     for (const t of pairs) {
-      const a = totals[t.extends], b = totals[t.id]
-      const bj = b.costUSD + sum(runs.filter((r) => r.team === t.id && comparative.some((c) => c.id === r.task)).map(jevCost))
-      L.push(`| ${t.extends} | ${a.successes}/${a.runs} / ${b.successes}/${b.runs} | ${usd(a.costUSD)} / ${usd(bj)} | ${mins(a.wallSec)} / ${mins(b.wallSec)} |`)
+      const shared = comparative.filter((c) => runs.some((r) => r.team === t.extends && r.task === c.id) && runs.some((r) => r.team === t.id && r.task === c.id))
+      const side = (team) => {
+        const per = shared.map((c) => runs.filter((r) => r.team === team && r.task === c.id))
+        return {
+          works: sum(per.map((rs) => mean(rs.map((r) => (r.success ? 1 : 0))))),
+          cost: sum(per.map((rs) => median(rs.map((r) => r.costUSD + jevCost(r))))),
+          wall: sum(per.map((rs) => median(rs.map((r) => r.wallSec)))),
+          versions: [...new Set(per.flat().map((r) => versionOf(r.label)))].join(', '),
+        }
+      }
+      const a = side(t.extends), b = side(t.id)
+      const f1 = (x) => (Number.isInteger(x) ? String(x) : x.toFixed(1))
+      L.push(`| ${t.extends} | ${shared.length} | ${f1(a.works)}/${shared.length} / ${f1(b.works)}/${shared.length} | ${usd(a.cost)} / ${usd(b.cost)} | ${mins(a.wall)} / ${mins(b.wall)} | ${a.versions || '?'} / ${b.versions || '?'}${a.versions !== b.versions ? ' (differ)' : ''} |`)
     }
     L.push('')
   }

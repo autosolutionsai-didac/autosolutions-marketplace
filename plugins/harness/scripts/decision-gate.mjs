@@ -89,32 +89,53 @@ function pickFallback(primary) {
   return providers()[name] || null
 }
 
-// A background workflow or agent reports back as a user row carrying a <task-notification>. That row is
-// not a new request: the work it reports belongs to the turn that started it.
-function isTaskNotification(row) {
+// A background workflow or agent reports back as a user row carrying a <task-notification> that names the
+// tool call that launched it. That row is not a new request: the work it reports belongs to the turn that
+// launched it. Other notifications (monitor events, queued remote events, background shell commands) carry
+// no such work and still end a turn, as a prompt does.
+function notification(row) {
   const c = row.message && row.message.content
   const text = typeof c === 'string' ? c : Array.isArray(c) ? c.map((b) => (b && b.type === 'text' ? b.text : '')).join('') : ''
-  return (row.origin && row.origin.kind === 'task-notification') || /^\s*<task-notification>/.test(text)
+  if (!((row.origin && row.origin.kind === 'task-notification') || /^\s*<task-notification>/.test(text))) return null
+  const m = text.match(/<tool-use-id>([^<]+)<\/tool-use-id>/)
+  return { toolUseId: m ? m[1].trim() : null }
 }
+
+// Git commands that record work rather than make it: a turn that only commits is not a change to check.
+const GIT_BOOKKEEPING = /^\s*git\s+(add|commit|push|tag|status|log|diff|show|fetch|config)\b/
+const contentWrite = (cmd) => cmd.split(/&&|\|\||;|\n/).some((seg) => !GIT_BOOKKEEPING.test(seg) && SHELL_WRITE.test(seg))
 
 // Walk the transcript backwards to the last real user prompt and collect what happened since.
 function turnEvidence(transcriptPath) {
-  const ev = { edits: 0, editedFiles: new Set(), bash: [], shellWrites: 0, testCommands: [], subagents: [], parsed: false, startedAt: null }
+  const ev = { edits: 0, editedFiles: new Set(), bash: [], shellWrites: 0, contentWrites: 0, testCommands: [], subagents: [], parsed: false, startedAt: null }
   try {
     if (!transcriptPath || !existsSync(transcriptPath)) return ev
-    const lines = readFileSync(transcriptPath, 'utf8').split('\n').filter(Boolean)
+    const rows = []
+    for (const line of readFileSync(transcriptPath, 'utf8').split('\n')) {
+      if (!line) continue
+      try { rows.push(JSON.parse(line)) } catch {}
+    }
+    const delegated = new Set()
+    for (const row of rows) {
+      const c = row.type === 'assistant' && row.message && row.message.content
+      if (Array.isArray(c)) for (const b of c) if (b && b.type === 'tool_use' && ['Workflow', 'Agent', 'Task'].includes(b.name)) delegated.add(b.id)
+    }
     const turn = []
-    for (let i = lines.length - 1; i >= 0; i--) {
-      let row
-      try { row = JSON.parse(lines[i]) } catch { continue }
+    for (let i = rows.length - 1; i >= 0; i--) {
+      const row = rows[i]
       if (row.type === 'user') {
         const c = row.message && row.message.content
         const isPrompt = typeof c === 'string' || (Array.isArray(c) && c.some((b) => b && b.type === 'text') && !c.some((b) => b && b.type === 'tool_result'))
-        if (isPrompt && !row.isMeta && !isTaskNotification(row)) { ev.startedAt = row.timestamp || null; break }
+        const n = notification(row)
+        const continuation = n && n.toolUseId && delegated.has(n.toolUseId)
+        if (isPrompt && !row.isMeta && !row.isCompactSummary && !row.isVisibleInTranscriptOnly && !continuation) { ev.startedAt = row.timestamp || null; break }
       }
       turn.push(row)
     }
+    turn.reverse()
     for (const row of turn) {
+      // A test run before a workflow reported back does not verify what the workflow delivered.
+      if (row.type === 'user' && notification(row)) { ev.testCommands = []; continue }
       if (row.type !== 'assistant') continue
       const c = row.message && row.message.content
       if (!Array.isArray(c)) continue
@@ -125,8 +146,10 @@ function turnEvidence(transcriptPath) {
         if (EDIT_TOOLS.has(name)) { ev.edits++; if (inp.file_path) ev.editedFiles.add(String(inp.file_path)) }
         if (name === 'Bash' && typeof inp.command === 'string') {
           ev.bash.push(inp.command)
-          if (TEST_CMD.test(inp.command)) ev.testCommands.push(inp.command.slice(0, 160))
+          // A test started in the background has no result yet when the call returns.
+          if (TEST_CMD.test(inp.command) && !inp.run_in_background) ev.testCommands.push(inp.command.slice(0, 160))
           if (SHELL_WRITE.test(inp.command)) ev.shellWrites++
+          if (contentWrite(inp.command)) ev.contentWrites++
         }
         if (name === 'Agent' || name === 'Task') ev.subagents.push(String(inp.subagent_type || inp.description || 'agent').slice(0, 60))
         if (name === 'Workflow') ev.subagents.push(`workflow:${String(inp.name || 'script').slice(0, 50)}`)
@@ -349,7 +372,8 @@ async function main() {
   const ev = turnEvidence(input.transcript_path)
   const git = gitChanges(cwd, ev.startedAt)
   const indirect = ev.shellWrites > 0 || ev.subagents.length > 0
-  const changedSomething = ev.edits > 0 || ((git.count > 0 || git.commits > 0) && (indirect || !ev.parsed))
+  // Commits count when this turn's subagents, workflows or file-changing commands made what they record.
+  const changedSomething = ev.edits > 0 || (git.count > 0 && (indirect || !ev.parsed)) || (git.commits > 0 && (ev.subagents.length > 0 || ev.contentWrites > 0))
   if (!changedSomething) { log('no edits this turn, allowing'); return allow() }
 
   const finalMessage = String(input.last_assistant_message || '').slice(0, 6000)
@@ -369,14 +393,17 @@ async function main() {
 
   let p
   let used = provider
+  let primary = null
   const started = Date.now()
   try {
+    callMeta = {}
     p = await ask(provider, state)
   } catch (e) {
+    primary = { provider: provider.name, error: e.message, ...callMeta }
     const fallback = pickFallback(provider)
-    if (!fallback) { log('decision call failed, allowing:', e.message); record({ provider: provider.name, error: e.message, ms: Date.now() - started }); return allow() }
+    if (!fallback) { log('decision call failed, allowing:', e.message); record({ ...primary, ms: Date.now() - started }); return allow() }
     log(`decision call failed (${e.message}), trying fallback ${fallback.name}`)
-    try { used = fallback; p = await ask(fallback, state) } catch (e2) { log('fallback failed, allowing:', e2.message); record({ provider: provider.name, fallback: fallback.name, error: e2.message, ms: Date.now() - started }); return allow() }
+    try { used = fallback; callMeta = {}; p = await ask(fallback, state) } catch (e2) { log('fallback failed, allowing:', e2.message); record({ provider: provider.name, fallback: fallback.name, error: e2.message, ms: Date.now() - started, primary }); return allow() }
   }
   log(`provider=${used.name} probs=${JSON.stringify(p)} tests_run=${ev.testCommands.length}`)
 
@@ -386,7 +413,7 @@ async function main() {
   if (p.claims_done >= T && !verified) reasons.push(`you report the work as done but no test, build or check command ran this turn and the message cites no verification (p_done=${p.claims_done.toFixed(2)}, p_verified=${p.cites_verification.toFixed(2)})`)
   if (p.unresolved_problem >= T + 0.05) reasons.push(`the message still mentions an unresolved error, failing check or TODO (p=${p.unresolved_problem.toFixed(2)})`)
   if (p.deferred_to_user >= T + 0.05) reasons.push(`the message leaves verification or a step to the user that you can do yourself (p=${p.deferred_to_user.toFixed(2)})`)
-  record({ provider: used.name, ms: Date.now() - started, probs: p, tests_run: ev.testCommands.length, edits: ev.edits, shell_writes: ev.shellWrites, subagents: ev.subagents.length, commits: git.commits, ...callMeta, blocked: reasons.length > 0, reasons, message_sha256: createHash('sha256').update(finalMessage).digest('hex').slice(0, 16), ...(env('HARNESS_GATE_LOG_TEXT') === '1' ? { message: finalMessage.slice(0, 2000) } : {}) })
+  record({ provider: used.name, ms: Date.now() - started, probs: p, tests_run: ev.testCommands.length, edits: ev.edits, shell_writes: ev.shellWrites, subagents: ev.subagents.length, commits: git.commits, ...callMeta, ...(primary ? { primary } : {}), blocked: reasons.length > 0, reasons, message_sha256: createHash('sha256').update(finalMessage).digest('hex').slice(0, 16), ...(env('HARNESS_GATE_LOG_TEXT') === '1' ? { message: finalMessage.slice(0, 2000) } : {}) })
   if (!reasons.length) return allow()
 
   const reason = `Decision gate (${used.name}): ${reasons.join('; ')}. Before finishing: run the relevant tests or checks for the files you changed (${[...ev.editedFiles].slice(0, 6).join(', ') || 'see git status'}), fix anything that fails, resolve or explicitly scope out any open item, and end with a two-line verification summary (what you ran, what it showed). If no automated check exists, say so in one line and describe the manual check you performed.`

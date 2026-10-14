@@ -250,10 +250,24 @@ rmSync(branch, { recursive: true, force: true })
   const eff = gateEffect({ gateLog, gateSnapshots: snaps, configDir: home, repo, task, taskDir, turns, finalScore, backend: 'mock' })
   check('gate effect: one stop blocked, scored from the tree at the block, not the final tree', eff.blocks === 1 && eff.calls === 1 && eff.counterfactual.applicable && eff.counterfactual.withoutGate.success === true && eff.counterfactual.withGate.success === false, JSON.stringify(eff.counterfactual))
   check('gate effect: the block records the gate\'s reasons and the message it judged', eff.events[0].reasons && eff.events[0].reasons.length >= 1 && /bugs are fixed/.test(eff.events[0].message), JSON.stringify(eff.events[0]).slice(0, 400))
-  rows.push({ type: 'user', timestamp: new Date(Date.parse(s1[0].ts) + 10).toISOString(), origin: { kind: 'task-notification' }, message: { role: 'user', content: '<task-notification><task-id>w</task-id></task-notification>' } })
-  writeFileSync(transcript, rows.map((r) => JSON.stringify(r)).join('\n') + '\n')
+  check('gate effect: the window after a block ends at the next stop, not at the end of the turn', Math.abs(eff.events[0].afterSec - (Date.parse(readJsonl(snaps)[1].ts) - Date.parse(s1[0].ts)) / 1000) < 0.01, `${eff.events[0].afterSec}s`)
+  // A workflow launched before the block and still running at it: without the gate the run would have
+  // continued when it reported back, so the block is not the last stop.
+  const tb = Date.parse(s1[0].ts)
+  const wf = { type: 'assistant', timestamp: t0, message: { id: 'm0', model: 'claude-opus-5-5', usage: { input_tokens: 5, output_tokens: 5 }, content: [{ type: 'tool_use', id: 'toolu_wf', name: 'Workflow', input: { name: 'harness:ship' } }] } }
+  const done = (at) => ({ type: 'user', timestamp: new Date(at).toISOString(), origin: { kind: 'task-notification' }, message: { role: 'user', content: '<task-notification><task-id>w</task-id><tool-use-id>toolu_wf</tool-use-id></task-notification>' } })
+  writeFileSync(transcript, [rows[0], wf, done(tb + 10), ...rows.slice(1)].map((r) => JSON.stringify(r)).join('\n') + '\n')
   const eff2 = gateEffect({ gateLog, gateSnapshots: snaps, configDir: home, repo, task, taskDir, turns, finalScore, backend: 'mock' })
-  check('gate effect: a block followed by a workflow reporting back is not the run\'s last stop', eff2.counterfactual.applicable === false && eff2.events[0].terminal === false)
+  check('gate effect: a block while a workflow it launched is still running is not the run\'s last stop', eff2.counterfactual.applicable === false && eff2.events[0].terminal === false && eff2.events[0].pendingBackground[0] === 'Workflow', JSON.stringify(eff2.events[0].pendingBackground))
+  writeFileSync(transcript, [rows[0], wf, done(tb - 10), ...rows.slice(1)].map((r) => JSON.stringify(r)).join('\n') + '\n')
+  const eff3 = gateEffect({ gateLog, gateSnapshots: snaps, configDir: home, repo, task, taskDir, turns, finalScore, backend: 'mock' })
+  check('gate effect: a block after the workflow reported back is the last stop', eff3.counterfactual.applicable === true && eff3.events[0].terminal === true)
+  // An agent that was already running when the gate blocked is not charged to the block.
+  mkdirSync(path.join(home, 'projects', 'p', 'sess', 'subagents'), { recursive: true })
+  const agentRow = (at, id) => ({ type: 'assistant', timestamp: new Date(at).toISOString(), message: { id, model: 'claude-opus-5-5', usage: { input_tokens: 1_000_000, output_tokens: 0 }, content: [] } })
+  writeFileSync(path.join(home, 'projects', 'p', 'sess', 'subagents', 'agent-old.jsonl'), [agentRow(tb - 5000, 'a1'), agentRow(tb + 2, 'a2')].map((r) => JSON.stringify(r)).join('\n') + '\n')
+  const eff4 = gateEffect({ gateLog, gateSnapshots: snaps, configDir: home, repo, task, taskDir, turns, finalScore, backend: 'mock' })
+  check('gate effect: work by an agent already running at the block is not charged to it', eff4.events[0].afterCostUSD < 1, `$${eff4.events[0].afterCostUSD}`)
   for (const d of [repo, scripts, home]) rmSync(d, { recursive: true, force: true })
 }
 

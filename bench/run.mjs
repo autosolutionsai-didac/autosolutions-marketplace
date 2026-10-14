@@ -168,10 +168,15 @@ function snapshotPlugin(team, opts) {
   }
 }
 
+// Concurrent runs share the machine. In its own PID namespace a run's `ps` and `pkill` see only its own
+// processes, so an agent cannot read another run's command lines or kill its tests (or the scorer's).
+const PID_ISOLATION = spawnSync('unshare', ['--pid', '--fork', '--mount-proc', 'true'], { encoding: 'utf8' }).status === 0
+
 function runClaude({ prompt, cwd, env, args, timeoutMs, streamFile, stderrFile }) {
   return new Promise((resolve) => {
     const started = Date.now()
-    const child = spawn('claude', ['-p', prompt, ...args], { cwd, env, stdio: ['ignore', 'pipe', 'pipe'], detached: true })
+    const [cmd, argv] = PID_ISOLATION ? ['unshare', ['--pid', '--fork', '--mount-proc', 'claude', '-p', prompt, ...args]] : ['claude', ['-p', prompt, ...args]]
+    const child = spawn(cmd, argv, { cwd, env, stdio: ['ignore', 'pipe', 'pipe'], detached: true })
     const out = []
     child.stdout.on('data', (d) => appendFileSync(streamFile, d))
     child.stderr.on('data', (d) => appendFileSync(stderrFile, d))
@@ -210,7 +215,7 @@ async function runJob(job, opts, log) {
   const gateLog = path.join(raw, 'gate.jsonl')
   const gateSnapshots = path.join(raw, 'gate-snapshots.jsonl')
   if (gateBackend) {
-    Object.assign(extraEnv, gateBackend.env || {}, { HARNESS_DECISION_PROVIDER: gateBackend.provider, HARNESS_GATE_LOG: gateLog, HARNESS_GATE_LOG_TEXT: '1', BENCH_GATE_SNAPSHOTS: gateSnapshots })
+    Object.assign(extraEnv, gateBackend.env || {}, { HARNESS_DECISION_PROVIDER: gateBackend.provider, HARNESS_GATE_LOG: gateLog, HARNESS_GATE_LOG_TEXT: '1', BENCH_GATE_SNAPSHOTS: gateSnapshots, BENCH_REPO: repo })
   }
   const env = childEnv({ configDir, extra: extraEnv })
   const common = ['--model', team.model, '--effort', team.effort, '--output-format', 'stream-json', '--verbose', '--include-hook-events', '--permission-mode', 'bypassPermissions', '--max-budget-usd', String(opts.budgetUsd)]
@@ -255,7 +260,8 @@ async function runJob(job, opts, log) {
   } catch (e) {
     score = { success: false, error: `scoring failed: ${e.message}` }
   }
-  const decisionGate = gateBackend ? gateEffect({ gateLog, gateSnapshots, configDir, repo, task, taskDir, turns: turnResults, finalScore: score, backend: gateBackend.mock ? 'mock' : gateBackend.provider }) : null
+  const contam = contamination(configDir, dir, opts.work)
+  const decisionGate = gateBackend ? gateEffect({ gateLog, gateSnapshots, configDir, repo, task, taskDir, turns: turnResults, finalScore: score && { ...score, success: !!score.success && contam.length === 0 }, backend: gateBackend.mock ? 'mock' : gateBackend.provider }) : null
   const diff = spawnSync('git', ['diff', baseSha, '--', '.', ':(exclude).bench-hidden'], { cwd: repo, encoding: 'utf8', maxBuffer: 64 * 1024 * 1024 }).stdout || ''
   const untracked = spawnSync('git', ['ls-files', '--others', '--exclude-standard', '--', '.', ':(exclude).bench-hidden'], { cwd: repo, encoding: 'utf8' }).stdout.trim()
   const transcriptCost = Object.values(transcripts.byModel).reduce((a, m) => a + m.costUSD, 0)
@@ -268,7 +274,10 @@ async function runJob(job, opts, log) {
   const apiErrors = transcripts.agents.reduce((a, x) => a + (x.apiErrors || 0), 0)
   // Runs that ended because of the account's usage limits, or crashed without a timeout, say nothing
   // about the team: they are written as invalid and retried on the next invocation.
-  const invalidReason = streams.rateLimited ? 'rate limited' : crashed ? 'crashed (no result event, no timeout)' : null
+  // A gate whose backend never answered let every stop through (it fails open): that is a run without Jev.
+  const gateDown = decisionGate && decisionGate.errors > 0 && decisionGate.calls === 0
+  const testsKilled = score && ((score.visible && score.visible.interrupted) || Object.values(score.hiddenPerFile || {}).some((x) => x && x.interrupted))
+  const invalidReason = streams.rateLimited ? 'rate limited' : crashed ? 'crashed (no result event, no timeout)' : gateDown ? `decision backend never answered: ${decisionGate.errorTexts[0] || 'error'}` : testsKilled ? 'scoring test run was killed' : null
   const result = {
     benchVersion: BENCH_VERSION,
     label: opts.label,
@@ -283,7 +292,7 @@ async function runJob(job, opts, log) {
     wallSec,
     timedOut: turnResults.some((t) => t.timedOut),
     turns: turnResults,
-    success: task.kind === 'check' ? !!(check && check.pass) : !!(score && score.success) && contamination(configDir, dir, opts.work).length === 0,
+    success: task.kind === 'check' ? !!(check && check.pass) : !!(score && score.success) && contam.length === 0,
     score,
     check,
     costUSD,
@@ -308,7 +317,7 @@ async function runJob(job, opts, log) {
     testCommands: streams.testCommands.length,
     permissionDenials: streams.permissionDenials,
     errors: streams.errors,
-    contamination: contamination(configDir, dir, opts.work),
+    contamination: contam,
     specDelivered: specDelivered(workflows, existsSync(path.join(taskDir, 'spec.md')) ? readFileSync(path.join(taskDir, 'spec.md'), 'utf8') : ''),
     changedFiles: (spawnSync('git', ['diff', '--name-only', baseSha], { cwd: repo, encoding: 'utf8' }).stdout.trim() + '\n' + untracked).split('\n').filter(Boolean),
     finalMessage: streams.finalMessage.slice(0, 4000),
@@ -334,6 +343,13 @@ async function main() {
   opts.decisionBackend = decisionBackend(opts)
   if (teams.some((t) => t.decisionGate) && !opts.decisionBackend && !opts.dryRun) {
     throw new Error('the decision-gate teams need TYPESAFE_API_KEY or OPENROUTER_API_KEY in the environment (or --decision-mock to test the wiring)')
+  }
+  // The gate fails open, so a wrong key or an outage would quietly turn every *-jev run into a run without
+  // Jev. Check the live backend answers before spending anything.
+  if (teams.some((t) => t.decisionGate) && opts.decisionBackend && !opts.decisionBackend.mock && !opts.dryRun) {
+    const smoke = spawnSync(process.execPath, [path.join(BENCH, 'jev-smoke.mjs')], { encoding: 'utf8', env: process.env, timeout: 120_000 })
+    process.stdout.write(smoke.stdout || '')
+    if (smoke.status !== 0) throw new Error(`jev-smoke failed (exit ${smoke.status}); not starting the decision-gate runs`)
   }
   const tasks = readJson(path.join(BENCH, 'tasks.json')).tasks.filter((t) => !opts.tasks || opts.tasks.includes(t.id))
   // Task-major order, so the teams run the same task at about the same time and see the same API conditions.
@@ -374,7 +390,7 @@ async function main() {
   // add run-config-<n>.json so the original settings stay on record.
   let cfgName = 'run-config.json'
   for (let n = 2; existsSync(path.join(resultsDir, cfgName)); n++) cfgName = `run-config-${n}.json`
-  writeFileSync(path.join(resultsDir, cfgName), JSON.stringify({ label: opts.label, benchVersion: BENCH_VERSION, startedAt: new Date().toISOString(), claudeVersion: spawnSync('claude', ['--version'], { encoding: 'utf8' }).stdout.trim(), gitSha: spawnSync('git', ['rev-parse', 'HEAD'], { cwd: REPO_ROOT, encoding: 'utf8' }).stdout.trim(), gitDirty: spawnSync('git', ['status', '--porcelain'], { cwd: REPO_ROOT, encoding: 'utf8' }).stdout.trim().length > 0, node: process.version, cpus: (await import('node:os')).cpus().length, workflowAgentConcurrency: Math.min(16, Math.max(2, (await import('node:os')).availableParallelism() - 2)), childEnvKeys: Object.keys(childEnv({ configDir: '/tmp/x' })).sort(), teams, tasks: tasks.map((t) => t.id), trials: opts.trials, parallel: opts.parallel, budgetUsdPerTurn: opts.budgetUsd, decisionBackend: opts.decisionBackend ? (opts.decisionBackend.mock ? `mock (${opts.decisionBackend.mock})` : opts.decisionBackend.provider) : null }, null, 2))
+  writeFileSync(path.join(resultsDir, cfgName), JSON.stringify({ label: opts.label, benchVersion: BENCH_VERSION, startedAt: new Date().toISOString(), claudeVersion: spawnSync('claude', ['--version'], { encoding: 'utf8' }).stdout.trim(), gitSha: spawnSync('git', ['rev-parse', 'HEAD'], { cwd: REPO_ROOT, encoding: 'utf8' }).stdout.trim(), gitDirty: spawnSync('git', ['status', '--porcelain'], { cwd: REPO_ROOT, encoding: 'utf8' }).stdout.trim().length > 0, node: process.version, cpus: (await import('node:os')).cpus().length, workflowAgentConcurrency: Math.min(16, Math.max(2, (await import('node:os')).availableParallelism() - 2)), childEnvKeys: Object.keys(childEnv({ configDir: '/tmp/x' })).sort(), teams, tasks: tasks.map((t) => t.id), trials: opts.trials, parallel: opts.parallel, budgetUsdPerTurn: opts.budgetUsd, decisionBackend: opts.decisionBackend ? (opts.decisionBackend.mock ? `mock (${opts.decisionBackend.mock})` : opts.decisionBackend.provider) : null, pidIsolation: PID_ISOLATION }, null, 2))
   let next = 0
   async function worker(w) {
     while (next < pending.length) {

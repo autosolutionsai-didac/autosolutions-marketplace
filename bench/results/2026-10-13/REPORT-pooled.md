@@ -2,6 +2,8 @@
 
 Runs: 29 (20 comparative, 9 harness checks). Claude Code 2.1.296 (Claude Code), Node v22.22.0, 4 CPUs, 3 runs at a time, trials per comparative cell: 1. Later invocations (resumes or reruns of a subset) are recorded in run-config-<n>.json.
 
+Versions by label: 2026-10-13: Claude Code 2.1.296 (Claude Code); 2026-10-14: Claude Code 2.1.299 (Claude Code).
+
 Costs are API list-price equivalents as reported by Claude Code (subscription users pay in usage limits instead). Tokens count everything the models read and wrote, including cache reads; "fresh" leaves cache reads out. Times are wall clock for the whole run, all turns.
 
 ## Teams

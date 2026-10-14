@@ -5,6 +5,7 @@
 // would have delivered had the gate let it stop. Copied next to decision-gate.mjs in the team's plugin
 // snapshot; BENCH_GATE_SNAPSHOTS names the JSONL file it appends to.
 import { spawnSync } from 'node:child_process'
+import { randomUUID } from 'node:crypto'
 import { appendFileSync, readFileSync, rmSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import path from 'node:path'
@@ -24,15 +25,18 @@ if (log) {
   let input = {}
   try { input = JSON.parse(raw) } catch {}
   const entry = { ts: new Date(started).toISOString(), blocked, gateMs, exit: r.status, stopHookActive: !!input.stop_hook_active }
-  if (blocked && input.cwd) {
-    const index = path.join(tmpdir(), `bench-gate-index-${process.pid}`)
+  // The hook's cwd follows the session's `cd`; the benchmark names the repository itself.
+  const repoDir = process.env.BENCH_REPO || input.cwd
+  if (blocked && repoDir) {
+    // Runs in separate PID namespaces can share a pid, so the name must not rely on it.
+    const index = path.join(tmpdir(), `bench-gate-index-${randomUUID()}`)
     const env = { ...process.env, GIT_INDEX_FILE: index, GIT_AUTHOR_NAME: 'bench', GIT_AUTHOR_EMAIL: 'bench@example.com', GIT_COMMITTER_NAME: 'bench', GIT_COMMITTER_EMAIL: 'bench@example.com' }
-    const git = (...a) => spawnSync('git', ['-C', input.cwd, ...a], { encoding: 'utf8', env, timeout: 10_000 })
+    const git = (...a) => spawnSync('git', ['-C', repoDir, ...a], { encoding: 'utf8', env, timeout: 10_000 })
     try {
       const head = git('rev-parse', 'HEAD').stdout.trim()
       git('read-tree', 'HEAD')
       // .claude holds the workflow worktrees: whole checkouts that are not part of the result.
-      git('add', '-A', '--', '.', ':(exclude).claude')
+      git('add', '-A', '--', ':(top)', ':(top,exclude).claude')
       const tree = git('write-tree').stdout.trim()
       const commit = tree ? git('commit-tree', tree, '-p', head, '-m', 'bench: work tree when the decision gate blocked').stdout.trim() : ''
       Object.assign(entry, { head, commit: commit || null })

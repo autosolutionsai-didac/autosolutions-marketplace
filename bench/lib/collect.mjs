@@ -226,23 +226,45 @@ export function shipInternals(workflows, transcripts) {
 // ---- the decision gate (Jev) -------------------------------------------------------------------------
 // What the gate did in one run and what it changed. gate.jsonl is the gate's own log (one line per backend
 // call); gate-snapshots.jsonl is gate-probe.mjs's (one line per Stop hook, with a commit of the work tree
-// whenever the gate sent Claude back). For each block: the time and API cost Claude spent after it until
-// the turn ended, and, for a block at the run's last stop, the score of the work as it stood at the block,
-// which is what the run would have delivered without the gate.
-const isNotification = (row) => {
-  if (row.type !== 'user') return false
-  const c = row.message && row.message.content
-  const text = typeof c === 'string' ? c : Array.isArray(c) ? c.map((b) => (b && b.type === 'text' ? b.text : '')).join('') : ''
-  return (row.origin && row.origin.kind === 'task-notification') || /^\s*<task-notification>/.test(text)
+// whenever the gate sent Claude back). For each block: the time and API cost Claude spent from the block
+// until it stopped again, and, when the run's first block came at what would otherwise have been its last
+// stop, the score of the work as it stood then: what the run would have delivered without the gate.
+function transcriptRows(configDir) {
+  return walk(path.join(configDir, 'projects')).filter((f) => f.endsWith('.jsonl') && path.basename(f) !== 'journal.jsonl').map((f) => {
+    const rows = readJsonl(f)
+    const first = rows.map((r) => Date.parse(r.timestamp)).find((t) => !Number.isNaN(t))
+    return { file: f, main: !path.basename(f).startsWith('agent-'), rows, firstTs: first ?? null }
+  })
 }
 
-function transcriptRows(configDir) {
-  return walk(path.join(configDir, 'projects')).filter((f) => f.endsWith('.jsonl') && path.basename(f) !== 'journal.jsonl').map((f) => ({ file: f, main: !path.basename(f).startsWith('agent-'), rows: readJsonl(f) }))
+// Background work the main session started (workflows always run in the background; agents and shell
+// commands when asked), with when it started and when its <task-notification> reached the main session.
+function backgroundTasks(mainFiles) {
+  const tasks = []
+  const rows = mainFiles.flatMap((f) => f.rows)
+  for (const row of rows) {
+    const c = row.type === 'assistant' && row.message && row.message.content
+    if (!Array.isArray(c)) continue
+    for (const b of c) {
+      if (!b || b.type !== 'tool_use' || !b.id) continue
+      const bg = b.name === 'Workflow' || (['Agent', 'Task', 'Bash'].includes(b.name) && b.input && b.input.run_in_background)
+      if (bg) tasks.push({ id: b.id, name: b.name, started: Date.parse(row.timestamp), done: null })
+    }
+  }
+  for (const t of tasks) {
+    const tag = `<tool-use-id>${t.id}</tool-use-id>`
+    const hit = rows.find((r) => r.type !== 'assistant' && Date.parse(r.timestamp) >= t.started && JSON.stringify(r).includes(tag))
+    if (hit) t.done = Date.parse(hit.timestamp)
+  }
+  return tasks
 }
 
 function costBetween(files, from, to) {
   const msgs = new Map()
-  for (const { rows } of files) {
+  // The main session, and agents that started inside the window: work already running when the gate blocked
+  // (a workflow still building) would have happened without it.
+  for (const { rows, main, firstTs } of files) {
+    if (!main && !(firstTs != null && firstTs >= from)) continue
     for (const row of rows) {
       if (row.type !== 'assistant' || !row.message || !row.message.usage || !row.timestamp) continue
       const t = Date.parse(row.timestamp)
@@ -278,7 +300,7 @@ export function gateEffect({ gateLog, gateSnapshots, configDir, repo, task, task
   const calls = readJsonl(gateLog)
   const stops = readJsonl(gateSnapshots)
   const files = transcriptRows(configDir)
-  const notifications = files.filter((f) => f.main).flatMap((f) => f.rows.filter(isNotification).map((r) => Date.parse(r.timestamp)).filter((t) => !Number.isNaN(t)))
+  const bg = backgroundTasks(files.filter((f) => f.main))
   const turnOf = (t) => turns.find((x) => x.startedAt && Date.parse(x.startedAt) <= t && t <= Date.parse(x.endedAt) + 1000)
   const lastTurn = turns.filter((x) => x.startedAt).slice(-1)[0]
   const jevTokens = (c) => (c.usage && (c.usage.input_tokens ?? c.usage.prompt_tokens)) ?? (c.request_bytes ? Math.ceil(c.request_bytes / 4) : 0)
@@ -286,37 +308,39 @@ export function gateEffect({ gateLog, gateSnapshots, configDir, repo, task, task
   const blockedCalls = answered.filter((c) => c.blocked)
   const events = []
   let bi = 0
-  for (const s of stops) {
+  stops.forEach((s, i) => {
     const t = Date.parse(s.ts)
     const turn = turnOf(t)
     const ev = { ts: s.ts, turn: turn ? turn.turn : null, blocked: s.blocked, gateMs: s.gateMs }
     if (s.blocked) {
       const c = blockedCalls[bi++] || {}
-      const end = turn ? Date.parse(turn.endedAt) : t
-      // Without the gate the run stops here only if nothing else was still coming: no background workflow
-      // or agent reported back later in the same turn.
-      const terminal = !!turn && !notifications.some((n) => n > t && n <= end)
+      const turnEnd = turn ? Date.parse(turn.endedAt) : t
+      // The block's effect runs until Claude stops again (the next Stop hook in this turn).
+      const next = stops.slice(i + 1).map((x) => Date.parse(x.ts)).find((x) => x > t && x <= turnEnd)
+      const end = next ?? turnEnd
+      // Without the gate the run ends here only if no background work it had started was still running.
+      const pending = bg.filter((b) => b.started < t && !(b.done != null && b.done <= t))
+      const terminal = !!turn && pending.length === 0
       const after = costBetween(files, t, end)
-      Object.assign(ev, { probs: c.probs, reasons: c.reasons, message: String(c.message || '').slice(0, 600), terminal, finalTurn: !!turn && turn === lastTurn, afterSec: Math.max(0, (end - t) / 1000), afterCostUSD: after.costUSD, afterRequests: after.requests, commit: s.commit || null })
+      Object.assign(ev, { probs: c.probs, reasons: c.reasons, message: String(c.message || '').slice(0, 600), terminal, pendingBackground: pending.map((b) => b.name), finalTurn: !!turn && turn === lastTurn, afterSec: Math.max(0, (end - t) / 1000), afterCostUSD: after.costUSD, afterRequests: after.requests, commit: s.commit || null })
       if (ev.terminal && ev.finalTurn && s.commit) ev.scoreAtBlock = brief(scoreCommit(repo, s.commit, task, taskDir))
     }
     events.push(ev)
-  }
+  })
   const blocks = events.filter((e) => e.blocked)
-  const decisive = blocks.find((e) => e.scoreAtBlock)
   let counterfactual
   if (!blocks.length) counterfactual = { applicable: true, note: 'the gate never sent Claude back, so the result is what the run delivers without it', withoutGate: brief(finalScore), withGate: brief(finalScore) }
-  else if (decisive) counterfactual = { applicable: true, note: 'scored from the work tree at the block on the run\'s last stop', withoutGate: decisive.scoreAtBlock, withGate: brief(finalScore) }
-  else counterfactual = { applicable: false, note: 'blocks happened before the run\'s last stop (an earlier turn, or while a workflow was still running), so the run without them cannot be reconstructed', withGate: brief(finalScore) }
-  const tokens = calls.reduce((a, c) => a + jevTokens(c), 0)
+  else if (blocks[0].scoreAtBlock) counterfactual = { applicable: true, note: 'scored from the work tree at the run\'s first block, which came at what would have been its last stop', withoutGate: blocks[0].scoreAtBlock, withGate: brief(finalScore) }
+  else counterfactual = { applicable: false, note: 'the first block came before the run\'s last stop (an earlier turn, or while background work was still running), so what the run would have delivered without the gate cannot be reconstructed', withGate: brief(finalScore) }
+  const tokens = calls.reduce((a, c) => a + jevTokens(c) + (c.primary ? jevTokens(c.primary) : 0), 0)
   const ms = answered.map((c) => c.ms).filter((x) => typeof x === 'number').sort((a, b) => a - b)
   return {
     backend,
     stops: stops.length,
     calls: answered.length,
     blocks: blocks.length,
-    errors: calls.filter((c) => c.error).length,
-    errorTexts: [...new Set(calls.filter((c) => c.error).map((c) => String(c.error).slice(0, 160)))].slice(0, 3),
+    errors: calls.filter((c) => c.error || c.primary).length,
+    errorTexts: [...new Set(calls.filter((c) => c.error || c.primary).map((c) => String(c.error || c.primary.error).slice(0, 160)))].slice(0, 3),
     msMedian: ms.length ? ms[Math.floor(ms.length / 2)] : null,
     msMax: ms.length ? ms[ms.length - 1] : null,
     jev: { inputTokens: tokens, costUSD: backend === 'mock' ? 0 : (tokens * JEV_INPUT_PER_MTOK) / 1e6, estimated: calls.some((c) => !(c.usage && (c.usage.input_tokens ?? c.usage.prompt_tokens) != null)) },
