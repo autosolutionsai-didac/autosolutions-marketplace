@@ -29,6 +29,7 @@ import { appendFileSync, readFileSync, existsSync } from 'node:fs'
 import { execFileSync, spawn } from 'node:child_process'
 import { createHash } from 'node:crypto'
 import { tmpdir } from 'node:os'
+import { QUESTIONS, decide, docsOnly } from './gate-rules.mjs'
 
 const DEBUG = process.env.HARNESS_DEBUG === '1'
 const log = (...a) => { if (DEBUG) process.stderr.write(`[decision-gate] ${a.join(' ')}\n`) }
@@ -167,7 +168,8 @@ function gitChanges(cwd, since) {
   try {
     const out = execFileSync('git', ['-C', cwd, 'status', '--porcelain', '--untracked-files=normal'], { encoding: 'utf8', timeout: 4000, stdio: ['ignore', 'pipe', 'ignore'] })
     const rows = out.split('\n').filter(Boolean)
-    res = { ...res, isRepo: true, count: rows.length, sample: rows.slice(0, 12).join('\n') }
+    const paths = rows.slice(0, 500).map((r) => r.slice(3).split(' -> ').pop().replace(/^"|"$/g, ''))
+    res = { ...res, isRepo: true, count: rows.length, sample: rows.slice(0, 12).join('\n'), paths }
   } catch { return res }
   if (since && !Number.isNaN(Date.parse(since))) {
     try {
@@ -180,12 +182,6 @@ function gitChanges(cwd, since) {
   return res
 }
 
-const QUESTIONS = {
-  claims_done: 'The assistant\'s final message states or implies that the requested work is complete, finished, fixed, implemented or ready.',
-  cites_verification: 'The final message reports concrete verification the assistant performed itself this turn: a test, build, lint or type-check command that was run with its result, or a behaviour it observed by running the code.',
-  unresolved_problem: 'The final message mentions a failing test, an error, a crash, a TODO, a known bug or a part of the request that is still not done.',
-  deferred_to_user: 'The final message asks or expects the user to run a test, check a result, verify behaviour, or complete a step that the assistant could have done itself.',
-}
 
 // What the last backend call reported about itself (token usage, request id), for the gate log.
 let callMeta = {}
@@ -408,12 +404,10 @@ async function main() {
   log(`provider=${used.name} probs=${JSON.stringify(p)} tests_run=${ev.testCommands.length}`)
 
   const T = Math.min(0.95, Math.max(0.5, Number(env('HARNESS_GATE_THRESHOLD')) || 0.7))
-  const verified = ev.testCommands.length > 0 || p.cites_verification >= 0.5
-  const reasons = []
-  if (p.claims_done >= T && !verified) reasons.push(`you report the work as done but no test, build or check command ran this turn and the message cites no verification (p_done=${p.claims_done.toFixed(2)}, p_verified=${p.cites_verification.toFixed(2)})`)
-  if (p.unresolved_problem >= T + 0.05) reasons.push(`the message still mentions an unresolved error, failing check or TODO (p=${p.unresolved_problem.toFixed(2)})`)
-  if (p.deferred_to_user >= T + 0.05) reasons.push(`the message leaves verification or a step to the user that you can do yourself (p=${p.deferred_to_user.toFixed(2)})`)
-  record({ provider: used.name, ms: Date.now() - started, probs: p, tests_run: ev.testCommands.length, edits: ev.edits, shell_writes: ev.shellWrites, subagents: ev.subagents.length, commits: git.commits, ...callMeta, ...(primary ? { primary } : {}), blocked: reasons.length > 0, reasons, message_sha256: createHash('sha256').update(finalMessage).digest('hex').slice(0, 16), ...(env('HARNESS_GATE_LOG_TEXT') === '1' ? { message: finalMessage.slice(0, 2000) } : {}) })
+  const files = [...new Set([...ev.editedFiles].map((f) => (f.startsWith(cwd + '/') ? f.slice(cwd.length + 1) : f)).concat(git.paths || []))]
+  const onlyDocs = docsOnly({ files, commits: git.commits })
+  const reasons = decide(p, { testsRun: ev.testCommands.length, docsOnly: onlyDocs }, T)
+  record({ provider: used.name, ms: Date.now() - started, probs: p, tests_run: ev.testCommands.length, edits: ev.edits, shell_writes: ev.shellWrites, subagents: ev.subagents.length, commits: git.commits, files: files.slice(0, 20), docs_only: onlyDocs, ...callMeta, ...(primary ? { primary } : {}), blocked: reasons.length > 0, reasons, message_sha256: createHash('sha256').update(finalMessage).digest('hex').slice(0, 16), ...(env('HARNESS_GATE_LOG_TEXT') === '1' ? { message: finalMessage.slice(0, 2000) } : {}) })
   if (!reasons.length) return allow()
 
   const reason = `Decision gate (${used.name}): ${reasons.join('; ')}. Before finishing: run the relevant tests or checks for the files you changed (${[...ev.editedFiles].slice(0, 6).join(', ') || 'see git status'}), fix anything that fails, resolve or explicitly scope out any open item, and end with a two-line verification summary (what you ran, what it showed). If no automated check exists, say so in one line and describe the manual check you performed.`

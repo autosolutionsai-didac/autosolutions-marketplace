@@ -204,6 +204,29 @@ const check = (name, cond, extra = '') => { console.log(`${cond ? 'PASS' : 'FAIL
     const sedCommit = [commitOnly[0], { type: 'assistant', message: { content: [{ type: 'tool_use', name: 'Bash', input: { command: "sed -i 's/x/y/' a.js && git commit -am fix" } }] } }, commitOnly[2]]
     r = await runAsync([join(ROOT, 'scripts/decision-gate.mjs')], { input: JSON.stringify({ hook_event_name: 'Stop', stop_hook_active: false, cwd: repo, transcript_path: plain(sedCommit), last_assistant_message: 'Done: committed as abc123.' }), env })
     check('gate: a shell edit committed in the same turn is still checked', /"decision":"block"/.test(r.stdout), (r.stdout || r.stderr).slice(0, 100))
+    // A turn that only writes a document or data file (a report, notes) has nothing to test.
+    const writeTurn = (file) => plain([
+      { type: 'user', timestamp: new Date(Date.now() + 2000).toISOString(), message: { role: 'user', content: `write the findings to ${file}` } },
+      { type: 'assistant', message: { content: [{ type: 'tool_use', name: 'Write', input: { file_path: join(repo, file) } }] } },
+      { type: 'assistant', message: { content: [{ type: 'text', text: `Done: wrote ${file}.` }] } },
+    ])
+    writeFileSync(join(repo, 'REVIEW.json'), '[]\n')
+    r = await runAsync([join(ROOT, 'scripts/decision-gate.mjs')], { input: JSON.stringify({ hook_event_name: 'Stop', stop_hook_active: false, cwd: repo, transcript_path: writeTurn('REVIEW.json'), last_assistant_message: 'Done: wrote REVIEW.json.' }), env })
+    check('gate: a turn that only wrote a JSON report is not asked for a test run', r.stdout === '', (r.stdout || r.stderr.split('\n').pop()).slice(0, 100))
+    const writeAndCheck = plain([
+      { type: 'user', timestamp: new Date(Date.now() + 2000).toISOString(), message: { role: 'user', content: 'write the findings to REVIEW.json' } },
+      { type: 'assistant', message: { content: [{ type: 'tool_use', name: 'Write', input: { file_path: join(repo, 'REVIEW.json') } }] } },
+      { type: 'assistant', message: { content: [{ type: 'tool_use', name: 'Bash', input: { command: 'node -e "JSON.parse(require(\'fs\').readFileSync(\'REVIEW.json\'))"' } }] } },
+      { type: 'assistant', message: { content: [{ type: 'text', text: 'Done: wrote REVIEW.json.' }] } },
+    ])
+    r = await runAsync([join(ROOT, 'scripts/decision-gate.mjs')], { input: JSON.stringify({ hook_event_name: 'Stop', stop_hook_active: false, cwd: repo, transcript_path: writeAndCheck, last_assistant_message: 'Done: wrote REVIEW.json.' }), env })
+    check('gate: checking the report with node -e does not make it code', r.stdout === '', (r.stdout || r.stderr.split('\n').pop()).slice(0, 100))
+    writeFileSync(join(repo, 'package.json'), '{}\n')
+    r = await runAsync([join(ROOT, 'scripts/decision-gate.mjs')], { input: JSON.stringify({ hook_event_name: 'Stop', stop_hook_active: false, cwd: repo, transcript_path: writeTurn('package.json'), last_assistant_message: 'Done: wrote package.json.' }), env })
+    check('gate: package.json is code for this purpose, so the turn still needs verification', /"decision":"block"/.test(r.stdout), (r.stdout || r.stderr).slice(0, 100))
+    spawnSync('rm', ['-f', join(repo, 'REVIEW.json'), join(repo, 'package.json')])
+    const q2 = requests.filter((x) => x.url === '/v1/systemone').pop()
+    check('gate: the unresolved-problem question excludes problems reported as fixed', q2 && /reports as fixed/.test(q2.json.questions.unresolved_problem.instructions))
   }
   // Free backends
   {
