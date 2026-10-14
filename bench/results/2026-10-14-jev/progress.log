@@ -1,0 +1,70 @@
+2026-10-14T10:18:49.303Z bench 2026-10-14-jev: 20 runs planned, 0 already done, 20 to run, 3 at a time. Work dir /tmp/harness-bench/2026-10-14-jev
+2026-10-14T10:18:49.331Z [w1] start native-opus-xhigh-jev rate-limit t1
+2026-10-14T10:18:49.443Z   native-opus-xhigh-jev rate-limit t1: turn 1/1 started
+2026-10-14T10:18:49.448Z [w2] start harness-sonnet-builders-jev rate-limit t1
+2026-10-14T10:18:49.593Z   harness-sonnet-builders-jev rate-limit t1: turn 1/1 started
+2026-10-14T10:18:49.595Z [w3] start harness-opus-builders-jev rate-limit t1
+2026-10-14T10:18:49.802Z   harness-opus-builders-jev rate-limit t1: turn 1/1 started
+2026-10-14T10:25:25.503Z [w1] done  native-opus-xhigh-jev rate-limit t1: SUCCESS in 395s, $1.14, gate 1 calls 1 blocks, plan 5h 23%
+2026-10-14T10:25:25.504Z [w1] start harness-haiku-builders-jev rate-limit t1
+2026-10-14T10:25:25.626Z   harness-haiku-builders-jev rate-limit t1: turn 1/1 started
+2026-10-14T10:25:55.295Z [w3] done  harness-opus-builders-jev rate-limit t1: SUCCESS in 424s, $2.41, gate 1 calls 1 blocks, plan 5h 24%
+2026-10-14T10:25:55.295Z [w3] start native-opus-xhigh-jev bugfix-trio t1
+2026-10-14T10:25:55.444Z   native-opus-xhigh-jev bugfix-trio t1: turn 1/1 started
+2026-10-14T10:31:58.363Z [w3] done  native-opus-xhigh-jev bugfix-trio t1: SUCCESS in 360s, $0.94, gate 1 calls 1 blocks, plan 5h 26%
+2026-10-14T10:31:58.363Z [w3] start harness-sonnet-builders-jev bugfix-trio t1
+2026-10-14T10:31:58.487Z   harness-sonnet-builders-jev bugfix-trio t1: turn 1/1 started
+2026-10-14T10:34:50.493Z [w2] done  harness-sonnet-builders-jev rate-limit t1: SUCCESS in 959s, $2.07, gate 1 calls 1 blocks, plan 5h 27%
+2026-10-14T10:34:50.493Z [w2] start harness-opus-builders-jev bugfix-trio t1
+2026-10-14T10:34:50.624Z   harness-opus-builders-jev bugfix-trio t1: turn 1/1 started
+2026-10-14T10:35:59.857Z [w1] done  harness-haiku-builders-jev rate-limit t1: SUCCESS in 632s, $1.63, gate 1 calls 1 blocks, plan 5h 28%
+2026-10-14T10:35:59.857Z [w1] start harness-haiku-builders-jev bugfix-trio t1
+2026-10-14T10:35:59.988Z   harness-haiku-builders-jev bugfix-trio t1: turn 1/1 started
+2026-10-14T10:39:37.878Z [w3] done  harness-sonnet-builders-jev bugfix-trio t1: SUCCESS in 457s, $2.45, gate 1 calls 1 blocks, plan 5h 30%
+2026-10-14T10:39:37.878Z [w3] start native-opus-xhigh-jev price-refresh t1
+2026-10-14T10:39:38.008Z   native-opus-xhigh-jev price-refresh t1: turn 1/1 started
+2026-10-14T10:41:28.637Z [w3] done  native-opus-xhigh-jev price-refresh t1: SUCCESS in 110s, $1.05, gate 1 calls 0 blocks, plan 5h 30%
+2026-10-14T10:41:28.637Z [w3] start harness-sonnet-builders-jev price-refresh t1
+2026-10-14T10:41:28.746Z   harness-sonnet-builders-jev price-refresh t1: turn 1/1 started
+2026-10-14T10:43:05.985Z [w2] done  harness-opus-builders-jev bugfix-trio t1: SUCCESS in 494s, $2.53, gate 1 calls 0 blocks, plan 5h 31%
+2026-10-14T10:43:05.986Z [w2] start harness-opus-builders-jev price-refresh t1
+2026-10-14T10:43:06.098Z   harness-opus-builders-jev price-refresh t1: turn 1/1 started
+2026-10-14T10:43:24.292Z [w3] done  harness-sonnet-builders-jev price-refresh t1: SUCCESS in 115s, $0.54, gate 1 calls 1 blocks, plan 5h 31%
+2026-10-14T10:43:24.292Z [w3] start harness-haiku-builders-jev price-refresh t1
+2026-10-14T10:43:24.398Z   harness-haiku-builders-jev price-refresh t1: turn 1/1 started
+2026-10-14T10:44:04.787Z [w1] done  harness-haiku-builders-jev bugfix-trio t1: SUCCESS in 483s, $1.98, gate 1 calls 0 blocks, plan 5h 32%
+2026-10-14T10:44:04.787Z [w1] start native-opus-xhigh-jev review-import t1
+2026-10-14T10:44:05.010Z   native-opus-xhigh-jev review-import t1: turn 1/2 started
+2026-10-14T10:44:27.929Z [w2] done  harness-opus-builders-jev price-refresh t1: SUCCESS in 81s, $0.41, gate 1 calls 0 blocks, plan 5h 32%
+2026-10-14T10:44:27.929Z [w2] start harness-sonnet-builders-jev review-import t1
+2026-10-14T10:44:28.145Z   harness-sonnet-builders-jev review-import t1: turn 1/2 started
+2026-10-14T10:44:37.213Z [w3] done  harness-haiku-builders-jev price-refresh t1: SUCCESS in 72s, $0.92, gate 1 calls 0 blocks, plan 5h 32%
+2026-10-14T10:44:37.213Z [w3] start harness-opus-builders-jev review-import t1
+2026-10-14T10:44:37.432Z   harness-opus-builders-jev review-import t1: turn 1/2 started
+2026-10-14T10:45:25.782Z   native-opus-xhigh-jev review-import t1: turn 2/2 started
+2026-10-14T10:46:09.464Z [w1] done  native-opus-xhigh-jev review-import t1: SUCCESS in 124s, $0.46, gate 1 calls 1 blocks, plan 5h 33%
+2026-10-14T10:46:09.464Z [w1] start harness-haiku-builders-jev review-import t1
+2026-10-14T10:46:09.683Z   harness-haiku-builders-jev review-import t1: turn 1/2 started
+2026-10-14T10:48:42.001Z   harness-sonnet-builders-jev review-import t1: turn 2/2 started
+2026-10-14T10:48:53.672Z   harness-opus-builders-jev review-import t1: turn 2/2 started
+2026-10-14T10:49:20.060Z [w2] done  harness-sonnet-builders-jev review-import t1: SUCCESS in 292s, $2.08, gate 1 calls 0 blocks, plan 5h 35%
+2026-10-14T10:49:20.060Z [w2] start native-opus-xhigh-jev audit-input t1
+2026-10-14T10:49:20.190Z   native-opus-xhigh-jev audit-input t1: turn 1/2 started
+2026-10-14T10:49:33.895Z [w3] done  harness-opus-builders-jev review-import t1: SUCCESS in 296s, $1.86, gate 1 calls 1 blocks, plan 5h 35%
+2026-10-14T10:49:33.895Z [w3] start harness-sonnet-builders-jev audit-input t1
+2026-10-14T10:49:34.034Z   harness-sonnet-builders-jev audit-input t1: turn 1/2 started
+2026-10-14T10:51:02.609Z   harness-haiku-builders-jev review-import t1: turn 2/2 started
+2026-10-14T10:51:22.941Z   native-opus-xhigh-jev audit-input t1: turn 2/2 started
+2026-10-14T10:51:40.133Z [w1] done  harness-haiku-builders-jev review-import t1: SUCCESS in 330s, $2.26, gate 1 calls 1 blocks, plan 5h 36%
+2026-10-14T10:51:40.133Z [w1] start harness-opus-builders-jev audit-input t1
+2026-10-14T10:51:40.255Z   harness-opus-builders-jev audit-input t1: turn 1/2 started
+2026-10-14T10:52:00.013Z [w2] done  native-opus-xhigh-jev audit-input t1: SUCCESS in 160s, $0.60, gate 1 calls 1 blocks, plan 5h 36%
+2026-10-14T10:52:00.013Z [w2] start harness-haiku-builders-jev audit-input t1
+2026-10-14T10:52:00.150Z   harness-haiku-builders-jev audit-input t1: turn 1/2 started
+2026-10-14T10:58:19.589Z   harness-sonnet-builders-jev audit-input t1: turn 2/2 started
+2026-10-14T10:59:02.379Z [w3] done  harness-sonnet-builders-jev audit-input t1: SUCCESS in 568s, $3.47, gate 1 calls 1 blocks, plan 5h 40%
+2026-10-14T10:59:25.861Z   harness-opus-builders-jev audit-input t1: turn 2/2 started
+2026-10-14T11:00:09.622Z [w1] done  harness-opus-builders-jev audit-input t1: SUCCESS in 509s, $3.01, gate 1 calls 1 blocks, plan 5h 41%
+2026-10-14T11:01:27.873Z   harness-haiku-builders-jev audit-input t1: turn 2/2 started
+2026-10-14T11:02:10.267Z [w2] done  harness-haiku-builders-jev audit-input t1: SUCCESS in 610s, $3.87, gate 1 calls 1 blocks, plan 5h 41%
+2026-10-14T11:02:10.267Z all runs finished

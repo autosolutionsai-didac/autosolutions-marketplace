@@ -1,0 +1,195 @@
+{
+  "benchVersion": 2,
+  "label": "2026-10-14-jev",
+  "team": "native-opus-xhigh-jev",
+  "teamKind": "native",
+  "task": "price-refresh",
+  "taskKind": "code",
+  "trial": 1,
+  "sessionId": "0eb7a169-ffd4-4bdf-a940-b852959cd2cd",
+  "startedAt": "2026-10-14T10:39:38.008Z",
+  "finishedAt": "2026-10-14T10:41:28.157Z",
+  "wallSec": 110.148,
+  "timedOut": false,
+  "turns": [
+    {
+      "turn": 1,
+      "exitCode": 0,
+      "signal": null,
+      "timedOut": false,
+      "wallSec": 110.148,
+      "startedAt": "2026-10-14T10:39:38.009Z",
+      "endedAt": "2026-10-14T10:41:28.157Z"
+    }
+  ],
+  "success": true,
+  "score": {
+    "success": true,
+    "specComplete": true,
+    "compliance": {
+      "complete": true,
+      "items": {
+        "sourceUrl": true,
+        "lastUpdatedChanged": true,
+        "testForNewModels": true
+      }
+    },
+    "visible": {
+      "tests": 17,
+      "pass": 17,
+      "fail": 0,
+      "cancelled": 0,
+      "timedOut": null,
+      "exitCode": 0,
+      "signal": null,
+      "interrupted": false,
+      "failures": []
+    },
+    "hidden": {
+      "tests": 5,
+      "pass": 5,
+      "fail": 0
+    },
+    "hiddenPerFile": {
+      "prices.test.js": {
+        "pass": 5,
+        "fail": 0,
+        "failures": [],
+        "interrupted": false
+      }
+    },
+    "partial": 1,
+    "notes": []
+  },
+  "check": null,
+  "costUSD": 1.0479161000000001,
+  "costSource": "claude-code",
+  "costUSDFromStream": 1.0479161000000001,
+  "costUSDFromTranscripts": 1.0282998,
+  "invalidReason": null,
+  "apiErrors": 0,
+  "usageWindows": {
+    "five_hour": {
+      "utilization": 0.3,
+      "resetsAt": 1791984000
+    },
+    "seven_day": {
+      "utilization": 0.27,
+      "resetsAt": 1792162800
+    }
+  },
+  "modelUsage": {
+    "claude-opus-5-5": {
+      "inputTokens": 20,
+      "outputTokens": 8985,
+      "cacheReadInputTokens": 593519,
+      "cacheCreationInputTokens": 91227,
+      "thinkingTokens": 3919,
+      "webSearchRequests": 0,
+      "costUSD": 1.0282998
+    },
+    "claude-haiku-5-5": {
+      "inputTokens": 64058,
+      "outputTokens": 6421,
+      "cacheReadInputTokens": 0,
+      "cacheCreationInputTokens": 0,
+      "thinkingTokens": 2439,
+      "webSearchRequests": 1,
+      "costUSD": 0.019616300000000003
+    }
+  },
+  "tokensByModel": {
+    "claude-opus-5-5": {
+      "requests": 10,
+      "input": 20,
+      "output": 8985,
+      "cacheRead": 593519,
+      "cacheWrite": 91227,
+      "costUSD": 1.0282998
+    }
+  },
+  "byRole": {
+    "main": {
+      "agents": 1,
+      "requests": 10,
+      "input": 20,
+      "output": 8985,
+      "cacheRead": 593519,
+      "cacheWrite": 91227,
+      "costUSD": 1.0282998,
+      "models": {
+        "claude-opus-5-5": 10
+      }
+    }
+  },
+  "agentCount": 0,
+  "workflows": [],
+  "ship": null,
+  "decisionGate": {
+    "backend": "typesafe",
+    "stops": 1,
+    "calls": 1,
+    "blocks": 0,
+    "errors": 0,
+    "errorTexts": [],
+    "msMedian": 296,
+    "msMax": 296,
+    "jev": {
+      "inputTokens": 1386,
+      "costUSD": 0.000058212000000000004,
+      "estimated": false
+    },
+    "extraSec": 0,
+    "extraCostUSD": 0,
+    "counterfactual": {
+      "applicable": true,
+      "note": "the gate never sent Claude back, so the result is what the run delivers without it",
+      "withoutGate": {
+        "success": true,
+        "hidden": "5/5",
+        "specComplete": true
+      },
+      "withGate": {
+        "success": true,
+        "hidden": "5/5",
+        "specComplete": true
+      }
+    },
+    "events": [
+      {
+        "ts": "2026-10-14T10:41:27.427Z",
+        "turn": 1,
+        "blocked": false,
+        "gateMs": 390
+      }
+    ]
+  },
+  "hooks": {
+    "Stop:started": 1,
+    "Stop:success": 1
+  },
+  "stopBlocks": [],
+  "toolUses": {
+    "Bash": 5,
+    "ToolSearch": 1,
+    "WebFetch": 6,
+    "Skill": 1,
+    "WebSearch": 1,
+    "Edit": 2
+  },
+  "agentSpawns": [],
+  "workflowCalls": [],
+  "testCommands": 1,
+  "permissionDenials": 0,
+  "errors": [],
+  "contamination": [],
+  "specDelivered": null,
+  "changedFiles": [
+    "src/prices.js",
+    "test/cost.test.js"
+  ],
+  "finalMessage": "I've added the three Claude 5.5 models to `src/prices.js` and left the existing entries as they were. `npm test` passes: 17 of 17, including the new test.\n\n| Model | input | output | cacheRead | cacheWrite (5 min) |\n|---|---|---|---|---|\n| `claude-haiku-5-5` (prompts up to 100,000 tokens) | 0.1 | 0.5 | 0.01 | 0.125 |\n| `claude-sonnet-5-5` | 2 | 10 | **0.1** | 2.5 |\n| `claude-opus-5-5` | 4 | 20 | 0.2 | 5 |\n\n- **The recent change:** on October 7, Anthropic cut Sonnet 5.5 cache reads from $0.20 to $0.10 per million tokens. The `claude-api` reference that came with my tools still listed $0.20. All other Sonnet 5.5 prices stayed the same.\n- **Prices on 2026-10-13:** the newest pricing entry in Anthropic's release notes is from October 9. So today's pricing page shows the prices that applied on the 13th. The docs pricing page and claude.com/pricing give the same figures.\n- **Existing entries:** the three old models still match the current page. Sonnet 5's $2/$10 price was introductory at launch, but Anthropic has now made it the standard price.\n- **Comment and \"Last updated\" line:** the comment links to the source URL. The \"Last updated\" line now reads 2026-10-14 and says the prices are as of 2026-10-13. Change it if you'd rather it show only the 13th.\n- **Test:** the new test in `test/cost.test.js` costs one request on each new model. It uses different token counts for each usage type, so a swapped or out-of-date price would fail it. The request totals 50,000 prompt tokens, which keeps it in Haiku's lower price band.\n\n**Haiku 5.5 limitation:** Anthropic charges 5× more for Haiku 5.5 requests whose prompt is over 100,000 tokens, and cache reads and writes count toward that total. `costOf` has only one price per model, so it will undercharge those requests. As you asked, I used the lower prices and added a comment on that entry saying longer prompts aren't modelled. Fixing it properly would need a second price band in `costOf`.\n\nNothing is committed.\n\nSources:\n- [Anthropic pricing docs](https://platform.claude.com/docs/en/about-claude/pricing)\n- [claude.com/pricing](https://claude.com/pricing)\n- [Release notes](https://platform.claude.com/docs/en/release-notes/overview) (October 7 Sonnet 5.5 cache-read cut)\n- [DEV Community post on the Sonnet 5.5 cache-read cut](https://dev.to/davekurian/claude-sonnet-55-cache-reads-cost-half-measure-your-own-savings-1202) (third-party, agrees with the release notes)",
+  "workDir": "/tmp/harness-bench/2026-10-14-jev/native-opus-xhigh-jev/price-refresh/t1",
+  "apiErrorTexts": [],
+  "rescoredAt": "2026-10-14T11:02:29.843Z"
+}
