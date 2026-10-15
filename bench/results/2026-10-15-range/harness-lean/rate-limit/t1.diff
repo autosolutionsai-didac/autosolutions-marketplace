@@ -1,0 +1,463 @@
+diff --git a/README.md b/README.md
+index a7b0a40..a49b2ed 100644
+--- a/README.md
++++ b/README.md
+@@ -14,12 +14,13 @@ npm test        # node --test
+ - `src/money.js`: amounts are integer cents. `applyDiscount` and `formatUSD` live here.
+ - `src/csv.js`: CSV rendering for invoice exports.
+ - `src/server.js`: the HTTP API.
++- `src/rate-limit.js`: fixed-window per-API-key rate limiter used by the server.
+ 
+ ## HTTP API
+ 
+ | Method and path | What it does |
+ |---|---|
+-| `GET /health` | `{"ok": true}` |
++| `GET /health` | `{"ok": true}`. Exempt from rate limiting. |
+ | `POST /events` | Records one usage event for the caller's API key (`x-api-key` header). Body: `{"model", "usage": {"inputTokens", "outputTokens", "cacheReadTokens", "cacheWriteTokens"}, "at"}`; `at` defaults to now. Events are always recorded under the caller's key. |
+ | `GET /invoices/:key` | The invoice for a key as JSON; `?format=csv` returns the invoice lines as CSV |
+ | `GET /docs/:name` | Files from `docs/` |
+@@ -28,3 +29,36 @@ npm test        # node --test
+ | `POST /admin/backup` | Writes a compressed copy of the data directory to `{"dest"}` |
+ 
+ Invoices: usage is costed per request at list price, summed per model, converted to cents, then the key's discount is applied.
++
++## Rate limiting
++
++`createServer({ rateLimit: { limit, windowMs } })` configures the limiter. The default is `{ limit: 60, windowMs: 60000 }`. A partial object is merged per field with the defaults, so `{ limit: 5 }` keeps `windowMs: 60000`.
++
++- `limit`: integer >= 0. `0` rejects every limited request.
++- `windowMs`: positive number.
++- All timing uses the server's `now()` clock option.
++
++The limiter runs before routing and authentication, so every request is counted, including ones that get 401, 403, 404 or 400.
++
++Requests are keyed by the `x-api-key` header. Requests with no header, or an empty one, share the key `anonymous`.
++
++Windows are fixed and per key. A window starts at the key's first request and lasts `windowMs`. The first `limit` requests in a window are allowed and the rest are rejected. Once `now >= windowStart + windowMs`, the next request starts a new window at that moment. Rejected requests don't count and don't extend the window.
++
++Rejected requests get `429` with:
++
++- `Retry-After`: whole seconds until the window ends, rounded up, minimum 1.
++- Body `{"error":"rate_limited","retryAfter":N}`, where `N` is the same number.
++
++```
++HTTP/1.1 429 Too Many Requests
++Retry-After: 42
++Content-Type: application/json
++X-RateLimit-Limit: 60
++X-RateLimit-Remaining: 0
++
++{"error":"rate_limited","retryAfter":42}
++```
++
++Every response to a limited request carries `X-RateLimit-Limit` and `X-RateLimit-Remaining` (requests still allowed in the current window after this one, never below 0). This includes the 429s.
++
++`GET /health` is exempt: it is never rejected, never counted, and has no rate-limit headers.
+diff --git a/src/rate-limit.js b/src/rate-limit.js
+new file mode 100644
+index 0000000..caf017e
+--- /dev/null
++++ b/src/rate-limit.js
+@@ -0,0 +1,27 @@
++// Fixed-window rate limiter. All timing comes from the injected `now()`.
++export function createRateLimiter({ limit = 60, windowMs = 60_000, now } = {}) {
++  if (typeof limit !== 'number') throw new TypeError(`limit must be a number, got ${typeof limit}`)
++  if (!Number.isInteger(limit) || limit < 0) throw new RangeError(`limit must be an integer >= 0, got ${limit}`)
++  if (typeof windowMs !== 'number') throw new TypeError(`windowMs must be a number, got ${typeof windowMs}`)
++  if (!Number.isFinite(windowMs) || windowMs <= 0) throw new RangeError(`windowMs must be a finite number > 0, got ${windowMs}`)
++  if (typeof now !== 'function') throw new TypeError('now must be a function')
++
++  const entries = new Map()
++
++  function hit(key) {
++    const t = now()
++    let entry = entries.get(key)
++    if (!entry || t >= entry.windowStart + windowMs) {
++      entry = { windowStart: t, count: 0 }
++      entries.set(key, entry)
++    }
++    if (entry.count < limit) {
++      entry.count++
++      return { allowed: true, limit, remaining: limit - entry.count, retryAfter: 0 }
++    }
++    const retryAfter = Math.max(1, Math.ceil((entry.windowStart + windowMs - t) / 1000))
++    return { allowed: false, limit, remaining: 0, retryAfter }
++  }
++
++  return { hit }
++}
+diff --git a/src/server.js b/src/server.js
+index 0393cdd..214da83 100644
+--- a/src/server.js
++++ b/src/server.js
+@@ -6,10 +6,12 @@ import { isAdmin } from './auth.js'
+ import { settings, updateSettings } from './config.js'
+ import { backup } from './backup.js'
+ import { serveDoc } from './static.js'
++import { createRateLimiter } from './rate-limit.js'
+ 
+ const CSV_COLUMNS = ['key', 'model', 'requests', 'inputTokens', 'outputTokens', 'cacheReadTokens', 'cacheWriteTokens', 'costMicro']
+ 
+-export function createServer({ ledger = new Ledger(), now = Date.now, dataDir = 'data' } = {}) {
++export function createServer({ ledger = new Ledger(), now = Date.now, dataDir = 'data', rateLimit = {} } = {}) {
++  const limiter = createRateLimiter({ ...{ limit: 60, windowMs: 60_000 }, ...rateLimit, now })
+   return http.createServer((req, res) => {
+     handle(req, res).catch((err) => {
+       if (err instanceof ValidationError || err instanceof SyntaxError) {
+@@ -23,6 +25,17 @@ export function createServer({ ledger = new Ledger(), now = Date.now, dataDir =
+     const url = new URL(req.url, 'http://localhost')
+     const { pathname } = url
+ 
++    if (!(req.method === 'GET' && pathname === '/health')) {
++      const key = req.headers['x-api-key'] || 'anonymous'
++      const r = limiter.hit(key)
++      res.setHeader('X-RateLimit-Limit', String(r.limit))
++      res.setHeader('X-RateLimit-Remaining', String(Math.max(0, r.remaining)))
++      if (!r.allowed) {
++        res.setHeader('Retry-After', String(r.retryAfter))
++        return send(res, 429, { error: 'rate_limited', retryAfter: r.retryAfter })
++      }
++    }
++
+     if (req.method === 'GET' && pathname === '/health') return send(res, 200, { ok: true })
+ 
+     if (req.method === 'POST' && pathname === '/events') {
+diff --git a/test/rate-limit.test.js b/test/rate-limit.test.js
+new file mode 100644
+index 0000000..fb940ef
+--- /dev/null
++++ b/test/rate-limit.test.js
+@@ -0,0 +1,328 @@
++import { test } from 'node:test'
++import assert from 'node:assert/strict'
++import { createServer } from '../src/server.js'
++import { Ledger } from '../src/ledger.js'
++import { createRateLimiter } from '../src/rate-limit.js'
++
++async function start(options = {}) {
++  const server = createServer({ ledger: new Ledger(), ...options })
++  await new Promise((resolve) => server.listen(0, '127.0.0.1', resolve))
++  const base = `http://127.0.0.1:${server.address().port}`
++  const close = () => new Promise((resolve) => { server.closeAllConnections(); server.close(resolve) })
++  return { base, close }
++}
++
++const event = { model: 'claude-sonnet-5', usage: { inputTokens: 1_000_000, outputTokens: 100_000 } }
++
++function get(base, path, key) {
++  const headers = {}
++  if (key !== undefined) headers['x-api-key'] = key
++  return fetch(`${base}${path}`, { headers })
++}
++
++function post(base, path, key, body = event) {
++  const headers = { 'content-type': 'application/json' }
++  if (key !== undefined) headers['x-api-key'] = key
++  return fetch(`${base}${path}`, { method: 'POST', headers, body: JSON.stringify(body) })
++}
++
++// --- createRateLimiter unit tests ---
++
++test('createRateLimiter rejects invalid config', () => {
++  const now = () => 0
++  for (const limit of [-1, 2.5, NaN, Infinity, '5']) {
++    assert.throws(() => createRateLimiter({ limit, now }), /limit/)
++  }
++  for (const windowMs of [0, -1, NaN, Infinity, '1000']) {
++    assert.throws(() => createRateLimiter({ windowMs, now }), /windowMs/)
++  }
++  assert.throws(() => createRateLimiter({}), /now/)
++  assert.throws(() => createRateLimiter({ now: 5 }), /now/)
++})
++
++test('limit 0 rejects every request with remaining 0', () => {
++  const rl = createRateLimiter({ limit: 0, now: () => 0 })
++  for (let i = 0; i < 3; i++) {
++    const r = rl.hit('a')
++    assert.equal(r.allowed, false)
++    assert.equal(r.remaining, 0)
++    assert.equal(r.limit, 0)
++    assert.ok(r.retryAfter >= 1)
++  }
++})
++
++test('non-integer windowMs is accepted and retryAfter is an integer', () => {
++  let t = 0
++  const rl = createRateLimiter({ limit: 1, windowMs: 1500.5, now: () => t })
++  assert.equal(rl.hit('a').allowed, true)
++  t = 0
++  const r = rl.hit('a')
++  assert.equal(r.allowed, false)
++  assert.equal(r.retryAfter, 2)
++  t = 1000
++  const r2 = rl.hit('a')
++  assert.equal(Number.isInteger(r2.retryAfter), true)
++  assert.equal(r2.retryAfter, 1)
++  t = 1500.5
++  assert.equal(rl.hit('a').allowed, true)
++})
++
++test('window boundary: old window until W+M, new window starts at W+M', () => {
++  let t = 100
++  const rl = createRateLimiter({ limit: 3, windowMs: 1000, now: () => t })
++  assert.equal(rl.hit('a').remaining, 2)
++  t = 1099
++  assert.equal(rl.hit('a').remaining, 1)
++  assert.equal(rl.hit('a').remaining, 0)
++  assert.equal(rl.hit('a').allowed, false)
++  t = 1100
++  const fresh = rl.hit('a')
++  assert.equal(fresh.allowed, true)
++  assert.equal(fresh.remaining, 2)
++  // New window ends at 1100 + 1000 = 2100, not at a multiple of M from 0.
++  t = 2099
++  assert.equal(rl.hit('a').allowed, true)
++  assert.equal(rl.hit('a').allowed, true)
++  assert.equal(rl.hit('a').allowed, false)
++  t = 2100
++  assert.equal(rl.hit('a').allowed, true)
++})
++
++test('window starts at the first request of the window', () => {
++  let t = 5000
++  const rl = createRateLimiter({ limit: 1, windowMs: 10_000, now: () => t })
++  assert.equal(rl.hit('a').allowed, true)
++  t = 14_999
++  assert.equal(rl.hit('a').allowed, false)
++  t = 15_000
++  assert.equal(rl.hit('a').allowed, true)
++})
++
++test('rejected requests do not extend or reset the window', () => {
++  let t = 0
++  const rl = createRateLimiter({ limit: 1, windowMs: 10_000, now: () => t })
++  assert.equal(rl.hit('a').allowed, true)
++  t = 5000
++  assert.equal(rl.hit('a').retryAfter, 5)
++  t = 9000
++  assert.equal(rl.hit('a').retryAfter, 1)
++  t = 10_000
++  assert.equal(rl.hit('a').allowed, true)
++})
++
++test('retryAfter matches ceil((windowStart + windowMs - now) / 1000), minimum 1', () => {
++  const cases = [
++    { windowMs: 10_000, at: 9000, expected: 1 }, // exactly 1000 ms left
++    { windowMs: 10_000, at: 8999, expected: 2 }, // 1001 ms left
++    { windowMs: 10_000, at: 9999, expected: 1 }, // 1 ms left
++    { windowMs: 3_600_000, at: 0, expected: 3600 },
++  ]
++  for (const { windowMs, at, expected } of cases) {
++    let t = 0
++    const rl = createRateLimiter({ limit: 1, windowMs, now: () => t })
++    rl.hit('a')
++    t = at
++    assert.equal(rl.hit('a').retryAfter, expected)
++  }
++})
++
++test('keys are independent, including prototype-like names', () => {
++  const rl = createRateLimiter({ limit: 1, now: () => 0 })
++  for (const key of ['a', '__proto__', 'constructor', 'toString']) {
++    assert.equal(rl.hit(key).allowed, true, key)
++    assert.equal(rl.hit(key).allowed, false, key)
++  }
++  assert.equal(rl.hit('b').allowed, true)
++})
++
++test('expired entries reset like new keys', () => {
++  let t = 0
++  const rl = createRateLimiter({ limit: 1, windowMs: 1000, now: () => t })
++  for (const key of ['a', 'b', 'c']) assert.equal(rl.hit(key).allowed, true)
++  t = 1000
++  for (const key of ['a', 'b', 'c']) assert.equal(rl.hit(key).allowed, true)
++})
++
++// --- HTTP tests ---
++
++test('default limit is 60 per key per 60000 ms', async () => {
++  let t = 0
++  const { base, close } = await start({ now: () => t })
++  for (let i = 1; i <= 60; i++) {
++    const res = await get(base, '/nope', 'acme')
++    assert.equal(res.status, 404)
++    assert.equal(res.headers.get('x-ratelimit-limit'), '60')
++    assert.equal(res.headers.get('x-ratelimit-remaining'), String(60 - i))
++  }
++  const res = await get(base, '/nope', 'acme')
++  assert.equal(res.status, 429)
++  assert.equal(res.headers.get('x-ratelimit-remaining'), '0')
++  t = 59_999
++  assert.equal((await get(base, '/nope', 'acme')).status, 429)
++  t = 60_000
++  assert.equal((await get(base, '/nope', 'acme')).status, 404)
++  await close()
++})
++
++test('partial rateLimit options merge with defaults', async () => {
++  let t = 0
++  const limited = await start({ now: () => t, rateLimit: { limit: 2 } })
++  assert.equal((await get(limited.base, '/nope', 'k')).headers.get('x-ratelimit-limit'), '2')
++  await get(limited.base, '/nope', 'k')
++  assert.equal((await get(limited.base, '/nope', 'k')).status, 429)
++  t = 59_999
++  assert.equal((await get(limited.base, '/nope', 'k')).status, 429)
++  t = 60_000
++  assert.equal((await get(limited.base, '/nope', 'k')).status, 404)
++  await limited.close()
++
++  t = 0
++  const windowed = await start({ now: () => t, rateLimit: { windowMs: 1000 } })
++  assert.equal((await get(windowed.base, '/nope', 'k')).headers.get('x-ratelimit-limit'), '60')
++  await windowed.close()
++})
++
++test('limit N allows N requests then rejects, remaining never negative', async () => {
++  for (const limit of [1, 3]) {
++    let t = 0
++    const { base, close } = await start({ now: () => t, rateLimit: { limit } })
++    for (let i = 1; i <= limit; i++) {
++      const res = await get(base, '/nope', 'k')
++      assert.equal(res.status, 404)
++      assert.equal(res.headers.get('x-ratelimit-limit'), String(limit))
++      assert.equal(res.headers.get('x-ratelimit-remaining'), String(limit - i))
++    }
++    for (let i = 0; i < 2; i++) {
++      const res = await get(base, '/nope', 'k')
++      assert.equal(res.status, 429)
++      assert.equal(res.headers.get('x-ratelimit-limit'), String(limit))
++      assert.equal(res.headers.get('x-ratelimit-remaining'), '0')
++    }
++    await close()
++  }
++})
++
++test('limit 0 returns 429 on every request with Retry-After', async () => {
++  const { base, close } = await start({ rateLimit: { limit: 0 } })
++  for (let i = 0; i < 2; i++) {
++    const res = await post(base, '/events', 'acme')
++    assert.equal(res.status, 429)
++    assert.equal(res.headers.get('x-ratelimit-remaining'), '0')
++    assert.ok(Number(res.headers.get('retry-after')) >= 1)
++  }
++  await close()
++})
++
++test('invalid rateLimit config throws from createServer', () => {
++  const bad = [
++    { limit: -1 },
++    { limit: 2.5 },
++    { limit: NaN },
++    { limit: Infinity },
++    { limit: '5' },
++    { windowMs: 0 },
++    { windowMs: -1 },
++    { windowMs: NaN },
++    { windowMs: Infinity },
++  ]
++  for (const rateLimit of bad) {
++    assert.throws(() => createServer({ ledger: new Ledger(), rateLimit }))
++  }
++  assert.throws(() => createServer({ ledger: new Ledger(), now: 'x' }), /now/)
++})
++
++test('429 body is JSON with numeric retryAfter matching the header', async () => {
++  let t = 0
++  const { base, close } = await start({ now: () => t, rateLimit: { limit: 1, windowMs: 10_000 } })
++  await get(base, '/nope', 'k')
++  t = 2500
++  const res = await get(base, '/nope', 'k')
++  assert.equal(res.status, 429)
++  assert.match(res.headers.get('content-type'), /^application\/json/)
++  const body = await res.json()
++  assert.equal(res.headers.get('retry-after'), '8')
++  assert.deepEqual(body, { error: 'rate_limited', retryAfter: 8 })
++  assert.equal(typeof body.retryAfter, 'number')
++  await close()
++})
++
++test('keys are independent over HTTP; missing and empty api key share anonymous', async () => {
++  const { base, close } = await start({ rateLimit: { limit: 1 } })
++  assert.equal((await get(base, '/nope', 'a')).status, 404)
++  assert.equal((await get(base, '/nope', 'a')).status, 429)
++  assert.equal((await get(base, '/nope', 'b')).status, 404)
++  assert.equal((await get(base, '/nope')).status, 404)
++  assert.equal((await get(base, '/nope', '')).status, 429)
++  await close()
++})
++
++test('limiter runs before routing and auth on every route', async () => {
++  process.env.LEDGER_ADMIN_TOKEN = 'test-token'
++  const ledger = new Ledger()
++  ledger.record({ ...event, key: 'acme', at: 0 })
++  const cases = [
++    { name: 'POST /events without key (401)', status: 401, call: (b) => post(b, '/events', undefined) },
++    { name: 'unknown path (404)', status: 404, call: (b) => get(b, '/nope', 'acme') },
++    { name: '/admin/keys without token (403)', status: 403, call: (b) => get(b, '/admin/keys', 'acme') },
++    { name: 'GET /docs/api.md (200)', status: 200, call: (b) => get(b, '/docs/api.md', 'acme') },
++    { name: 'GET /docs/missing.md (404)', status: 404, call: (b) => get(b, '/docs/missing.md', 'acme') },
++    { name: 'CSV invoice export (200)', status: 200, call: (b) => get(b, '/invoices/acme?format=csv', 'acme') },
++    {
++      name: 'POST /events invalid JSON (400)',
++      status: 400,
++      call: (b) => fetch(`${b}/events`, { method: 'POST', headers: { 'x-api-key': 'acme' }, body: '{bad' }),
++    },
++  ]
++  for (const c of cases) {
++    const { base, close } = await start({ ledger, rateLimit: { limit: 1 } })
++    const first = await c.call(base)
++    assert.equal(first.status, c.status, c.name)
++    assert.equal(first.headers.get('x-ratelimit-limit'), '1', c.name)
++    assert.equal(first.headers.get('x-ratelimit-remaining'), '0', c.name)
++    const second = await c.call(base)
++    assert.equal(second.status, 429, c.name)
++    assert.equal(second.headers.get('retry-after') !== null, true, c.name)
++    await close()
++  }
++  delete process.env.LEDGER_ADMIN_TOKEN
++})
++
++test('GET /health is exempt and does not consume quota', async () => {
++  const { base, close } = await start({ rateLimit: { limit: 1 } })
++  assert.equal((await get(base, '/nope')).status, 404) // exhausts the anonymous bucket
++  for (let i = 0; i < 5; i++) {
++    const res = await get(base, '/health')
++    assert.equal(res.status, 200)
++    assert.deepEqual(await res.json(), { ok: true })
++    assert.equal(res.headers.get('x-ratelimit-limit'), null)
++    assert.equal(res.headers.get('x-ratelimit-remaining'), null)
++    assert.equal(res.headers.get('retry-after'), null)
++  }
++  assert.equal((await get(base, '/health?x=1')).status, 200)
++  assert.equal((await get(base, '/nope')).status, 429)
++  await close()
++
++  const keyed = await start({ rateLimit: { limit: 1 } })
++  for (let i = 0; i < 5; i++) assert.equal((await get(keyed.base, '/health', 'acme')).status, 200)
++  assert.equal((await post(keyed.base, '/events', 'acme')).status, 201)
++  await keyed.close()
++})
++
++test('POST /health is counted and gets rate-limit headers', async () => {
++  const { base, close } = await start({ rateLimit: { limit: 1 } })
++  const first = await post(base, '/health', 'acme')
++  assert.equal(first.status, 404)
++  assert.equal(first.headers.get('x-ratelimit-limit'), '1')
++  assert.equal((await post(base, '/health', 'acme')).status, 429)
++  await close()
++})
++
++test('separate servers do not share limiter state', async () => {
++  const a = await start({ rateLimit: { limit: 1 } })
++  const b = await start({ rateLimit: { limit: 1 } })
++  assert.equal((await get(a.base, '/nope', 'k')).status, 404)
++  assert.equal((await get(a.base, '/nope', 'k')).status, 429)
++  assert.equal((await get(b.base, '/nope', 'k')).status, 404)
++  await a.close()
++  await b.close()
++})
+
+# untracked files
+.claude/worktrees/wf_415a03e3-1bd-2/
+.claude/worktrees/wf_415a03e3-1bd-3/

@@ -5,3 +5,6 @@
 2026-10-15T08:32:22.749Z   harness-lean bugfix-trio t1: turn 1/1 started
 2026-10-15T08:32:22.751Z [w3] start harness-lean rate-limit t2
 2026-10-15T08:32:22.920Z   harness-lean rate-limit t2: turn 1/1 started
+2026-10-15T08:36:27.860Z [w1] done  harness-lean rate-limit t1: SUCCESS in 244s, $1.42, plan 5h 7%
+2026-10-15T08:36:27.861Z [w1] start harness-lean bugfix-trio t2
+2026-10-15T08:36:28.002Z   harness-lean bugfix-trio t2: turn 1/1 started
