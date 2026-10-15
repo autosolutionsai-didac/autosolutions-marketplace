@@ -73,7 +73,7 @@ Gate      Fable (or the configured judge model) with the whole evidence trail: {
 
 Design choices worth knowing:
 
-- Every stage looks past the request's examples. The planner writes acceptance criteria for the whole input range the changed code accepts, builders test at least one case beyond the examples, the correctness refuter checks the rule across that range (with a quick independent reference when cheap), and the gate tries a few such inputs. The benchmark showed why: on a rounding fix whose examples used whole percents, every reviewer passed code that was a cent low on fractional ones.
+- Every stage looks past the request's examples. The planner writes acceptance criteria for the whole input range the changed code accepts (and sets explicit bounds where the change adds new inputs, so reviewers are not asked to accept every value), builders test at least one case beyond the examples, the correctness refuter checks the rule across that range (with a quick independent reference when cheap), and the gate tries a few such inputs. The benchmark showed why: on a rounding fix whose examples used whole percents, every reviewer passed code that was a cent low on fractional ones.
 - Units go through Build → Refute → Fix as a pipeline, so unit B can be in review while unit A is still building. Integration is the only barrier.
 - Majority rule rather than "any refuter can veto". Refuters are prompted to attack; a single over-eager objection should not sink a unit, two of three should. Dissenting findings on passing units are still surfaced to the judge and to you.
 - One fix round, not a loop. If a unit cannot pass after one round, a human should look at it.

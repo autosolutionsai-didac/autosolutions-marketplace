@@ -27,3 +27,5 @@
 2026-10-15T08:58:54.331Z   harness-sonnet-builders bugfix-trio t3: turn 1/1 started
 2026-10-15T09:08:02.118Z [w3] done  harness-sonnet-builders bugfix-trio t3: SUCCESS in 544s, $2.89, plan 5h 24%
 2026-10-15T09:08:05.961Z [w1] done  harness-sonnet-builders bugfix-trio t1: SUCCESS in 548s, $2.76, plan 5h 24%
+2026-10-15T09:22:35.925Z [w2] done  harness-sonnet-builders bugfix-trio t2: SUCCESS in 1419s, $3.20, plan 5h 29%
+2026-10-15T09:22:35.926Z all runs finished

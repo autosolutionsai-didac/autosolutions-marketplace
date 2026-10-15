@@ -1,0 +1,540 @@
+{
+  "labels": [
+    "2026-10-15-range"
+  ],
+  "generatedFrom": 9,
+  "totals": {
+    "harness-sonnet-builders": {
+      "runs": 3,
+      "successes": 3,
+      "successRate": 1,
+      "complete": 3,
+      "wallSec": 2510.629,
+      "costUSD": 8.856675,
+      "tokens": 4430908,
+      "output": 179860,
+      "fresh": 980541,
+      "costPerSuccess": 2.952225,
+      "byModel": {
+        "claude-sonnet-5-5": {
+          "tokens": 1206648,
+          "output": 31793,
+          "costUSD": 0.7492341
+        },
+        "claude-opus-5-5": {
+          "tokens": 2903193,
+          "output": 125611,
+          "costUSD": 6.1419524
+        },
+        "claude-fable-5-1": {
+          "tokens": 320923,
+          "output": 22312,
+          "costUSD": 1.9640485
+        }
+      }
+    },
+    "harness-lean": {
+      "runs": 6,
+      "successes": 6,
+      "successRate": 1,
+      "complete": 6,
+      "wallSec": 3208.849,
+      "costUSD": 10.437705275,
+      "tokens": 9522721,
+      "output": 384234,
+      "fresh": 1600201,
+      "costPerSuccess": 1.7396175458333334,
+      "byModel": {
+        "claude-opus-5-5": {
+          "tokens": 5922681,
+          "output": 224434,
+          "costUSD": 10.281578
+        },
+        "claude-haiku-5-5": {
+          "tokens": 3600040,
+          "output": 159800,
+          "costUSD": 0.15612727499999998
+        }
+      }
+    }
+  },
+  "roleTotals": {
+    "harness-sonnet-builders": {
+      "harness:builder (Build)": {
+        "agents": 9,
+        "requests": 63,
+        "output": 31793,
+        "costUSD": 0.7492341,
+        "models": {
+          "claude-sonnet-5-5": 63
+        }
+      },
+      "harness:refuter (Refute)": {
+        "agents": 27,
+        "requests": 115,
+        "output": 85350,
+        "costUSD": 4.267554400000001,
+        "models": {
+          "claude-opus-5-5": 115
+        }
+      },
+      "harness:judge (Gate)": {
+        "agents": 3,
+        "requests": 20,
+        "output": 22312,
+        "costUSD": 1.9640485,
+        "models": {
+          "claude-fable-5-1": 20
+        }
+      },
+      "workflow:Integrate": {
+        "agents": 3,
+        "requests": 9,
+        "output": 3418,
+        "costUSD": 0.226885,
+        "models": {
+          "claude-opus-5-5": 9
+        }
+      },
+      "workflow:Plan": {
+        "agents": 3,
+        "requests": 17,
+        "output": 26868,
+        "costUSD": 0.9150537999999999,
+        "models": {
+          "claude-opus-5-5": 17
+        }
+      },
+      "main": {
+        "agents": 3,
+        "requests": 20,
+        "output": 9975,
+        "costUSD": 0.7324592,
+        "models": {
+          "claude-opus-5-5": 20
+        }
+      }
+    },
+    "harness-lean": {
+      "harness:refuter (Refute)": {
+        "agents": 36,
+        "requests": 150,
+        "output": 81919,
+        "costUSD": 3.5204459999999997,
+        "models": {
+          "claude-opus-5-5": 150
+        }
+      },
+      "harness:builder (Build)": {
+        "agents": 15,
+        "requests": 139,
+        "output": 159800,
+        "costUSD": 0.15612727499999998,
+        "models": {
+          "claude-haiku-5-5": 139
+        }
+      },
+      "harness:judge (Gate)": {
+        "agents": 6,
+        "requests": 36,
+        "output": 21593,
+        "costUSD": 0.9023144,
+        "models": {
+          "claude-opus-5-5": 36
+        }
+      },
+      "workflow:Integrate": {
+        "agents": 6,
+        "requests": 27,
+        "output": 10155,
+        "costUSD": 0.595097,
+        "models": {
+          "claude-opus-5-5": 27
+        }
+      },
+      "workflow:Plan": {
+        "agents": 6,
+        "requests": 24,
+        "output": 42832,
+        "costUSD": 1.4233284,
+        "models": {
+          "claude-opus-5-5": 24
+        }
+      },
+      "main": {
+        "agents": 6,
+        "requests": 66,
+        "output": 48660,
+        "costUSD": 2.9510349999999996,
+        "models": {
+          "claude-opus-5-5": 66
+        }
+      },
+      "harness:builder (Fix)": {
+        "agents": 3,
+        "requests": 15,
+        "output": 7833,
+        "costUSD": 0.44426180000000004,
+        "models": {
+          "claude-opus-5-5": 15
+        }
+      },
+      "harness:refuter": {
+        "agents": 1,
+        "requests": 6,
+        "output": 8200,
+        "costUSD": 0.31075,
+        "models": {
+          "claude-opus-5-5": 6
+        }
+      },
+      "harness:judge": {
+        "agents": 1,
+        "requests": 5,
+        "output": 3242,
+        "costUSD": 0.1343454,
+        "models": {
+          "claude-opus-5-5": 5
+        }
+      }
+    }
+  },
+  "cells": {
+    "rate-limit": {
+      "harness-sonnet-builders": null,
+      "harness-lean": {
+        "n": 3,
+        "successRate": 1,
+        "completeRate": 1,
+        "wallSec": 307.659,
+        "costUSD": 1.4163727650000004,
+        "tokens": 1116720,
+        "output": 57107,
+        "fresh": 255741,
+        "recall": null,
+        "extras": null,
+        "validExtras": null,
+        "duplicates": null,
+        "findings": null,
+        "hiddenPass": 1,
+        "timeouts": 0,
+        "errors": 0,
+        "contaminated": 0
+      }
+    },
+    "bugfix-trio": {
+      "harness-sonnet-builders": {
+        "n": 3,
+        "successRate": 1,
+        "completeRate": 1,
+        "wallSec": 548.068,
+        "costUSD": 2.8941346999999995,
+        "tokens": 1473613,
+        "output": 63890,
+        "fresh": 327447,
+        "recall": null,
+        "extras": null,
+        "validExtras": null,
+        "duplicates": null,
+        "findings": null,
+        "hiddenPass": 1,
+        "timeouts": 0,
+        "errors": 0,
+        "contaminated": 0
+      },
+      "harness-lean": {
+        "n": 3,
+        "successRate": 1,
+        "completeRate": 1,
+        "wallSec": 529.89,
+        "costUSD": 1.6947056050000002,
+        "tokens": 1703202,
+        "output": 67556,
+        "fresh": 280993,
+        "recall": null,
+        "extras": null,
+        "validExtras": null,
+        "duplicates": null,
+        "findings": null,
+        "hiddenPass": 1,
+        "timeouts": 0,
+        "errors": 0,
+        "contaminated": 0
+      }
+    }
+  },
+  "ship": [
+    {
+      "team": "harness-lean",
+      "task": "bugfix-trio",
+      "runs": 1,
+      "verdict": "PASS",
+      "gateVerdict": "PASS",
+      "units": 3,
+      "unitsPassed": 3,
+      "unitsFailed": 0,
+      "fixRounds": 0,
+      "unitStatuses": [
+        "u1:passed:0/2",
+        "u2:passed:0/2",
+        "u3:passed:0/2"
+      ],
+      "merged": [
+        "worktree-wf_dfd9b4dd-7e7-2",
+        "worktree-wf_dfd9b4dd-7e7-3",
+        "worktree-wf_dfd9b4dd-7e7-4"
+      ],
+      "integrationChecks": {
+        "ran": true,
+        "passed": true,
+        "commands": [
+          "npm test"
+        ],
+        "notes": "npm test (node --test) passed 30 of 30, 0 failed. The repo has no lint or type-check config (no eslint or tsconfig), so nothing else ran. Before merging, main had no uncommitted changes. The only untracked path was .claude/ (the harness worktrees), which I left alone. Nothing was pushed."
+      },
+      "firstPassRefutedApprox": 0,
+      "success": true
+    },
+    {
+      "team": "harness-lean",
+      "task": "bugfix-trio",
+      "runs": 1,
+      "verdict": "PASS",
+      "gateVerdict": "PASS",
+      "units": 3,
+      "unitsPassed": 3,
+      "unitsFailed": 0,
+      "fixRounds": 1,
+      "unitStatuses": [
+        "u1:passed:0/2",
+        "u2:passed:0/2",
+        "u3:passed:0/2"
+      ],
+      "merged": [
+        "worktree-wf_108295a6-709-2",
+        "worktree-wf_108295a6-709-3",
+        "worktree-wf_108295a6-709-4"
+      ],
+      "integrationChecks": {
+        "ran": true,
+        "passed": true,
+        "commands": [
+          "npm test (node --test)"
+        ],
+        "notes": "The full suite passed on main after all three merges: 28 of 28 tests (16 before the merges). The repo has no type check or lint configured; package.json defines only a test script, so the test suite was the only check run. Before merging, main was clean apart from the untracked .claude/ directory (the worktrees), and none of the three worktrees had uncommitted changes. Nothing was pushed."
+      },
+      "firstPassRefutedApprox": 1,
+      "success": true
+    },
+    {
+      "team": "harness-lean",
+      "task": "bugfix-trio",
+      "runs": 1,
+      "verdict": "PASS",
+      "gateVerdict": "PASS",
+      "units": 3,
+      "unitsPassed": 3,
+      "unitsFailed": 0,
+      "fixRounds": 0,
+      "unitStatuses": [
+        "u1:passed:0/2",
+        "u2:passed:0/2",
+        "u3:passed:0/2"
+      ],
+      "merged": [
+        "worktree-wf_ba5f1a3d-7a6-2 (u1: Round discounted totals half up to the nearest cent) -> merge commit 18178f5",
+        "worktree-wf_ba5f1a3d-7a6-3 (u2: RFC 4180 quoting in CSV export) -> merge commit be442e6",
+        "worktree-wf_ba5f1a3d-7a6-4 (u3: Return 404 not_found for invoices of keys without usage) -> merge commit e812def"
+      ],
+      "integrationChecks": {
+        "ran": true,
+        "passed": true,
+        "commands": [
+          "npm test (node --test): 33 tests, 33 pass, 0 fail (16 before the merges)"
+        ],
+        "notes": "The repo has no type check or lint script, so npm test is the only check. Before merging, main was clean apart from the untracked .claude/ directory (the worktrees), which I left as it was. All three merges applied with the ort strategy and had no conflicts. Nothing was pushed. Two small stat differences from the task text: u2 shows src/csv.js +4/-3 and test/invoice-csv.test.js +48 lines, not +44."
+      },
+      "firstPassRefutedApprox": 0,
+      "success": true
+    },
+    {
+      "team": "harness-lean",
+      "task": "rate-limit",
+      "runs": 1,
+      "verdict": "PASS",
+      "gateVerdict": "PASS",
+      "units": 2,
+      "unitsPassed": 2,
+      "unitsFailed": 0,
+      "fixRounds": 1,
+      "unitStatuses": [
+        "u1:passed:0/2",
+        "u2:passed:0/2"
+      ],
+      "merged": [
+        "worktree-wf_415a03e3-1bd-2 (u1: Rate limiter module, server integration and tests) -> merge commit 956787a",
+        "worktree-wf_415a03e3-1bd-3 (u2: Document rate limiting in README) -> merge commit f78ff13"
+      ],
+      "integrationChecks": {
+        "ran": true,
+        "passed": true,
+        "commands": [
+          "npm test (node --test)"
+        ],
+        "notes": "36 tests, 36 passed, 0 failed. The repo has no lint, type check or build script (package.json only defines `test`, and there is no eslint, tsconfig or prettier config), so the test suite was the only check. Before merging, main was clean except for the untracked .claude/ directory (harness worktrees), which was left as it was. Both merges were --no-ff and had no conflicts. The new README section matches the code in src/rate-limit.js and src/server.js: defaults 60/60000 merged per field, key is x-api-key or 'anonymous', /health is exempt, the limit is checked before routing, 429 responses carry Retry-After and a body, and X-RateLimit-* headers are sent on every limited response. Nothing was pushed."
+      },
+      "firstPassRefutedApprox": 1,
+      "success": true
+    },
+    {
+      "team": "harness-lean",
+      "task": "rate-limit",
+      "runs": 1,
+      "verdict": "FAIL",
+      "gateVerdict": "FAIL",
+      "units": 2,
+      "unitsPassed": 1,
+      "unitsFailed": 1,
+      "fixRounds": 1,
+      "unitStatuses": [
+        "u1:failed:2/2",
+        "u2:passed:0/2"
+      ],
+      "merged": [],
+      "integrationChecks": {
+        "ran": true,
+        "passed": true,
+        "commands": [
+          "npm test (node --test) after the merge: 16/16 pass",
+          "npm test after the revert: 16/16 pass"
+        ],
+        "notes": "The repo has no type check or lint script. The only untracked item is .claude/ (worktrees), which I left alone. The tree was otherwise clean. Nothing was pushed. On main, the net change from e90d57b is empty: a merge commit plus its revert."
+      },
+      "firstPassRefutedApprox": 1,
+      "success": true
+    },
+    {
+      "team": "harness-lean",
+      "task": "rate-limit",
+      "runs": 1,
+      "verdict": "PASS",
+      "gateVerdict": "PASS",
+      "units": 2,
+      "unitsPassed": 2,
+      "unitsFailed": 0,
+      "fixRounds": 0,
+      "unitStatuses": [
+        "u1:passed:0/2",
+        "u2:passed:0/2"
+      ],
+      "merged": [
+        "worktree-wf_83b7f193-9db-2 (u1: rate limiter module, server integration and tests) - merge commit 0c32eaf",
+        "worktree-wf_83b7f193-9db-3 (u2: document rate limiting in README) - merge commit 5469207"
+      ],
+      "integrationChecks": {
+        "ran": true,
+        "passed": true,
+        "commands": [
+          "npm test (node --test)"
+        ],
+        "notes": "41 of 41 tests passed. The repo has no lint or type-check scripts, only `npm test`. Before merging, main was clean apart from the untracked .claude/ directory, which holds the worktrees. Nothing was stashed or thrown away. Both merges used --no-ff with no conflicts. I checked that the new README section matches the code: the defaults {limit: 60, windowMs: 60000}, the 'anonymous' fallback key, the GET /health exemption, the 429 response with Retry-After, and the X-RateLimit-* headers. Nothing was pushed."
+      },
+      "firstPassRefutedApprox": 0,
+      "success": true
+    },
+    {
+      "team": "harness-sonnet-builders",
+      "task": "bugfix-trio",
+      "runs": 1,
+      "verdict": "PASS",
+      "gateVerdict": "PASS",
+      "units": 3,
+      "unitsPassed": 3,
+      "unitsFailed": 0,
+      "fixRounds": 0,
+      "unitStatuses": [
+        "u1:passed:0/3",
+        "u2:passed:0/3",
+        "u3:passed:0/3"
+      ],
+      "merged": [
+        "worktree-wf_af8cb46f-f5f-2",
+        "worktree-wf_af8cb46f-f5f-3",
+        "worktree-wf_af8cb46f-f5f-4"
+      ],
+      "integrationChecks": {
+        "ran": true,
+        "passed": true,
+        "commands": [
+          "npm test"
+        ],
+        "notes": "Ran the full node --test suite after all three merges: 29 tests, 29 passed, 0 failed. The repo has no type check or lint config (no tsconfig, eslint or prettier), so the only check is the test suite. The working tree was clean before merging except for the untracked .claude/ directory (worktrees), which I left alone. I did not push."
+      },
+      "firstPassRefutedApprox": 0,
+      "success": true
+    },
+    {
+      "team": "harness-sonnet-builders",
+      "task": "bugfix-trio",
+      "runs": 1,
+      "verdict": "PASS",
+      "gateVerdict": "PASS",
+      "units": 3,
+      "unitsPassed": 3,
+      "unitsFailed": 0,
+      "fixRounds": 0,
+      "unitStatuses": [
+        "u1:passed:0/3",
+        "u2:passed:0/3",
+        "u3:passed:0/3"
+      ],
+      "merged": [
+        "worktree-wf_2b22b691-9b5-2 (u1: Round discounted totals half up to the cent, exactly) - merge commit 2cd3174",
+        "worktree-wf_2b22b691-9b5-3 (u2: RFC 4180 quoting in toCSV) - merge commit b8c6316",
+        "worktree-wf_2b22b691-9b5-4 (u3: 404 not_found for invoices of keys without usage) - merge commit 73ad872"
+      ],
+      "integrationChecks": {
+        "ran": true,
+        "passed": true,
+        "commands": [
+          "npm test (node --test)"
+        ],
+        "notes": "All 28 tests pass after merging the three branches into main. The repo has no type check or lint script; package.json defines only the test script. The working tree was clean before the merge, apart from the untracked .claude/ directory that holds the worktrees, which was left alone. Nothing was pushed."
+      },
+      "firstPassRefutedApprox": 0,
+      "success": true
+    },
+    {
+      "team": "harness-sonnet-builders",
+      "task": "bugfix-trio",
+      "runs": 1,
+      "verdict": "PASS",
+      "gateVerdict": "PASS",
+      "units": 3,
+      "unitsPassed": 3,
+      "unitsFailed": 0,
+      "fixRounds": 0,
+      "unitStatuses": [
+        "u1:passed:0/3",
+        "u2:passed:0/3",
+        "u3:passed:0/3"
+      ],
+      "merged": [
+        "worktree-wf_4e5b32fb-bd7-2",
+        "worktree-wf_4e5b32fb-bd7-3",
+        "worktree-wf_4e5b32fb-bd7-4"
+      ],
+      "integrationChecks": {
+        "ran": true,
+        "passed": true,
+        "commands": [
+          "npm test (node --test)"
+        ],
+        "notes": "27 tests ran on main after all three merges, and all 27 passed. The repo has no type checker or linter set up: package.json only defines a test script, and there is no tsconfig or eslint config. Before merging, the working tree had only the untracked .claude/ directory, which holds the harness worktrees. Nothing was stashed or discarded. Nothing was pushed."
+      },
+      "firstPassRefutedApprox": 0,
+      "success": true
+    }
+  ],
+  "checks": []
+}
