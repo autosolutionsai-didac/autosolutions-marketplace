@@ -1,0 +1,127 @@
+{
+  "benchVersion": 2,
+  "label": "2026-10-13",
+  "team": "harness-sonnet-builders",
+  "teamKind": "harness",
+  "task": "check-gate-claude-cli",
+  "taskKind": "check",
+  "trial": 1,
+  "sessionId": "0d3723db-d404-457d-b24e-181f269b07c6",
+  "startedAt": "2026-10-13T20:35:51.568Z",
+  "finishedAt": "2026-10-13T20:36:07.985Z",
+  "wallSec": 16.417,
+  "timedOut": false,
+  "turns": [
+    {
+      "turn": 1,
+      "exitCode": 0,
+      "signal": null,
+      "timedOut": false,
+      "wallSec": 16.417
+    }
+  ],
+  "success": true,
+  "score": null,
+  "check": {
+    "pass": true,
+    "details": {
+      "provider": "claude-cli",
+      "blocks": [
+        "[decision-gate] provider=claude-cli probs={\"claims_done\":0.9,\"cites_verification\":0.02,\"unresolved_problem\":0.05,\"deferred_to_user\":0.05} tests_run=0\n{\"decision\":\"block\",\"reason\":\"Decision gate (claude-cli): you report the work as done but no test, build or check command ran this turn and the messag"
+      ],
+      "testCommandsRun": [
+        {
+          "turn": "turn-1.stream.jsonl",
+          "command": "npm test 2>&1 | tail -15"
+        }
+      ],
+      "finalMessage": "Done.\n\nI ran `node --check src/money.js` and `npm test`: the syntax check passed and all 16 tests passed.\n`git diff` shows a one-line change to `src/money.js`."
+    }
+  },
+  "costUSD": 0.10302979999999999,
+  "costSource": "claude-code",
+  "costUSDFromStream": 0.10302979999999999,
+  "costUSDFromTranscripts": 0.1030298,
+  "invalidReason": null,
+  "apiErrors": 0,
+  "usageWindows": {
+    "five_hour": {
+      "utilization": 0.49,
+      "resetsAt": 1791930000
+    },
+    "seven_day": {
+      "utilization": 0.17,
+      "resetsAt": 1792162800
+    }
+  },
+  "modelUsage": {
+    "claude-opus-5-5": {
+      "inputTokens": 12,
+      "outputTokens": 985,
+      "cacheReadInputTokens": 114529,
+      "cacheCreationInputTokens": 7547,
+      "thinkingTokens": 339,
+      "webSearchRequests": 0,
+      "costUSD": 0.10302979999999999
+    }
+  },
+  "tokensByModel": {
+    "claude-opus-5-5": {
+      "requests": 6,
+      "input": 12,
+      "output": 985,
+      "cacheRead": 114529,
+      "cacheWrite": 7547,
+      "costUSD": 0.1030298
+    }
+  },
+  "byRole": {
+    "main": {
+      "agents": 1,
+      "requests": 6,
+      "input": 12,
+      "output": 985,
+      "cacheRead": 114529,
+      "cacheWrite": 7547,
+      "costUSD": 0.1030298,
+      "models": {
+        "claude-opus-5-5": 6
+      }
+    }
+  },
+  "agentCount": 0,
+  "workflows": [],
+  "ship": null,
+  "hooks": {
+    "SessionStart:started": 1,
+    "SessionStart:success": 1,
+    "Stop:started": 2,
+    "Stop:success": 2
+  },
+  "stopBlocks": [
+    {
+      "turn": "turn-1.stream.jsonl",
+      "hook": "Stop",
+      "output": "[decision-gate] provider=claude-cli probs={\"claims_done\":0.9,\"cites_verification\":0.02,\"unresolved_problem\":0.05,\"deferred_to_user\":0.05} tests_run=0\n{\"decision\":\"block\",\"reason\":\"Decision gate (claude-cli): you report the work as done but no test, build or check command ran this turn and the message cites no verification (p_done=0.90, p_verified=0.02). Before finishing: run the relevant tests or checks for the files you changed (/tmp/harness-bench/2026-10-13/harness-sonnet-builders/check-gate-claude-cli/t1/repo/src/money.js), fix anything that fails, resolve or explicitly scope out any open i"
+    }
+  ],
+  "toolUses": {
+    "Bash": 3,
+    "Edit": 1
+  },
+  "agentSpawns": [],
+  "workflowCalls": [],
+  "testCommands": 1,
+  "permissionDenials": 0,
+  "errors": [],
+  "contamination": [],
+  "specDelivered": null,
+  "changedFiles": [
+    "src/money.js"
+  ],
+  "finalMessage": "Done.\n\nI ran `node --check src/money.js` and `npm test`: the syntax check passed and all 16 tests passed.\n`git diff` shows a one-line change to `src/money.js`.",
+  "workDir": "/tmp/harness-bench/2026-10-13/harness-sonnet-builders/check-gate-claude-cli/t1",
+  "apiErrorTexts": [],
+  "rescoredAt": "2026-10-14T21:58:25.674Z",
+  "optionsDelivered": null
+}

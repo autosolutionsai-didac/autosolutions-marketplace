@@ -1,0 +1,1 @@
+Review the changes on the current branch (feature/bulk-import) against main before they are merged. Look for real defects: bugs, security problems, broken or surprising behaviour, missing error handling on real paths. Ignore style and formatting. For each finding give the file, the line, a severity (blocking, major or minor) and a one-line explanation.

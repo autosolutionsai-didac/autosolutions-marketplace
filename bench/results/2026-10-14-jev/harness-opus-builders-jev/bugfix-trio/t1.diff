@@ -1,0 +1,115 @@
+diff --git a/src/csv.js b/src/csv.js
+index f1dc79f..c7eafd7 100644
+--- a/src/csv.js
++++ b/src/csv.js
+@@ -1,13 +1,16 @@
+ // Renders rows as CSV with a header line. Lines end with \n.
+ export function toCSV(rows, columns) {
+-  const lines = [columns.join(',')]
++  const lines = [columns.map(cell).join(',')]
+   for (const row of rows) {
+     lines.push(columns.map((column) => cell(row[column])).join(','))
+   }
+   return lines.join('\n') + '\n'
+ }
+ 
++// RFC 4180: quote fields with a comma, double quote, CR or LF, doubling inner quotes.
+ function cell(value) {
+   if (value === null || value === undefined) return ''
+-  return String(value)
++  const text = String(value)
++  if (!/[",\r\n]/.test(text)) return text
++  return '"' + text.replaceAll('"', '""') + '"'
+ }
+diff --git a/src/money.js b/src/money.js
+index 95a7ad7..9140928 100644
+--- a/src/money.js
++++ b/src/money.js
+@@ -13,7 +13,8 @@ export function formatUSD(cents) {
+ }
+ 
+ // Applies a percentage discount (0 to 100) to an amount in cents.
++// The result is rounded half up to the nearest cent.
+ export function applyDiscount(cents, percent) {
+   if (!(percent >= 0 && percent <= 100)) throw new RangeError('percent must be between 0 and 100')
+-  return Math.floor((cents * (100 - percent)) / 100)
++  return Math.round((cents * (100 - percent)) / 100)
+ }
+diff --git a/src/server.js b/src/server.js
+index 0393cdd..8474e59 100644
+--- a/src/server.js
++++ b/src/server.js
+@@ -36,6 +36,7 @@ export function createServer({ ledger = new Ledger(), now = Date.now, dataDir =
+     const invoiceMatch = pathname.match(/^\/invoices\/([^/]+)$/)
+     if (req.method === 'GET' && invoiceMatch) {
+       const invoice = ledger.invoice(decodeURIComponent(invoiceMatch[1]))
++      if (!invoice) return send(res, 404, { error: 'not_found' })
+       if (url.searchParams.get('format') === 'csv') {
+         res.writeHead(200, { 'content-type': 'text/csv; charset=utf-8' })
+         return res.end(toCSV(invoice.lines, CSV_COLUMNS))
+diff --git a/test/csv.test.js b/test/csv.test.js
+index 9603268..5112be4 100644
+--- a/test/csv.test.js
++++ b/test/csv.test.js
+@@ -13,3 +13,19 @@ test('toCSV renders a header and one line per row', () => {
+ test('toCSV leaves missing values empty', () => {
+   assert.equal(toCSV([{ a: null }], ['a', 'b']), 'a,b\n,\n')
+ })
++
++test('toCSV quotes a field that contains a comma', () => {
++  assert.equal(toCSV([{ key: 'team, alpha', n: 1 }], ['key', 'n']), 'key,n\n"team, alpha",1\n')
++})
++
++test('toCSV quotes a field with double quotes and doubles them', () => {
++  assert.equal(toCSV([{ a: 'say "hi"' }], ['a']), 'a\n"say ""hi"""\n')
++})
++
++test('toCSV quotes fields containing LF or CR and keeps the raw newline', () => {
++  assert.equal(toCSV([{ a: 'line1\nline2', b: 'x\ry' }], ['a', 'b']), 'a,b\n"line1\nline2","x\ry"\n')
++})
++
++test('toCSV leaves plain values and numbers unquoted', () => {
++  assert.equal(toCSV([{ a: 'plain', b: 1_000, c: -2.5 }], ['a', 'b', 'c']), 'a,b,c\nplain,1000,-2.5\n')
++})
+diff --git a/test/money.test.js b/test/money.test.js
+index 917bae5..d5c9edb 100644
+--- a/test/money.test.js
++++ b/test/money.test.js
+@@ -22,3 +22,9 @@ test('applyDiscount', () => {
+   assert.throws(() => applyDiscount(1_000, 101), RangeError)
+   assert.throws(() => applyDiscount(1_000, -1), RangeError)
+ })
++
++test('applyDiscount rounds half up to the nearest cent', () => {
++  assert.equal(applyDiscount(1_001, 15), 851)
++  assert.equal(applyDiscount(10, 15), 9)
++  assert.equal(applyDiscount(1_004, 15), 853)
++})
+diff --git a/test/server.test.js b/test/server.test.js
+index fc813ff..e2881cb 100644
+--- a/test/server.test.js
++++ b/test/server.test.js
+@@ -55,6 +55,18 @@ test('GET /invoices/:key as JSON and CSV', async () => {
+   await close()
+ })
+ 
++test('GET /invoices/:key returns 404 for a key without usage', async () => {
++  const { base, close } = await start()
++  await post(base, 'acme')
++  const json = await fetch(`${base}/invoices/nobody`)
++  assert.equal(json.status, 404)
++  assert.deepEqual(await json.json(), { error: 'not_found' })
++  const csv = await fetch(`${base}/invoices/nobody?format=csv`)
++  assert.equal(csv.status, 404)
++  assert.deepEqual(await csv.json(), { error: 'not_found' })
++  await close()
++})
++
+ test('GET /docs serves files from docs/', async () => {
+   const { base, close } = await start()
+   const res = await fetch(`${base}/docs/api.md`)
+
+# untracked files
+.claude/worktrees/wf_fd403401-8dc-2/
+.claude/worktrees/wf_fd403401-8dc-3/
+.claude/worktrees/wf_fd403401-8dc-4/

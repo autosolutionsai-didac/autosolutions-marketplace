@@ -1,0 +1,150 @@
+{
+  "benchVersion": 2,
+  "label": "2026-10-13",
+  "team": "harness-sonnet-builders",
+  "teamKind": "harness",
+  "task": "check-judge",
+  "taskKind": "check",
+  "trial": 1,
+  "sessionId": "cc829f9b-9305-4450-886a-5db630329bba",
+  "startedAt": "2026-10-13T20:31:27.916Z",
+  "finishedAt": "2026-10-13T20:32:59.666Z",
+  "wallSec": 91.75,
+  "timedOut": false,
+  "turns": [
+    {
+      "turn": 1,
+      "exitCode": 0,
+      "signal": null,
+      "timedOut": false,
+      "wallSec": 91.75
+    }
+  ],
+  "success": true,
+  "score": null,
+  "check": {
+    "pass": true,
+    "details": {
+      "spawned": 1,
+      "servedBy": [
+        "claude-fable-5-1"
+      ],
+      "verdict": "FAIL",
+      "expectedVerdict": "FAIL (the branch has four seeded defects)",
+      "verdictCorrect": true
+    }
+  },
+  "costUSD": 0.6187421000000001,
+  "costSource": "claude-code",
+  "costUSDFromStream": 0.6187421000000001,
+  "costUSDFromTranscripts": 0.6187421,
+  "invalidReason": null,
+  "apiErrors": 0,
+  "usageWindows": {
+    "five_hour": {
+      "utilization": 0.47,
+      "resetsAt": 1791930000
+    },
+    "seven_day": {
+      "utilization": 0.17,
+      "resetsAt": 1792162800
+    },
+    "seven_day_overage_included": {
+      "utilization": 0.05,
+      "resetsAt": 1792162800
+    }
+  },
+  "modelUsage": {
+    "claude-opus-5-5": {
+      "inputTokens": 10,
+      "outputTokens": 3551,
+      "cacheReadInputTokens": 95883,
+      "cacheCreationInputTokens": 10835,
+      "thinkingTokens": 165,
+      "webSearchRequests": 0,
+      "costUSD": 0.1769166
+    },
+    "claude-fable-5-1": {
+      "inputTokens": 130,
+      "outputTokens": 4705,
+      "cacheReadInputTokens": 38402,
+      "cacheCreationInputTokens": 15654,
+      "thinkingTokens": 1214,
+      "webSearchRequests": 0,
+      "costUSD": 0.44182550000000004
+    }
+  },
+  "tokensByModel": {
+    "claude-fable-5-1": {
+      "requests": 5,
+      "input": 130,
+      "output": 4705,
+      "cacheRead": 38402,
+      "cacheWrite": 15654,
+      "costUSD": 0.4418255
+    },
+    "claude-opus-5-5": {
+      "requests": 5,
+      "input": 10,
+      "output": 3551,
+      "cacheRead": 95883,
+      "cacheWrite": 10835,
+      "costUSD": 0.1769166
+    }
+  },
+  "byRole": {
+    "harness:judge": {
+      "agents": 1,
+      "requests": 5,
+      "input": 130,
+      "output": 4705,
+      "cacheRead": 38402,
+      "cacheWrite": 15654,
+      "costUSD": 0.4418255,
+      "models": {
+        "claude-fable-5-1": 5
+      }
+    },
+    "main": {
+      "agents": 1,
+      "requests": 5,
+      "input": 10,
+      "output": 3551,
+      "cacheRead": 95883,
+      "cacheWrite": 10835,
+      "costUSD": 0.1769166,
+      "models": {
+        "claude-opus-5-5": 5
+      }
+    }
+  },
+  "agentCount": 1,
+  "workflows": [],
+  "ship": null,
+  "hooks": {
+    "SessionStart:started": 1,
+    "SessionStart:success": 1,
+    "Stop:started": 2,
+    "Stop:success": 2
+  },
+  "stopBlocks": [],
+  "toolUses": {
+    "Bash": 2,
+    "Agent": 1
+  },
+  "agentSpawns": [
+    "harness:judge"
+  ],
+  "workflowCalls": [],
+  "testCommands": 0,
+  "permissionDenials": 0,
+  "errors": [],
+  "contamination": [],
+  "specDelivered": null,
+  "changedFiles": [],
+  "finalMessage": "The judge's verdict is **FAIL**: the new bulk endpoint lets any API key bill usage to another customer. Its verdict, unedited:\n\n```\nVERDICT: FAIL\nCONFIDENCE: high\n\nBLOCKING\n- Cross-tenant billing: POST /events/bulk only checks that x-api-key is present, then records every row under the body's own `row.key` (src/importer.js:30, src/server.js:38-41). Reproduced: caller \"mallory\" posted a row with key \"acme\" -> 200, acme's invoice went up 200 cents, mallory has no invoice. This breaks the README invariant \"Events are always recorded under the caller's key\" and the new README line's own claim \"for the caller's API key\". The test passes only because the header key and row key are both 'acme'. -> Pass the header key into importEvents and record with `key` from the header (ignore or reject `row.key`); add a test that a mismatched row.key is not honoured.\n- Stats leak across requests and tenants: `importEvents(ledger, text, options = DEFAULT_OPTIONS)` then `options.stats = options.stats || {...}` mutates the module-level DEFAULT_OPTIONS (src/importer.js:4,10). The server never passes options, so every request after the first reports cumulative counts. Reproduced: 2nd request with 1 row -> `imported: 2`; 3rd request from a different tenant with 1 bad line -> `imported: 2, errors: [...]`. The response contract `{imported, skipped, errors}` is wrong from the second call on, and leaks one tenant's error lines to another. -> Create a fresh stats object per call; never mutate the default. Add a test that calls the endpoint twice and asserts the second response is independent.\n- Blank line silently truncates the import: `if (!line) break` (src/importer.js:15). Reproduced: rows A, \"\", B, C -> `imported: 1`, no skip, no error; B and C are silently lost while the response says success. For a billing import, silent data loss is unacceptable. -> `continue` on blank lines (and a test with an interior blank line).\n- No test covers the core behaviour that matters (caller scoping, per-request stats isolation). The four tests that exist pass, but do not exercise either bug above; a passing suite is not evidence here.\n\nADVISORY\n- No body-size cap on the bulk path: readJson enforces settings.limits.maxBodyBytes; the bulk handler buffers the whole stream unbounded (src/server.js:40). maxRows only fires after the full body is in memory.\n- Non-atomic on maxRows: rows are recorded as they are parsed, then a ValidationError -> 400. Reproduced: 12,000-row body returned 400 \"too many rows\" but 10,000 events were already recorded and will be billed. Either validate count before recording, or document that the response is partial. Also, 400 with no stats hides what was imported.\n- `model == null` rows are silently \"skipped\" while POST /events rejects them; `Date.parse` of a missing `at` yields NaN -> reported as \"at must be a timestamp in milliseconds\", which is confusing for an ISO-string API. Minor, but inconsistent with the single-event path.\n- Returns 200 rather than 201; fine, just note it in the README if intentional.\n\nVERIFIED BY ME\n- `git status --porcelain` / `git diff`: clean, no uncommitted work. `git diff main...HEAD`: 4 files, +84, as stated.\n- `node --test` in the repo: 20/20 pass (includes the 4 new importer tests).\n- Repro script (/tmp/judge-scratch/repro.mjs, run from outside the repo) against a live createServer(): cross-key write accepted (200, acme billed by mallory); 2nd and 3rd bulk requests return cumulative stats (imported: 2 both times); interior blank line drops the remaining rows (1 of 3 recorded); 12,000-row body -> 400 with 10,000 events already recorded.\n\nSUMMARY\nThe endpoint exists and its own tests pass, but it violates the ledger's core tenancy invariant (any API key can post usage billed to any other key), returns wrong stats from the second request onward due to a mutated shared default, and silently drops everything after a blank line. These are billing-correctness bugs, not style. Fix key scoping, per-call stats, and blank-li",
+  "workDir": "/tmp/harness-bench/2026-10-13/harness-sonnet-builders/check-judge/t1",
+  "apiErrorTexts": [],
+  "rescoredAt": "2026-10-14T21:58:25.692Z",
+  "optionsDelivered": null
+}

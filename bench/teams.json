@@ -1,0 +1,79 @@
+{
+  "note": "A team is one way of running Claude Code. Every team gets the same fixture, the same task text and the same hidden tests. The main session is Opus 5.5 at xhigh effort for every team, so the comparison isolates what the harness changes. A team can extend another and override fields; the *-jev teams are their base team plus the decision gate on Jev.",
+  "teams": [
+    {
+      "id": "native-opus-xhigh",
+      "label": "No harness: plain Claude Code, Opus 5.5 at xhigh for everything",
+      "kind": "native",
+      "model": "claude-opus-5-5",
+      "effort": "xhigh",
+      "plugin": false,
+      "env": { "CLAUDE_CODE_SUBAGENT_MODEL": "claude-opus-5-5", "CLAUDE_CODE_SUBAGENT_MODEL_FORCE": "1" }
+    },
+    {
+      "id": "harness-sonnet-builders",
+      "label": "Harness defaults: Sonnet 5.5 builders (medium), Opus 5.5 fixes, Opus refuters, Fable gate",
+      "kind": "harness",
+      "model": "claude-opus-5-5",
+      "effort": "xhigh",
+      "plugin": true,
+      "settings": "../plugins/harness/templates/settings.recommended.json",
+      "shipArgs": {}
+    },
+    {
+      "id": "harness-opus-builders",
+      "label": "Harness with Opus 5.5 builders (medium); everything else as the defaults",
+      "kind": "harness",
+      "model": "claude-opus-5-5",
+      "effort": "xhigh",
+      "plugin": true,
+      "settings": "../plugins/harness/templates/settings.recommended.json",
+      "shipArgs": { "buildModel": "claude-opus-5-5" }
+    },
+    {
+      "id": "harness-haiku-builders",
+      "label": "Harness with Haiku 5.5 builders and finders; Opus 5.5 as architect and project manager (main session, plan, integrate, fix rounds, refuters); Fable 5.1 as final reviewer (ship gate, review and audit reports)",
+      "kind": "harness",
+      "model": "claude-opus-5-5",
+      "effort": "xhigh",
+      "plugin": true,
+      "settings": "../plugins/harness/templates/settings.recommended.json",
+      "shipArgs": { "buildModel": "claude-haiku-5-5" },
+      "reviewArgs": { "findModel": "claude-haiku-5-5", "rankModel": "claude-fable-5-1" },
+      "auditArgs": { "findModel": "claude-haiku-5-5", "rankModel": "claude-fable-5-1" },
+      "roleModels": { "builder": "claude-haiku-5-5" }
+    },
+    {
+      "id": "harness-lean",
+      "extends": "harness-haiku-builders",
+      "label": "Lean harness: Haiku 5.5 builders and finders; Opus 5.5 plans, integrates and fixes; two Opus refuters per unit at medium effort (correctness, edges and regressions) instead of three at high; Opus instead of Fable for the ship gate and the review and audit reports; Sonnet 5.5 verifiers at medium effort on review and audit",
+      "shipArgs": { "buildModel": "claude-haiku-5-5", "refuteLenses": ["correctness", "edges-and-regressions"], "refuteEffort": "medium", "gateModel": "claude-opus-5-5" },
+      "reviewArgs": { "findModel": "claude-haiku-5-5", "verifyModel": "claude-sonnet-5-5", "verifyEffort": "medium", "rankModel": "claude-opus-5-5" },
+      "auditArgs": { "findModel": "claude-haiku-5-5", "verifyModel": "claude-sonnet-5-5", "verifyEffort": "medium", "rankModel": "claude-opus-5-5" }
+    },
+    {
+      "id": "native-opus-xhigh-jev",
+      "extends": "native-opus-xhigh",
+      "label": "native-opus-xhigh plus the harness decision gate on Jev (only the Stop hook, nothing else from the harness)",
+      "decisionGate": "jev"
+    },
+    {
+      "id": "harness-sonnet-builders-jev",
+      "extends": "harness-sonnet-builders",
+      "label": "harness-sonnet-builders with the decision gate on Jev",
+      "decisionGate": "jev"
+    },
+    {
+      "id": "harness-opus-builders-jev",
+      "extends": "harness-opus-builders",
+      "label": "harness-opus-builders with the decision gate on Jev",
+      "decisionGate": "jev"
+    },
+    {
+      "id": "harness-haiku-builders-jev",
+      "extends": "harness-haiku-builders",
+      "label": "harness-haiku-builders with the decision gate on Jev",
+      "decisionGate": "jev"
+    }
+  ]
+}

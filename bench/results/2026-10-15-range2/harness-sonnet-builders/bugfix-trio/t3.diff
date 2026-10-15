@@ -1,0 +1,299 @@
+diff --git a/src/csv.js b/src/csv.js
+index f1dc79f..6a7316b 100644
+--- a/src/csv.js
++++ b/src/csv.js
+@@ -1,6 +1,7 @@
+-// Renders rows as CSV with a header line. Lines end with \n.
++// Renders rows as CSV with a header line. Lines end with \n. Fields containing
++// a comma, double quote, CR or LF are quoted and inner quotes doubled (RFC 4180).
+ export function toCSV(rows, columns) {
+-  const lines = [columns.join(',')]
++  const lines = [columns.map(cell).join(',')]
+   for (const row of rows) {
+     lines.push(columns.map((column) => cell(row[column])).join(','))
+   }
+@@ -9,5 +10,7 @@ export function toCSV(rows, columns) {
+ 
+ function cell(value) {
+   if (value === null || value === undefined) return ''
+-  return String(value)
++  const text = String(value)
++  if (/[",\r\n]/.test(text)) return '"' + text.replace(/"/g, '""') + '"'
++  return text
+ }
+diff --git a/src/ledger.js b/src/ledger.js
+index adf909c..43f5007 100644
+--- a/src/ledger.js
++++ b/src/ledger.js
+@@ -1,6 +1,6 @@
+ import { costOf } from './cost.js'
+ import { getPrice } from './prices.js'
+-import { applyDiscount, microToCents } from './money.js'
++import { applyDiscount, isValidPercent, microToCents } from './money.js'
+ 
+ export class ValidationError extends Error {
+   constructor(message) {
+@@ -49,7 +49,10 @@ export class Ledger {
+   }
+ 
+   setDiscount(key, percent) {
+-    if (!(percent >= 0 && percent <= 100)) throw new ValidationError('discount must be between 0 and 100')
++    if (typeof percent === 'number' && !(percent >= 0 && percent <= 100)) {
++      throw new ValidationError('discount must be between 0 and 100')
++    }
++    if (!isValidPercent(percent)) throw new ValidationError('discount must be a number with at most two decimal places')
+     this.discounts[key] = percent
+   }
+ 
+diff --git a/src/money.js b/src/money.js
+index 95a7ad7..f91811b 100644
+--- a/src/money.js
++++ b/src/money.js
+@@ -12,8 +12,21 @@ export function formatUSD(cents) {
+   return `${sign}$${dollars}.${rest}`
+ }
+ 
+-// Applies a percentage discount (0 to 100) to an amount in cents.
++// True for a number from 0 to 100 with at most two decimal places.
++export function isValidPercent(percent) {
++  if (typeof percent !== 'number' || !Number.isFinite(percent)) return false
++  if (!(percent >= 0 && percent <= 100)) return false
++  return Math.abs(percent * 100 - Math.round(percent * 100)) < 1e-6
++}
++
++// Applies a percentage discount (0 to 100, at most two decimals) to an amount in
++// cents, rounding half up to the nearest cent using exact integer arithmetic.
+ export function applyDiscount(cents, percent) {
++  if (!Number.isSafeInteger(cents) || cents < 0) throw new RangeError('cents must be a non-negative integer')
++  if (typeof percent !== 'number' || Number.isNaN(percent)) throw new RangeError('percent must be a number')
+   if (!(percent >= 0 && percent <= 100)) throw new RangeError('percent must be between 0 and 100')
+-  return Math.floor((cents * (100 - percent)) / 100)
++  if (!isValidPercent(percent)) throw new RangeError('percent must have at most two decimal places')
++  const bp = Math.round(percent * 100)
++  const n = BigInt(cents) * BigInt(10000 - bp)
++  return Number((n + 5000n) / 10000n)
+ }
+diff --git a/src/server.js b/src/server.js
+index 0393cdd..c024105 100644
+--- a/src/server.js
++++ b/src/server.js
+@@ -36,6 +36,7 @@ export function createServer({ ledger = new Ledger(), now = Date.now, dataDir =
+     const invoiceMatch = pathname.match(/^\/invoices\/([^/]+)$/)
+     if (req.method === 'GET' && invoiceMatch) {
+       const invoice = ledger.invoice(decodeURIComponent(invoiceMatch[1]))
++      if (invoice === null) return send(res, 404, { error: 'not_found' })
+       if (url.searchParams.get('format') === 'csv') {
+         res.writeHead(200, { 'content-type': 'text/csv; charset=utf-8' })
+         return res.end(toCSV(invoice.lines, CSV_COLUMNS))
+diff --git a/test/csv.test.js b/test/csv.test.js
+index 9603268..0d01a7b 100644
+--- a/test/csv.test.js
++++ b/test/csv.test.js
+@@ -13,3 +13,34 @@ test('toCSV renders a header and one line per row', () => {
+ test('toCSV leaves missing values empty', () => {
+   assert.equal(toCSV([{ a: null }], ['a', 'b']), 'a,b\n,\n')
+ })
++
++test('toCSV quotes fields containing a comma', () => {
++  assert.equal(toCSV([{ a: 'team, alpha' }], ['a']), 'a\n"team, alpha"\n')
++})
++
++test('toCSV doubles double quotes and quotes the field', () => {
++  assert.equal(toCSV([{ a: 'say "hi"' }], ['a']), 'a\n"say ""hi"""\n')
++  assert.equal(toCSV([{ a: '"' }], ['a']), 'a\n""""\n')
++})
++
++test('toCSV quotes fields containing LF, CR or CRLF verbatim', () => {
++  assert.equal(toCSV([{ a: 'a\nb' }], ['a']), 'a\n"a\nb"\n')
++  assert.equal(toCSV([{ a: 'a\rb' }], ['a']), 'a\n"a\rb"\n')
++  assert.equal(toCSV([{ a: 'a\r\nb' }], ['a']), 'a\n"a\r\nb"\n')
++})
++
++test('toCSV leaves other fields unquoted', () => {
++  const values = [0, 3_000_000, '', ' pad ', 'a\tb', 'a;b', "it's", 'héllo ✓']
++  const columns = values.map((_, i) => 'c' + i)
++  const rows = [Object.fromEntries(values.map((v, i) => ['c' + i, v]))]
++  assert.equal(toCSV(rows, columns), columns.join(',') + '\n' + values.join(',') + '\n')
++})
++
++test('toCSV converts non-strings before checking', () => {
++  assert.equal(toCSV([{ a: ['x', 'y'] }], ['a']), 'a\n"x,y"\n')
++  assert.equal(toCSV([{ a: undefined }], ['a']), 'a\n\n')
++})
++
++test('toCSV escapes header cells and keeps \\n line endings', () => {
++  assert.equal(toCSV([{ 'a,b': 1, 'c"d': 2 }], ['a,b', 'c"d']), '"a,b","c""d"\n1,2\n')
++})
+diff --git a/test/invoice-csv.test.js b/test/invoice-csv.test.js
+new file mode 100644
+index 0000000..ec5c8b5
+--- /dev/null
++++ b/test/invoice-csv.test.js
+@@ -0,0 +1,46 @@
++import { test } from 'node:test'
++import assert from 'node:assert/strict'
++import { createServer } from '../src/server.js'
++import { Ledger } from '../src/ledger.js'
++
++async function start(options = {}) {
++  const server = createServer({ ledger: new Ledger(), now: () => 1_000, ...options })
++  await new Promise((resolve) => server.listen(0, '127.0.0.1', resolve))
++  const base = `http://127.0.0.1:${server.address().port}`
++  const close = () => new Promise((resolve) => { server.closeAllConnections(); server.close(resolve) })
++  return { base, close }
++}
++
++const event = { model: 'claude-sonnet-5', usage: { inputTokens: 1_000_000, outputTokens: 100_000 } }
++
++function post(base, key, body = event) {
++  const headers = { 'content-type': 'application/json' }
++  if (key) headers['x-api-key'] = key
++  return fetch(`${base}/events`, { method: 'POST', headers, body: JSON.stringify(body) })
++}
++
++const header = 'key,model,requests,inputTokens,outputTokens,cacheReadTokens,cacheWriteTokens,costMicro\n'
++
++test('CSV invoice quotes a key containing a comma', async () => {
++  const { base, close } = await start()
++  try {
++    assert.equal((await post(base, 'team, alpha')).status, 201)
++    const res = await fetch(`${base}/invoices/${encodeURIComponent('team, alpha')}?format=csv`)
++    assert.equal(res.status, 200)
++    assert.equal(await res.text(), header + '"team, alpha",claude-sonnet-5,1,1000000,100000,0,0,3000000\n')
++  } finally {
++    await close()
++  }
++})
++
++test('CSV invoice escapes double quotes in a key', async () => {
++  const { base, close } = await start()
++  try {
++    assert.equal((await post(base, 'say "hi"')).status, 201)
++    const res = await fetch(`${base}/invoices/${encodeURIComponent('say "hi"')}?format=csv`)
++    assert.equal(res.status, 200)
++    assert.equal(await res.text(), header + '"say ""hi""",claude-sonnet-5,1,1000000,100000,0,0,3000000\n')
++  } finally {
++    await close()
++  }
++})
+diff --git a/test/ledger.test.js b/test/ledger.test.js
+index 4caacf0..36ef033 100644
+--- a/test/ledger.test.js
++++ b/test/ledger.test.js
+@@ -33,3 +33,26 @@ test('invoice filters by period and returns null without usage', () => {
+   assert.equal(ledger.invoice('nobody'), null)
+   assert.equal(ledger.invoice('acme', { from: 0, to: 101 }).lines.length, 1)
+ })
++
++test('invoice rounds the discounted total half up', () => {
++  const ledger = new Ledger({ discounts: { acme: 15 } })
++  // 5_005_000 sonnet input tokens = 10_010_000 micro = $10.01
++  ledger.record({ key: 'acme', model: 'claude-sonnet-5', usage: { inputTokens: 5_005_000 }, at: 1 })
++  const invoice = ledger.invoice('acme')
++  assert.equal(invoice.subtotalCents, 1_001)
++  assert.equal(invoice.totalCents, 851)
++})
++
++test('setDiscount and the constructor validate the percent', () => {
++  const ledger = new Ledger()
++  for (const p of [101, -1, NaN, Infinity, '15', 33.333, null]) {
++    assert.throws(() => ledger.setDiscount('k', p), ValidationError, `setDiscount ${String(p)}`)
++    assert.throws(() => new Ledger({ discounts: { k: p } }), ValidationError, `constructor ${String(p)}`)
++  }
++  for (const p of [0, 15, 12.5, 33.33, 100]) {
++    ledger.setDiscount('k', p)
++    assert.equal(ledger.discounts.k, p)
++  }
++  ledger.record({ key: 'k', model: 'claude-sonnet-5', usage, at: 1 })
++  assert.doesNotThrow(() => ledger.invoice('k'))
++})
+diff --git a/test/money.test.js b/test/money.test.js
+index 917bae5..cb6731c 100644
+--- a/test/money.test.js
++++ b/test/money.test.js
+@@ -22,3 +22,46 @@ test('applyDiscount', () => {
+   assert.throws(() => applyDiscount(1_000, 101), RangeError)
+   assert.throws(() => applyDiscount(1_000, -1), RangeError)
+ })
++
++test('applyDiscount rounds half up to the nearest cent', () => {
++  assert.equal(applyDiscount(1_001, 15), 851)
++  assert.equal(applyDiscount(10, 15), 9)
++  assert.equal(applyDiscount(1, 50), 1)
++  assert.equal(applyDiscount(3, 50), 2)
++  assert.equal(applyDiscount(1, 60), 0)
++  assert.equal(applyDiscount(0, 37), 0)
++  assert.equal(applyDiscount(4, 12.5), 4)
++  assert.equal(applyDiscount(100, 33.33), 67)
++  assert.equal(applyDiscount(1, 0.5), 1)
++  assert.equal(applyDiscount(Number.MAX_SAFE_INTEGER, 0), Number.MAX_SAFE_INTEGER)
++  assert.equal(applyDiscount(Number.MAX_SAFE_INTEGER, 50), 4503599627370496)
++  assert.equal(applyDiscount(Number.MAX_SAFE_INTEGER, 100), 0)
++})
++
++test('applyDiscount matches exact integer half-up for many inputs', () => {
++  for (let cents = 0; cents <= 200; cents++) {
++    for (let bp = 0; bp <= 10_000; bp += 7) {
++      const expected = Math.floor((cents * (10_000 - bp) + 5_000) / 10_000)
++      assert.equal(applyDiscount(cents, bp / 100), expected, `${cents} at ${bp / 100}%`)
++    }
++  }
++})
++
++test('applyDiscount rejects invalid input', () => {
++  for (const p of [101, -1, -0.01, 100.01, NaN, Infinity, '15', 33.333, null, undefined]) {
++    assert.throws(() => applyDiscount(1_000, p), RangeError, `percent ${String(p)}`)
++  }
++  for (const c of [-1, 10.5, NaN, Infinity, '100', null, Number.MAX_SAFE_INTEGER + 1]) {
++    assert.throws(() => applyDiscount(c, 10), RangeError, `cents ${String(c)}`)
++  }
++})
++
++test('applyDiscount error messages describe the problem', () => {
++  for (const p of ['15', null, undefined, true, 10n, NaN, {}]) {
++    assert.throws(() => applyDiscount(1_000, p), { name: 'RangeError', message: 'percent must be a number' }, `percent ${String(p)}`)
++  }
++  for (const p of [101, -1, -0.01, 100.01, Infinity, -Infinity]) {
++    assert.throws(() => applyDiscount(1_000, p), { name: 'RangeError', message: 'percent must be between 0 and 100' }, `percent ${p}`)
++  }
++  assert.throws(() => applyDiscount(1_000, 33.333), { name: 'RangeError', message: 'percent must have at most two decimal places' })
++})
+diff --git a/test/server.test.js b/test/server.test.js
+index fc813ff..ff900c5 100644
+--- a/test/server.test.js
++++ b/test/server.test.js
+@@ -55,6 +55,29 @@ test('GET /invoices/:key as JSON and CSV', async () => {
+   await close()
+ })
+ 
++test('GET /invoices/:key returns 404 for keys without usage', async () => {
++  const { base, close } = await start()
++  const expectNotFound = async (path) => {
++    const res = await fetch(`${base}${path}`)
++    assert.equal(res.status, 404, path)
++    assert.match(res.headers.get('content-type'), /^application\/json/, path)
++    assert.deepEqual(await res.json(), { error: 'not_found' }, path)
++  }
++  await expectNotFound('/invoices/nobody')
++  await expectNotFound('/invoices/nobody?format=csv')
++  await expectNotFound('/invoices/nobody?format=xml')
++  await expectNotFound('/invoices/team%2C%20alpha')
++
++  assert.equal((await post(base, 'acme')).status, 201)
++  await expectNotFound('/invoices/other')
++  await expectNotFound('/invoices/other?format=csv')
++  await expectNotFound('/invoices/Acme')
++  await expectNotFound('/invoices/acme2?format=csv')
++  assert.equal((await fetch(`${base}/invoices/acme`)).status, 200)
++  assert.equal((await fetch(`${base}/invoices/acme?format=csv`)).status, 200)
++  await close()
++})
++
+ test('GET /docs serves files from docs/', async () => {
+   const { base, close } = await start()
+   const res = await fetch(`${base}/docs/api.md`)
+
+# untracked files
+.claude/worktrees/wf_35dd279f-905-2/
+.claude/worktrees/wf_35dd279f-905-3/
+.claude/worktrees/wf_35dd279f-905-4/

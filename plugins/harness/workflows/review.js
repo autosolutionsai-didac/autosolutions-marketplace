@@ -1,7 +1,7 @@
 export const meta = {
   name: 'review',
   description: 'Review every changed file in parallel, verify each finding adversarially, return one ranked report',
-  whenToUse: 'Before opening a PR or merging a branch. Usage: /harness:review [base-branch]  (default: main)',
+  whenToUse: 'Before opening a PR or merging a branch. Usage: /harness:review [base-branch]  (default: main), or /harness:review {"base": "main", "focus": "..."} to set options',
   phases: [
     { title: 'Scope', detail: 'List the files changed against the base branch' },
     { title: 'Find', detail: 'One Sonnet reviewer per changed file' },
@@ -10,7 +10,20 @@ export const meta = {
   ],
 }
 
-const input = typeof args === 'string' ? { base: args } : (args || {})
+// Accepts "main", or { base, maxFiles, focus, ... }. A string that is a JSON object is read as the
+// structured form, so the options survive being passed through a slash command as text.
+function parseArgs(a) {
+  // Claude passes the options as an object, as the JSON text, or now and then as that text JSON-encoded a
+  // second time ("\"{\\\"task\\\": ...}\""). Unwrap up to three layers so options are never silently lost.
+  for (let i = 0; i < 3 && typeof a === 'string'; i++) {
+    const t = a.trim()
+    if (!t.startsWith('{') && !t.startsWith('"')) break
+    try { a = JSON.parse(t) } catch { break }
+  }
+  if (a && typeof a === 'object' && !Array.isArray(a)) return a
+  return { base: String(a || '').trim() }
+}
+const input = parseArgs(args)
 const BASE = String(input.base || 'main').trim()
 const MAX_FILES = Math.max(1, Math.min(Number(input.maxFiles) || 40, 200))
 const FOCUS = String(input.focus || '').trim()
@@ -20,6 +33,8 @@ const MODELS = {
   verify: input.verifyModel || 'claude-opus-5-5',
   rank: input.rankModel || 'claude-opus-5-5',
 }
+// Verifiers are most of a run's cost; verifyEffort trades some scrutiny for money.
+const VERIFY_EFFORT = ['low', 'medium', 'high', 'xhigh', 'max'].includes(input.verifyEffort) ? input.verifyEffort : 'high'
 
 const FILES = {
   type: 'object',
@@ -116,7 +131,7 @@ FINDING: ${fi.title} (${fi.severity}) at ${fi.line}
 EVIDENCE: ${fi.evidence}
 PROPOSED FIX: ${fi.fix}
 
-Read the code at that location (git diff ${scope.base_ref}...HEAD -- "${f}", then the file), trace callers with Grep, and run a targeted test or a quick script when that settles it. Confirm only a real defect relative to how the code is used; a preference, a hypothetical that the code already guards against, or an issue that exists identically on ${scope.base_ref} and is unrelated to this change is NOT confirmed. Set the severity you would assign.`, { phase: 'Verify', model: MODELS.verify, effort: 'high', agentType: 'harness:refuter', schema: VERIFY, label: `${f}: ${fi.title.slice(0, 50)}` })))
+Read the code at that location (git diff ${scope.base_ref}...HEAD -- "${f}", then the file), trace callers with Grep, and run a targeted test or a quick script when that settles it. Confirm only a real defect relative to how the code is used; a preference, a hypothetical that the code already guards against, or an issue that exists identically on ${scope.base_ref} and is unrelated to this change is NOT confirmed. Set the severity you would assign.`, { phase: 'Verify', model: MODELS.verify, effort: VERIFY_EFFORT, agentType: 'harness:refuter', schema: VERIFY, label: `${f}: ${fi.title.slice(0, 50)}` })))
     return found.findings
       .map((fi, i) => ({ ...fi, file: f, verdict: verdicts[i] }))
       .filter(x => x.verdict && x.verdict.confirmed)

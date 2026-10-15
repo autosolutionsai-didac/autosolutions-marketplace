@@ -1,7 +1,7 @@
 export const meta = {
   name: 'audit',
   description: 'Sweep a directory for one concern with cheap finders, verify every finding adversarially, report what survived',
-  whenToUse: 'Codebase-wide checks for a single concern: missing auth checks, unhandled errors, injection risks, a deprecated API, dead code. Usage: /harness:audit <concern> in <path>',
+  whenToUse: 'Codebase-wide checks for a single concern: missing auth checks, unhandled errors, injection risks, a deprecated API, dead code. Usage: /harness:audit <concern> in <path>, or /harness:audit {"concern": "...", "path": "src"} to set options',
   phases: [
     { title: 'Scope', detail: 'Haiku lists the files worth looking at' },
     { title: 'Find', detail: 'One Sonnet finder per file' },
@@ -10,9 +10,18 @@ export const meta = {
   ],
 }
 
-// Accepts "missing auth checks in src/routes" or { concern, path, maxFiles }
+// Accepts "missing auth checks in src/routes" or { concern, path, maxFiles }. A string that is a JSON
+// object is read as the structured form, so the options survive being passed through a slash command as text.
 const input = typeof args === 'string' ? parseFreeform(args) : (args || {})
 function parseFreeform(s) {
+  // Claude passes the options as the JSON text or, now and then, as that text JSON-encoded a second time.
+  // Unwrap up to three layers so options are never silently lost.
+  for (let i = 0; i < 3 && typeof s === 'string'; i++) {
+    const t = s.trim()
+    if (!t.startsWith('{') && !t.startsWith('"')) break
+    try { s = JSON.parse(t) } catch { break }
+  }
+  if (s && typeof s === 'object' && !Array.isArray(s)) return s
   const m = String(s).match(/^(.*?)\s+in\s+(\S+)\s*$/i)
   return m ? { concern: m[1], path: m[2] } : { concern: String(s), path: '.' }
 }
@@ -26,6 +35,8 @@ const MODELS = {
   verify: input.verifyModel || 'claude-opus-5-5',
   rank: input.rankModel || 'claude-opus-5-5',
 }
+// Verifiers are most of a run's cost; verifyEffort trades some scrutiny for money.
+const VERIFY_EFFORT = ['low', 'medium', 'high', 'xhigh', 'max'].includes(input.verifyEffort) ? input.verifyEffort : 'high'
 
 const FILES = {
   type: 'object',
@@ -115,7 +126,7 @@ Read the file and the callers or callees you need (Grep). Report only concrete i
 FINDING: ${fi.title} at ${fi.line} (${fi.severity})
 EVIDENCE: ${fi.evidence}
 
-Read the code at that location and whatever guards or callers would make it a false positive. Run a targeted command when that settles it. Set real=true only with a specific reason.`, { phase: 'Verify', model: MODELS.verify, effort: 'high', agentType: 'harness:refuter', schema: VOTE, label: `${f}: ${fi.title.slice(0, 40)} #${n}` })))
+Read the code at that location and whatever guards or callers would make it a false positive. Run a targeted command when that settles it. Set real=true only with a specific reason.`, { phase: 'Verify', model: MODELS.verify, effort: VERIFY_EFFORT, agentType: 'harness:refuter', schema: VOTE, label: `${f}: ${fi.title.slice(0, 40)} #${n}` })))
         .then(votes => {
           const v = votes.filter(Boolean)
           const real = v.length > 0 && v.every(x => x.real)

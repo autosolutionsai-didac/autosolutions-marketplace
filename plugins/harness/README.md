@@ -31,7 +31,7 @@ Needs Claude Code 2.1.293+, Node 20+, git. Full guide with the optional modules:
 
 | Command | What it does |
 |---|---|
-| `/harness:ship <task>` | Plan, build units in parallel worktrees, refute each with three lenses, fix once, integrate, Fable gate |
+| `/harness:ship <task>` | Plan, build units in parallel worktrees, refute each with three lenses, fix once on Opus, integrate, Fable gate |
 | `/harness:review [base]` | One reviewer per changed file, every finding verified, one ranked report |
 | `/harness:audit <concern> in <path>` | Codebase-wide sweep with two-vote verification of every finding |
 | `/harness:judge [base]` | One-off Fable verdict on the current diff |
@@ -39,7 +39,7 @@ Needs Claude Code 2.1.293+, Node 20+, git. Full guide with the optional modules:
 | `/harness:gate on\|off\|codex\|status` | Expensive stop gates, per project, on demand |
 | `/harness:setup` | Checks, the Haiku override for the built-in Explore agent, optional modules |
 
-Plus two things that run on their own: a session note that teaches the orchestrator the protocol, and the **decision gate**, a 100 ms check (TypeSafe Jev or OpenAI Decisions, your choice, off until a key exists) that sends Claude back once when it claims completion without running anything.
+Plus two things that run on their own: a session note that teaches the orchestrator the protocol, and the **decision gate**, a quick check that sends Claude back once when it claims completion without running anything. It is off until you pick a backend: TypeSafe Jev or OpenAI Decisions with a paid key, or a free one (an open decision model on your machine, Haiku through the Claude Code login you already have, or plain rules). See [OPTIONAL-DECISION-GATE.md](docs/OPTIONAL-DECISION-GATE.md).
 
 ## Day to day
 
@@ -51,7 +51,7 @@ Plus two things that run on their own: a session note that teaches the orchestra
 
 ## Prices the design is based on
 
-Per million tokens, input / output, Anthropic list prices as of October 2026: Haiku 5.5 $0.10 / $0.50, Sonnet 5.5 $2 / $10, Opus 5.5 $4 / $20, Fable 5.1 $10 / $50. Haiku is forty times cheaper than Opus; most tokens in a coding task are reading, not thinking. Route by verifiability: cheap models for work you can check mechanically, expensive models for judgment.
+Per million tokens, input / output, Anthropic list prices as of October 2026: Haiku 5.5 $0.10 / $0.50, Sonnet 5.5 $2 / $10, Opus 5.5 $4 / $20, Fable 5.1 $10 / $50. Cache reads, most of an agentic coding bill: Haiku $0.01, Sonnet $0.10 (halved on October 7), Opus $0.20. Haiku is forty times cheaper than Opus; most tokens in a coding task are reading, not thinking. Route by verifiability: cheap models for work you can check mechanically, expensive models for judgment.
 
 ## Develop
 

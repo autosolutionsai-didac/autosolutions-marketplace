@@ -6,7 +6,7 @@ Once installed, you mostly keep working as before. Claude Code now knows about t
 
 | Command | What happens | When to use it |
 |---|---|---|
-| `/harness:ship <task>` | Opus plans and splits the task into independent units; Sonnet builds each one in its own git worktree, in parallel; three Opus refuters attack each unit; units that fail get one fix round; Opus merges the passing units into your branch and runs the full suite; Fable issues PASS or FAIL | Anything that touches several files or deserves more than one pass |
+| `/harness:ship <task>` | Opus plans and splits the task into independent units; Sonnet builds each one in its own git worktree, in parallel; three Opus refuters attack each unit; units that fail get one fix round, on Opus; Opus merges the passing units into your branch and runs the full suite; Fable issues PASS or FAIL | Anything that touches several files or deserves more than one pass |
 | `/harness:review [base]` | One Sonnet reviewer per changed file; every finding verified by an Opus refuter; one ranked report | Before a PR. Default base `main` |
 | `/harness:audit <concern> in <path>` | Haiku lists candidate files; Sonnet checks each; two Opus refuters vote on every finding; Opus writes the report | Codebase-wide questions: "missing auth checks in src/routes", "unhandled promise rejections in services/" |
 | `/harness:judge [base]` | One Fable verdict on the current diff, with the evidence gathered first | A one-off "would a senior engineer merge this?" |
@@ -49,12 +49,20 @@ A unit that failed is not merged. Its branch and worktree are kept so you can lo
 
 ## Arguments the workflows accept
 
-Natural language works ("ship the rate limiter, max 4 units, gate with claude-opus-5-5"). Claude turns it into structured arguments:
+Options are structured arguments. The reliable way to set them is a JSON object after the command:
 
 ```
-ship:    { task, maxUnits (default 6, max 12), integrate (default true), planModel, buildModel, refuteModel, gateModel }
-review:  { base (default main), maxFiles (default 40), focus, scopeModel, findModel, verifyModel, rankModel }
-audit:   { concern, path (default .), maxFiles (default 40), scopeModel, findModel, verifyModel, rankModel }
+/harness:ship {"task": "add the rate limiter", "maxUnits": 4, "gateModel": "claude-opus-5-5"}
+/harness:review {"base": "develop", "focus": "error handling"}
+/harness:audit {"concern": "missing auth checks", "path": "src/routes"}
+```
+
+Prose ("ship the rate limiter, max 4 units") works only when Claude converts it into an object before starting the workflow. When the text is passed through as-is, the whole string becomes the task (ship), the base branch (review) or the concern (audit), and the options are ignored. The accepted fields:
+
+```
+ship:    { task, maxUnits (default 6, max 12), integrate (default true), planModel, buildModel, fixModel (default claude-opus-5-5), refuteModel, gateModel, refuteEffort (default high), refuteLenses (default all of correctness, edges-and-regressions, verification) }
+review:  { base (default main), maxFiles (default 40), focus, scopeModel, findModel, verifyModel, rankModel, verifyEffort (default high) }
+audit:   { concern, path (default .), maxFiles (default 40), scopeModel, findModel, verifyModel, rankModel, verifyEffort (default high) }
 ```
 
 Set `integrate: false` on ship if you would rather merge the unit branches yourself.
@@ -86,7 +94,7 @@ Run `/tasks` while a subagent or workflow is running. Each row names the model t
 
 **A role runs on the wrong model.** `/tasks` shows what served it. Causes in order of likelihood: an organisation `availableModels` allowlist (Claude Code warns and substitutes); a provider other than the Anthropic API (Bedrock, Vertex, Foundry) where the pinned IDs differ, in which case copy the agents to `~/.claude/agents/` and use the `haiku`/`sonnet`/`opus` aliases; `CLAUDE_CODE_SUBAGENT_MODEL_FORCE=1` set somewhere, which overrides everything (remove it).
 
-**"Requires usage credits" on Fable.** Your plan bills Fable to usage credits. Either accept the prompt, or remap the alias: `"env": {"ANTHROPIC_DEFAULT_FABLE_MODEL": "claude-opus-5-5"}` in `~/.claude/settings.json` (`/harness:setup --judge-opus` does it). The judge, the ship gate and the Fable stop gate all follow the alias.
+**"Requires usage credits" on Fable.** Your plan bills Fable to usage credits. Either accept the prompt, or remap the alias: `"env": {"ANTHROPIC_DEFAULT_FABLE_MODEL": "claude-opus-5-5"}` in `~/.claude/settings.json` (`/harness:setup --judge-opus` does it). The judge and the ship gate follow the alias; for the Fable stop gate, run `/harness:gate off` and `/harness:gate on` after remapping, so the hook gets the new model.
 
 **Hooks show an error at the end of a turn.** Node is probably missing from the PATH that Claude Code sees. `node --version` in the same terminal; install Node 20+. The hooks fail open, so nothing else breaks.
 

@@ -10,7 +10,13 @@ try {
   const gateMode = (process.env.CLAUDE_PLUGIN_OPTION_DECISION_GATE || process.env.HARNESS_DECISION_GATE || 'auto').toLowerCase()
   const jev = hasKey('TYPESAFE_API_KEY', 'CLAUDE_PLUGIN_OPTION_TYPESAFE_API_KEY', 'OPENROUTER_API_KEY')
   const openai = hasKey('OPENAI_API_KEY', 'CLAUDE_PLUGIN_OPTION_OPENAI_API_KEY')
-  const gate = gateMode === 'off' ? 'off' : jev ? 'on (Jev)' : openai ? 'on (OpenAI Decisions)' : 'off (no key)'
+  const local = hasKey('HARNESS_LOCAL_URL', 'CLAUDE_PLUGIN_OPTION_LOCAL_DECISION_URL')
+  const pick = (v) => (typeof v === 'string' && v.trim() && !v.trim().startsWith('${') ? v.trim().toLowerCase() : '')
+  const forced = pick(process.env.HARNESS_DECISION_PROVIDER) || pick(process.env.CLAUDE_PLUGIN_OPTION_DECISION_PROVIDER)
+  const NAMES = { typesafe: 'Jev', openrouter: 'Jev via OpenRouter', openai: 'OpenAI Decisions', local: 'local decision server', 'claude-cli': 'Claude Haiku through your Claude Code login', heuristic: 'rules, no model' }
+  const gate = gateMode === 'off' ? 'off'
+    : forced && forced !== 'auto' ? (NAMES[forced] ? `on (${NAMES[forced]})` : `off (unknown provider ${forced})`)
+    : jev ? 'on (Jev)' : openai ? 'on (OpenAI Decisions)' : local ? 'on (local decision server)' : 'off (no backend configured)'
 
   const lines = [
     'AutoSolutions harness is active (plugin "harness"). Work as the orchestrator: keep planning and decisions in your own context, push search and bulk work to role subagents, and verify before you claim done.',

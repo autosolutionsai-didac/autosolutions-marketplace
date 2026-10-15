@@ -1,12 +1,12 @@
 export const meta = {
   name: 'ship',
-  description: 'Plan with Opus, build each unit with Sonnet in its own worktree, refute with Opus, integrate, gate with Fable',
-  whenToUse: 'A feature, fix or refactor that touches several files or deserves more than one pass. Usage: /harness:ship <what to build>',
+  description: 'Plan with Opus, build each unit with Sonnet in its own worktree, refute with Opus, fix refuted units with Opus, integrate, gate with Fable',
+  whenToUse: 'A feature, fix or refactor that touches several files or deserves more than one pass. Usage: /harness:ship <what to build>, or /harness:ship {"task": "...", "maxUnits": 4} to set options',
   phases: [
     { title: 'Plan', detail: 'Opus splits the task into independent units' },
     { title: 'Build', detail: 'Sonnet implements each unit in an isolated git worktree' },
     { title: 'Refute', detail: 'Three Opus skeptics try to break each unit' },
-    { title: 'Fix', detail: 'Sonnet fixes refuted units, then they are refuted again' },
+    { title: 'Fix', detail: 'Opus fixes refuted units, then they are refuted again' },
     { title: 'Integrate', detail: 'Opus merges passing units into your branch and runs the full suite' },
     { title: 'Gate', detail: 'Fable issues the ship verdict' },
   ],
@@ -15,9 +15,22 @@ export const meta = {
 // ---------------------------------------------------------------------------
 // Inputs
 //   /harness:ship add rate limiting to the public API
-//   or structured: { task, maxUnits, integrate, planModel, buildModel, refuteModel, gateModel }
+//   or structured: { task, maxUnits, integrate, planModel, buildModel, fixModel, refuteModel, gateModel }
+//   A string that is a JSON object is read as the structured form, so the options survive
+//   being passed through a slash command as text.
 // ---------------------------------------------------------------------------
-const input = typeof args === 'string' ? { task: args } : (args || {})
+function parseArgs(a) {
+  // Claude passes the options as an object, as the JSON text, or now and then as that text JSON-encoded a
+  // second time ("\"{\\\"task\\\": ...}\""). Unwrap up to three layers so options are never silently lost.
+  for (let i = 0; i < 3 && typeof a === 'string'; i++) {
+    const t = a.trim()
+    if (!t.startsWith('{') && !t.startsWith('"')) break
+    try { a = JSON.parse(t) } catch { break }
+  }
+  if (a && typeof a === 'object' && !Array.isArray(a)) return a
+  return { task: String(a || '').trim() }
+}
+const input = parseArgs(args)
 const task = String(input.task || '').trim()
 if (!task) throw new Error('Describe the task: /harness:ship <what to build>')
 
@@ -26,9 +39,16 @@ const INTEGRATE = input.integrate !== false
 const MODELS = {
   plan: input.planModel || 'claude-opus-5-5',
   build: input.buildModel || 'claude-sonnet-5-5',
+  // A refuted unit gets one more attempt before it is dropped, and it has already shown it is
+  // harder than its spec suggested, so the retry runs on the stronger model. Fixes only run for
+  // refuted units, so this costs little next to the three refuters every unit gets.
+  fix: input.fixModel || 'claude-opus-5-5',
   refute: input.refuteModel || 'claude-opus-5-5',
   gate: input.gateModel || 'fable',
 }
+const EFFORTS = ['low', 'medium', 'high', 'xhigh', 'max']
+// Refuters are most of a ship run's cost; refuteEffort and refuteLenses trade some scrutiny for money.
+const REFUTE_EFFORT = EFFORTS.includes(input.refuteEffort) ? input.refuteEffort : 'high'
 
 // ---------------------------------------------------------------------------
 // Schemas: every stage returns typed data, never prose, so the script can branch
@@ -140,7 +160,7 @@ Do this:
 1. Explore the repository enough to understand where the change lands. Use Glob, Grep and targeted Read. Stay focused.
 2. Record the current branch name as base_branch (run: git branch --show-current).
 3. Split the task into at most ${MAX_UNITS} INDEPENDENT units. Independent means a unit can be implemented, tested and merged without another unit's changes existing, and no two units edit the same file. If the task cannot be split safely, return exactly one unit.
-4. For each unit: a stable id (u1, u2, ...), a short title, a precise spec (what to change, where, how, following the repository's conventions), the files it will touch, and acceptance criteria a reviewer can check (tests that must pass, behaviours that must hold).
+4. For each unit: a stable id (u1, u2, ...), a short title, a precise spec (what to change, where, how, following the repository's conventions), the files it will touch, and acceptance criteria a reviewer can check (tests that must pass, behaviours that must hold). When the task states a rule, the criteria say which inputs the changed code accepts and that the rule holds for all of them, not only for the task's examples. Find that range from the code's types, validation and callers; where the change adds new inputs, set explicit bounds and say how values outside them are rejected, rather than requiring every value to be accepted. Name the cases the examples leave out that apply here: boundaries, zero, non-integers, negatives, very large or empty values.
 5. In shared_context, write the facts every builder needs: conventions, how to run the tests, how to run the type checker or linter, gotchas you found.
 
 Do not implement anything.`
@@ -160,6 +180,8 @@ ${u.acceptance.map(a => `- ${a}`).join('\n')}
 
 SHARED CONTEXT FROM THE PLANNER
 ${shared}
+
+Make the change hold for every input the code accepts, not only the examples in the spec, and test at least one case beyond them.
 
 When done: run the relevant checks, commit your work on the current branch with a clear message, then report. Fill unit_id with "${u.id}", branch with the output of "git branch --show-current", worktree_path with the output of "git rev-parse --show-toplevel", and checks with exactly what you ran and whether it passed. Never claim a check passed that you did not run.`
 
@@ -224,21 +246,24 @@ ${results.filter(r => r.status === 'passed').flatMap(r => r.refutation.votes.fil
 INTEGRATION
 ${integration ? `merged: ${integration.merged.join(', ') || 'none'}; skipped: ${integration.skipped.join(', ') || 'none'}; conflicts: ${(integration.conflicts || []).join('; ') || 'none'}\nchecks: ${integration.checks.commands.join('; ') || 'none'} -> ran=${integration.checks.ran}, passed=${integration.checks.passed}\n${integration.summary}` : 'Integration was skipped; passing units remain on their worktree branches.'}
 
-The integrated change is on branch ${base} in your current directory (git log, git diff ${base}@{1}..${base} or git show for the merge commits). Start from the diff and the evidence above. Re-run only the decisive check. FAIL if the request is not fully met, if something that worked is now broken, or if a claim that matters cannot be verified. List blocking issues with evidence and what must change; list advisories separately; list what you verified yourself.`
+The integrated change is on branch ${base} in your current directory (git log, git diff ${base}@{1}..${base} or git show for the merge commits). Start from the diff and the evidence above. Re-run only the decisive check, and when the request states a rule, try it on a few inputs the code accepts beyond the request's examples (boundaries, non-integers, extremes). FAIL if the request is not fully met, if something that worked is now broken, or if a claim that matters cannot be verified. List blocking issues with evidence and what must change; list advisories separately; list what you verified yourself.`
 
 // ---------------------------------------------------------------------------
 // Stages
 // ---------------------------------------------------------------------------
-const LENSES = [
-  ['correctness', 'Does the code do what the spec says for real inputs? Trace the logic and execute it where you can.'],
+const ALL_LENSES = [
+  ['correctness', 'Does the code do what the spec says for every input it accepts, not only the examples in the spec? Find the accepted range from the types, the validation and the callers, and test the rule across it: boundaries, zero, non-integers, negatives, very large or empty values. Where the spec states a rule, compare the code with a simple independent reference over many inputs (a quick loop) when that is cheap. Trace the logic and execute it.'],
   ['edges-and-regressions', 'Hunt edge cases, error paths, concurrency, and existing callers or tests this change breaks.'],
   ['verification', 'Did the builder actually verify this? Re-run the claimed checks and look for acceptance criteria with no test behind them.'],
 ]
+// refuteLenses names the lenses to run (default: all three). With two, a unit passes only if neither refutes it.
+const LENSES = Array.isArray(input.refuteLenses) && input.refuteLenses.length ? ALL_LENSES.filter(([name]) => input.refuteLenses.includes(name)) : ALL_LENSES
+if (!LENSES.length) throw new Error(`refuteLenses must name at least one of: ${ALL_LENSES.map(([n]) => n).join(', ')}`)
 
 const refute = async (u, build) => {
   const votes = (await parallel(LENSES.map(([lens, focus]) => () =>
     agent(refutePrompt(u, build, lens, focus), {
-      phase: 'Refute', model: MODELS.refute, effort: 'high', agentType: 'harness:refuter', schema: VERDICT, label: `${u.id} ${lens}`,
+      phase: 'Refute', model: MODELS.refute, effort: REFUTE_EFFORT, agentType: 'harness:refuter', schema: VERDICT, label: `${u.id} ${lens}`,
     })))).filter(Boolean)
   const refutedCount = votes.filter(v => v.refuted).length
   // Majority rule: a unit passes when fewer than half of the reviewers who answered refuted it.
@@ -262,7 +287,7 @@ const results = (await pipeline(plan.units,
     if (first.passed) return { unit: u, build, refutation: first, status: 'passed' }
     log(`${u.id} refuted by ${first.refutedCount}/${first.votes.length}, fixing once`)
     const fixed = await agent(fixPrompt(u, build, first), {
-      phase: 'Fix', model: MODELS.build, effort: 'medium', agentType: 'harness:builder', schema: BUILD, label: `${u.id} fix`,
+      phase: 'Fix', model: MODELS.fix, effort: 'medium', agentType: 'harness:builder', schema: BUILD, label: `${u.id} fix`,
     })
     if (!fixed) return { unit: u, build, refutation: first, status: 'failed' }
     const second = await refute(u, fixed)

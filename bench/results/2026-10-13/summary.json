@@ -1,0 +1,950 @@
+{
+  "labels": [
+    "2026-10-13"
+  ],
+  "generatedFrom": 24,
+  "totals": {
+    "native-opus-xhigh": {
+      "runs": 5,
+      "successes": 5,
+      "successRate": 1,
+      "complete": 5,
+      "wallSec": 1232.318,
+      "costUSD": 4.1015852,
+      "tokens": 2922962,
+      "output": 90485,
+      "fresh": 322748,
+      "costPerSuccess": 0.8203170399999999,
+      "byModel": {
+        "claude-opus-5-5": {
+          "tokens": 2841455,
+          "output": 83101,
+          "costUSD": 3.8933074000000003
+        },
+        "claude-opus-4-8": {
+          "tokens": 34004,
+          "output": 5325,
+          "costUSD": 0.1753845
+        }
+      }
+    },
+    "harness-sonnet-builders": {
+      "runs": 5,
+      "successes": 5,
+      "successRate": 1,
+      "complete": 5,
+      "wallSec": 2479.295,
+      "costUSD": 10.879892705000003,
+      "tokens": 6629300,
+      "output": 246140,
+      "fresh": 1359818,
+      "costPerSuccess": 2.1759785410000005,
+      "byModel": {
+        "claude-sonnet-5-5": {
+          "tokens": 1606755,
+          "output": 43634,
+          "costUSD": 1.1048093
+        },
+        "claude-opus-5-5": {
+          "tokens": 4816197,
+          "output": 189601,
+          "costUSD": 9.021891800000004
+        },
+        "claude-haiku-5-5": {
+          "tokens": 34510,
+          "output": 1612,
+          "costUSD": 0.003103005
+        },
+        "claude-opus-4-8": {
+          "tokens": 26002,
+          "output": 2619,
+          "costUSD": 0.08573225
+        },
+        "claude-fable-5-1": {
+          "tokens": 116899,
+          "output": 5789,
+          "costUSD": 0.63398075
+        }
+      }
+    },
+    "harness-opus-builders": {
+      "runs": 5,
+      "successes": 5,
+      "successRate": 1,
+      "complete": 5,
+      "wallSec": 1713.552,
+      "costUSD": 10.67492633,
+      "tokens": 5739099,
+      "output": 223547,
+      "fresh": 1221143,
+      "costPerSuccess": 2.134985266,
+      "byModel": {
+        "claude-sonnet-5-5": {
+          "tokens": 639196,
+          "output": 17757,
+          "costUSD": 0.49401069999999997
+        },
+        "claude-opus-5-5": {
+          "tokens": 4738835,
+          "output": 185659,
+          "costUSD": 9.0227446
+        },
+        "claude-opus-4-8": {
+          "tokens": 70420,
+          "output": 7517,
+          "costUSD": 0.2595375
+        },
+        "claude-haiku-5-5": {
+          "tokens": 40434,
+          "output": 2214,
+          "costUSD": 0.0021814800000000004
+        },
+        "claude-fable-5-1": {
+          "tokens": 168238,
+          "output": 8297,
+          "costUSD": 0.84590425
+        }
+      }
+    }
+  },
+  "roleTotals": {
+    "native-opus-xhigh": {
+      "main": {
+        "agents": 5,
+        "requests": 61,
+        "output": 88426,
+        "costUSD": 4.0686919,
+        "models": {
+          "claude-opus-5-5": 60,
+          "claude-opus-4-8": 1
+        }
+      }
+    },
+    "harness-sonnet-builders": {
+      "workflow:Find": {
+        "agents": 15,
+        "requests": 53,
+        "output": 18129,
+        "costUSD": 0.547486,
+        "models": {
+          "claude-sonnet-5-5": 53
+        }
+      },
+      "harness:refuter (Verify)": {
+        "agents": 46,
+        "requests": 167,
+        "output": 77595,
+        "costUSD": 3.06425665,
+        "models": {
+          "claude-opus-5-5": 164,
+          "claude-opus-4-8": 3
+        }
+      },
+      "harness:scout (Scope)": {
+        "agents": 1,
+        "requests": 2,
+        "output": 1108,
+        "costUSD": 0.00122817,
+        "models": {
+          "claude-haiku-5-5": 2
+        }
+      },
+      "workflow:Rank": {
+        "agents": 2,
+        "requests": 2,
+        "output": 10368,
+        "costUSD": 0.497946,
+        "models": {
+          "claude-opus-5-5": 2
+        }
+      },
+      "main": {
+        "agents": 5,
+        "requests": 38,
+        "output": 24252,
+        "costUSD": 1.3726238,
+        "models": {
+          "claude-opus-5-5": 38
+        }
+      },
+      "harness:refuter (Refute)": {
+        "agents": 21,
+        "requests": 107,
+        "output": 61943,
+        "costUSD": 3.3086196,
+        "models": {
+          "claude-opus-5-5": 107
+        }
+      },
+      "harness:builder (Fix)": {
+        "agents": 2,
+        "requests": 13,
+        "output": 5752,
+        "costUSD": 0.2730914,
+        "models": {
+          "claude-opus-5-5": 13
+        }
+      },
+      "harness:builder (Build)": {
+        "agents": 5,
+        "requests": 41,
+        "output": 25505,
+        "costUSD": 0.5573233,
+        "models": {
+          "claude-sonnet-5-5": 41
+        }
+      },
+      "workflow:Integrate": {
+        "agents": 2,
+        "requests": 7,
+        "output": 2481,
+        "costUSD": 0.1813428,
+        "models": {
+          "claude-opus-5-5": 7
+        }
+      },
+      "workflow:Plan": {
+        "agents": 2,
+        "requests": 8,
+        "output": 9829,
+        "costUSD": 0.4097438,
+        "models": {
+          "claude-opus-5-5": 8
+        }
+      },
+      "harness:judge (Gate)": {
+        "agents": 2,
+        "requests": 11,
+        "output": 5789,
+        "costUSD": 0.63398075,
+        "models": {
+          "claude-fable-5-1": 11
+        }
+      },
+      "workflow:Scope": {
+        "agents": 1,
+        "requests": 2,
+        "output": 504,
+        "costUSD": 0.001874835,
+        "models": {
+          "claude-haiku-5-5": 2
+        }
+      }
+    },
+    "harness-opus-builders": {
+      "workflow:Find": {
+        "agents": 15,
+        "requests": 48,
+        "output": 17757,
+        "costUSD": 0.49401069999999997,
+        "models": {
+          "claude-sonnet-5-5": 48
+        }
+      },
+      "harness:refuter (Verify)": {
+        "agents": 50,
+        "requests": 181,
+        "output": 90159,
+        "costUSD": 3.4423995000000005,
+        "models": {
+          "claude-opus-5-5": 173,
+          "claude-opus-4-8": 8
+        }
+      },
+      "harness:scout (Scope)": {
+        "agents": 1,
+        "requests": 3,
+        "output": 1440,
+        "costUSD": 0.0010776750000000002,
+        "models": {
+          "claude-haiku-5-5": 3
+        }
+      },
+      "workflow:Rank": {
+        "agents": 2,
+        "requests": 3,
+        "output": 11994,
+        "costUSD": 0.5052002,
+        "models": {
+          "claude-opus-5-5": 3
+        }
+      },
+      "main": {
+        "agents": 5,
+        "requests": 38,
+        "output": 23671,
+        "costUSD": 1.8747178,
+        "models": {
+          "claude-opus-5-5": 38
+        }
+      },
+      "harness:judge (Gate)": {
+        "agents": 2,
+        "requests": 12,
+        "output": 8297,
+        "costUSD": 0.84590425,
+        "models": {
+          "claude-fable-5-1": 12
+        }
+      },
+      "harness:refuter (Refute)": {
+        "agents": 15,
+        "requests": 64,
+        "output": 30567,
+        "costUSD": 1.8177572,
+        "models": {
+          "claude-opus-5-5": 64
+        }
+      },
+      "harness:builder (Build)": {
+        "agents": 5,
+        "requests": 31,
+        "output": 22319,
+        "costUSD": 1.051473,
+        "models": {
+          "claude-opus-5-5": 31
+        }
+      },
+      "workflow:Plan": {
+        "agents": 2,
+        "requests": 7,
+        "output": 11908,
+        "costUSD": 0.4101912,
+        "models": {
+          "claude-opus-5-5": 7
+        }
+      },
+      "workflow:Integrate": {
+        "agents": 2,
+        "requests": 7,
+        "output": 2558,
+        "costUSD": 0.1805432,
+        "models": {
+          "claude-opus-5-5": 7
+        }
+      },
+      "workflow:Scope": {
+        "agents": 1,
+        "requests": 2,
+        "output": 774,
+        "costUSD": 0.001103805,
+        "models": {
+          "claude-haiku-5-5": 2
+        }
+      }
+    }
+  },
+  "cells": {
+    "rate-limit": {
+      "native-opus-xhigh": {
+        "n": 1,
+        "successRate": 1,
+        "completeRate": 1,
+        "wallSec": 425.24,
+        "costUSD": 1.1919382,
+        "tokens": 823950,
+        "output": 33334,
+        "fresh": 80419,
+        "recall": null,
+        "extras": null,
+        "validExtras": null,
+        "duplicates": null,
+        "findings": null,
+        "hiddenPass": 1,
+        "timeouts": 0,
+        "errors": 0,
+        "contaminated": 0
+      },
+      "harness-sonnet-builders": {
+        "n": 1,
+        "successRate": 1,
+        "completeRate": 1,
+        "wallSec": 875.853,
+        "costUSD": 2.34152285,
+        "tokens": 1443583,
+        "output": 52410,
+        "fresh": 278071,
+        "recall": null,
+        "extras": null,
+        "validExtras": null,
+        "duplicates": null,
+        "findings": null,
+        "hiddenPass": 1,
+        "timeouts": 0,
+        "errors": 0,
+        "contaminated": 0
+      },
+      "harness-opus-builders": {
+        "n": 1,
+        "successRate": 1,
+        "completeRate": 1,
+        "wallSec": 283.58,
+        "costUSD": 2.3219441500000007,
+        "tokens": 1096053,
+        "output": 42835,
+        "fresh": 257928,
+        "recall": null,
+        "extras": null,
+        "validExtras": null,
+        "duplicates": null,
+        "findings": null,
+        "hiddenPass": 1,
+        "timeouts": 0,
+        "errors": 0,
+        "contaminated": 0
+      }
+    },
+    "bugfix-trio": {
+      "native-opus-xhigh": {
+        "n": 1,
+        "successRate": 1,
+        "completeRate": 1,
+        "wallSec": 439.262,
+        "costUSD": 0.9195621999999999,
+        "tokens": 703398,
+        "output": 22260,
+        "fresh": 65627,
+        "recall": null,
+        "extras": null,
+        "validExtras": null,
+        "duplicates": null,
+        "findings": null,
+        "hiddenPass": 1,
+        "timeouts": 0,
+        "errors": 0,
+        "contaminated": 0
+      },
+      "harness-sonnet-builders": {
+        "n": 1,
+        "successRate": 1,
+        "completeRate": 1,
+        "wallSec": 782.165,
+        "costUSD": 3.315643800000001,
+        "tokens": 2170529,
+        "output": 63809,
+        "fresh": 414022,
+        "recall": null,
+        "extras": null,
+        "validExtras": null,
+        "duplicates": null,
+        "findings": null,
+        "hiddenPass": 1,
+        "timeouts": 0,
+        "errors": 0,
+        "contaminated": 0
+      },
+      "harness-opus-builders": {
+        "n": 1,
+        "successRate": 1,
+        "completeRate": 1,
+        "wallSec": 460.086,
+        "costUSD": 2.2639430999999997,
+        "tokens": 1044778,
+        "output": 36537,
+        "fresh": 243941,
+        "recall": null,
+        "extras": null,
+        "validExtras": null,
+        "duplicates": null,
+        "findings": null,
+        "hiddenPass": 1,
+        "timeouts": 0,
+        "errors": 0,
+        "contaminated": 0
+      }
+    },
+    "price-refresh": {
+      "native-opus-xhigh": {
+        "n": 1,
+        "successRate": 1,
+        "completeRate": 1,
+        "wallSec": 86.763,
+        "costUSD": 0.8951627000000002,
+        "tokens": 775479,
+        "output": 10367,
+        "fresh": 95094,
+        "recall": null,
+        "extras": null,
+        "validExtras": null,
+        "duplicates": null,
+        "findings": null,
+        "hiddenPass": 1,
+        "timeouts": 0,
+        "errors": 0,
+        "contaminated": 0
+      },
+      "harness-sonnet-builders": {
+        "n": 1,
+        "successRate": 1,
+        "completeRate": 1,
+        "wallSec": 65.25,
+        "costUSD": 0.2971188,
+        "tokens": 262757,
+        "output": 7922,
+        "fresh": 34939,
+        "recall": null,
+        "extras": null,
+        "validExtras": null,
+        "duplicates": null,
+        "findings": null,
+        "hiddenPass": 1,
+        "timeouts": 0,
+        "errors": 0,
+        "contaminated": 0
+      },
+      "harness-opus-builders": {
+        "n": 1,
+        "successRate": 1,
+        "completeRate": 1,
+        "wallSec": 74.447,
+        "costUSD": 0.7896365999999998,
+        "tokens": 659070,
+        "output": 8843,
+        "fresh": 87110,
+        "recall": null,
+        "extras": null,
+        "validExtras": null,
+        "duplicates": null,
+        "findings": null,
+        "hiddenPass": 1,
+        "timeouts": 0,
+        "errors": 0,
+        "contaminated": 0
+      }
+    },
+    "review-import": {
+      "native-opus-xhigh": {
+        "n": 1,
+        "successRate": 1,
+        "completeRate": 1,
+        "wallSec": 90.10799999999999,
+        "costUSD": 0.4065834,
+        "tokens": 292081,
+        "output": 8686,
+        "fresh": 31284,
+        "recall": 1,
+        "extras": 0,
+        "validExtras": 6,
+        "duplicates": 0,
+        "findings": 10,
+        "hiddenPass": null,
+        "timeouts": 0,
+        "errors": 0,
+        "contaminated": 0
+      },
+      "harness-sonnet-builders": {
+        "n": 1,
+        "successRate": 1,
+        "completeRate": 1,
+        "wallSec": 266.982,
+        "costUSD": 1.865291035,
+        "tokens": 901952,
+        "output": 46926,
+        "fresh": 245844,
+        "recall": 1,
+        "extras": 1,
+        "validExtras": 2,
+        "duplicates": 0,
+        "findings": 7,
+        "hiddenPass": null,
+        "timeouts": 0,
+        "errors": 0,
+        "contaminated": 0
+      },
+      "harness-opus-builders": {
+        "n": 1,
+        "successRate": 1,
+        "completeRate": 1,
+        "wallSec": 318.628,
+        "costUSD": 2.0752602050000006,
+        "tokens": 1026078,
+        "output": 53515,
+        "fresh": 251349,
+        "recall": 1,
+        "extras": 0,
+        "validExtras": 3,
+        "duplicates": 0,
+        "findings": 7,
+        "hiddenPass": null,
+        "timeouts": 0,
+        "errors": 0,
+        "contaminated": 0
+      }
+    },
+    "audit-input": {
+      "native-opus-xhigh": {
+        "n": 1,
+        "successRate": 1,
+        "completeRate": 1,
+        "wallSec": 190.945,
+        "costUSD": 0.6883387,
+        "tokens": 328054,
+        "output": 15838,
+        "fresh": 50324,
+        "recall": 1,
+        "extras": 1,
+        "validExtras": 3,
+        "duplicates": 0,
+        "findings": 8,
+        "hiddenPass": null,
+        "timeouts": 0,
+        "errors": 0,
+        "contaminated": 0
+      },
+      "harness-sonnet-builders": {
+        "n": 1,
+        "successRate": 1,
+        "completeRate": 1,
+        "wallSec": 489.045,
+        "costUSD": 3.060316220000001,
+        "tokens": 1850479,
+        "output": 75073,
+        "fresh": 386942,
+        "recall": 1,
+        "extras": 3,
+        "validExtras": 1,
+        "duplicates": 1,
+        "findings": 9,
+        "hiddenPass": null,
+        "timeouts": 0,
+        "errors": 0,
+        "contaminated": 0
+      },
+      "harness-opus-builders": {
+        "n": 1,
+        "successRate": 1,
+        "completeRate": 1,
+        "wallSec": 576.811,
+        "costUSD": 3.2241422749999993,
+        "tokens": 1913120,
+        "output": 81817,
+        "fresh": 380815,
+        "recall": 1,
+        "extras": 2,
+        "validExtras": 2,
+        "duplicates": 0,
+        "findings": 8,
+        "hiddenPass": null,
+        "timeouts": 0,
+        "errors": 0,
+        "contaminated": 0
+      }
+    }
+  },
+  "ship": [
+    {
+      "team": "harness-opus-builders",
+      "task": "bugfix-trio",
+      "runs": 1,
+      "verdict": "PASS",
+      "gateVerdict": "PASS",
+      "units": 3,
+      "unitsPassed": 3,
+      "unitsFailed": 0,
+      "fixRounds": 0,
+      "unitStatuses": [
+        "u1:passed:0/3",
+        "u2:passed:0/3",
+        "u3:passed:0/3"
+      ],
+      "merged": [
+        "worktree-wf_3698b2a1-935-2",
+        "worktree-wf_3698b2a1-935-3",
+        "worktree-wf_3698b2a1-935-4"
+      ],
+      "integrationChecks": {
+        "ran": true,
+        "passed": true,
+        "commands": [
+          "npm test (node --test)"
+        ],
+        "notes": "Baseline on main before merging: 16/16 tests passed. After all three merges: 22/22 passed. The repo has no type check or lint configured; package.json defines only the test script and there is no eslint or tsconfig. Before merging, the only untracked path was .claude/, which holds the worktrees. It was left untouched and nothing was stashed or discarded."
+      },
+      "firstPassRefutedApprox": 0,
+      "success": true
+    },
+    {
+      "team": "harness-opus-builders",
+      "task": "rate-limit",
+      "runs": 1,
+      "verdict": "PASS",
+      "gateVerdict": "PASS",
+      "units": 2,
+      "unitsPassed": 2,
+      "unitsFailed": 0,
+      "fixRounds": 0,
+      "unitStatuses": [
+        "u1:passed:0/3",
+        "u2:passed:0/3"
+      ],
+      "merged": [
+        "worktree-wf_90e28ba2-754-2",
+        "worktree-wf_90e28ba2-754-3"
+      ],
+      "integrationChecks": {
+        "ran": true,
+        "passed": true,
+        "commands": [
+          "npm test"
+        ],
+        "notes": "npm test (node --test) passed all 27 tests with 0 failures. The repo has no type check or lint: package.json defines only a test script, and there is no eslint or tsconfig config. Before merging, main was clean apart from the untracked .claude/ directory, which holds the harness worktrees. I left it alone. Nothing was pushed."
+      },
+      "firstPassRefutedApprox": 0,
+      "success": true
+    },
+    {
+      "team": "harness-sonnet-builders",
+      "task": "bugfix-trio",
+      "runs": 1,
+      "verdict": "PASS",
+      "gateVerdict": "PASS",
+      "units": 3,
+      "unitsPassed": 3,
+      "unitsFailed": 0,
+      "fixRounds": 2,
+      "unitStatuses": [
+        "u1:passed:0/3",
+        "u2:passed:0/3",
+        "u3:passed:0/3"
+      ],
+      "merged": [
+        "worktree-wf_27de23eb-1d6-2",
+        "worktree-wf_27de23eb-1d6-3",
+        "worktree-wf_27de23eb-1d6-4"
+      ],
+      "integrationChecks": {
+        "ran": true,
+        "passed": true,
+        "commands": [
+          "npm test"
+        ],
+        "notes": "The full node --test suite passed: 24 of 24 tests. The repo has no lint or type-check setup (package.json only has a test script, and there is no eslint or tsconfig), so nothing else was run. The working tree was clean before merging apart from the untracked .claude/ directory, which holds the harness worktrees. I left it alone. Nothing was pushed."
+      },
+      "firstPassRefutedApprox": 2,
+      "success": true
+    },
+    {
+      "team": "harness-sonnet-builders",
+      "task": "rate-limit",
+      "runs": 1,
+      "verdict": "PASS",
+      "gateVerdict": "PASS",
+      "units": 2,
+      "unitsPassed": 2,
+      "unitsFailed": 0,
+      "fixRounds": 0,
+      "unitStatuses": [
+        "u1:passed:1/3",
+        "u2:passed:0/3"
+      ],
+      "merged": [
+        "worktree-wf_76b82b76-809-2",
+        "worktree-wf_76b82b76-809-3"
+      ],
+      "integrationChecks": {
+        "ran": true,
+        "passed": true,
+        "commands": [
+          "npm test (node --test)"
+        ],
+        "notes": "33 of 33 tests pass on main after both merges. The repo has no lint or type check configured; package.json only defines 'test'. Before merging, main was clean apart from the untracked .claude/ directory (the worktrees), which was left alone. Both merges were clean --no-ff merges with no conflicts. Nothing was pushed."
+      },
+      "firstPassRefutedApprox": 0,
+      "success": true
+    }
+  ],
+  "checks": [
+    {
+      "task": "check-decision-gate",
+      "pass": true,
+      "wallSec": 12.657,
+      "costUSD": 0.1016492,
+      "details": {
+        "gateCalls": 1,
+        "calls": [
+          {
+            "path": "/v1/systemone",
+            "authorized": true,
+            "final_message": "Done.",
+            "tests_run": [],
+            "answers": {
+              "claims_done": 0.95,
+              "cites_verification": 0.05,
+              "unresolved_problem": 0.05,
+              "deferred_to_user": 0.05
+            }
+          }
+        ],
+        "stopBlocks": [
+          {
+            "turn": "turn-1.stream.jsonl",
+            "hook": "Stop",
+            "output": "[decision-gate] provider=typesafe probs={\"claims_done\":0.95,\"cites_verification\":0.05,\"unresolved_problem\":0.05,\"deferred_to_user\":0.05} tests_run=0\n{\"decision\":\"block\",\"reason\":\"Decision gate (typesafe): you report the work as done but no test, build or check command ran this turn and the message cites no verification (p_done=0.95, p_verified=0.05). Before finishing: run the relevant tests or checks for the files you changed (see git status), fix anything that fails, resolve or explicitly scope out any open item, and end with a two-line verification summary (what you ran, what it showed). If "
+          }
+        ],
+        "testCommandsRun": [
+          {
+            "turn": "turn-1.stream.jsonl",
+            "command": "npm test 2>&1 | tail -15"
+          }
+        ],
+        "finalMessage": "Done.\n\nI ran `npm test` (node --test) after the edit; it showed 16 tests, 16 passing and 0 failing.\nThe only change in the diff is the new comment line above `formatUSD` in `src/money.js`."
+      }
+    },
+    {
+      "task": "check-fable-gate",
+      "pass": false,
+      "wallSec": 28.763999999999996,
+      "costUSD": 0.1642076,
+      "details": {
+        "installedInSettingsLocal": true,
+        "fableUsage": null,
+        "stopHooksStarted": 2,
+        "stopBlocks": [],
+        "hooks": {
+          "SessionStart:started": 2,
+          "SessionStart:success": 2,
+          "Stop:started": 2,
+          "Stop:success": 2
+        }
+      }
+    },
+    {
+      "task": "check-fable-gate",
+      "pass": true,
+      "wallSec": 86.028,
+      "costUSD": 0.827117,
+      "details": {
+        "installedInSettingsLocal": true,
+        "fableUsage": {
+          "inputTokens": 132,
+          "outputTokens": 2445,
+          "cacheReadInputTokens": 48700,
+          "cacheCreationInputTokens": 39842,
+          "thinkingTokens": 746,
+          "webSearchRequests": 0,
+          "costUSD": 0.63377
+        },
+        "stopHooksStarted": 2,
+        "stopBlocks": [],
+        "hooks": {
+          "SessionStart:started": 2,
+          "SessionStart:success": 2,
+          "Stop:started": 2,
+          "Stop:success": 2
+        }
+      }
+    },
+    {
+      "task": "check-gate-claude-cli",
+      "pass": true,
+      "wallSec": 16.417,
+      "costUSD": 0.10302979999999999,
+      "details": {
+        "provider": "claude-cli",
+        "blocks": [
+          "[decision-gate] provider=claude-cli probs={\"claims_done\":0.9,\"cites_verification\":0.02,\"unresolved_problem\":0.05,\"deferred_to_user\":0.05} tests_run=0\n{\"decision\":\"block\",\"reason\":\"Decision gate (claude-cli): you report the work as done but no test, build or check command ran this turn and the messag"
+        ],
+        "testCommandsRun": [
+          {
+            "turn": "turn-1.stream.jsonl",
+            "command": "npm test 2>&1 | tail -15"
+          }
+        ],
+        "finalMessage": "Done.\n\nI ran `node --check src/money.js` and `npm test`: the syntax check passed and all 16 tests passed.\n`git diff` shows a one-line change to `src/money.js`."
+      }
+    },
+    {
+      "task": "check-gate-heuristic",
+      "pass": true,
+      "wallSec": 14.41,
+      "costUSD": 0.09599540000000001,
+      "details": {
+        "provider": "heuristic",
+        "blocks": [
+          "[decision-gate] provider=heuristic probs={\"claims_done\":0.9,\"cites_verification\":0.1,\"unresolved_problem\":0.1,\"deferred_to_user\":0.1} tests_run=0\n{\"decision\":\"block\",\"reason\":\"Decision gate (heuristic): you report the work as done but no test, build or check command ran this turn and the message cit"
+        ],
+        "testCommandsRun": [
+          {
+            "turn": "turn-1.stream.jsonl",
+            "command": "git diff --stat && cat package.json 2>/dev/null; node --check src/money.js && echo SYNTAX_OK; (npm test --silent 2>&1 | tail -20) || true"
+          }
+        ],
+        "finalMessage": "Done.\n\nI ran `node --check src/money.js` and `npm test`. The syntax check passed, all 16 tests passed with 0 failures, and the diff is the one added comment line."
+      }
+    },
+    {
+      "task": "check-judge",
+      "pass": true,
+      "wallSec": 91.75,
+      "costUSD": 0.6187421000000001,
+      "details": {
+        "spawned": 1,
+        "servedBy": [
+          "claude-fable-5-1"
+        ],
+        "verdict": "FAIL",
+        "expectedVerdict": "FAIL (the branch has four seeded defects)",
+        "verdictCorrect": true
+      }
+    },
+    {
+      "task": "check-routing",
+      "pass": true,
+      "wallSec": 49.657,
+      "costUSD": 0.25514341999999995,
+      "details": {
+        "harness:scout": {
+          "spawned": 1,
+          "servedBy": [
+            "claude-haiku-5-5"
+          ],
+          "expected": "claude-haiku-5-5",
+          "ok": true
+        },
+        "harness:web-scout": {
+          "spawned": 1,
+          "servedBy": [
+            "claude-haiku-5-5"
+          ],
+          "expected": "claude-haiku-5-5",
+          "ok": true
+        },
+        "harness:refuter": {
+          "spawned": 1,
+          "servedBy": [
+            "claude-opus-5-5"
+          ],
+          "expected": "claude-opus-5-5",
+          "ok": true
+        }
+      }
+    },
+    {
+      "task": "check-second-opinion",
+      "pass": true,
+      "wallSec": 55.801,
+      "costUSD": 0.2776164,
+      "details": {
+        "mentionsKeyOrCodex": true,
+        "mcpToolCalled": true,
+        "toolUses": {
+          "Bash": 6,
+          "ToolSearch": 1,
+          "mcp__plugin_harness_openai-judge__gpt_review": 1
+        },
+        "finalMessage": "I couldn't get the GPT review. Codex isn't installed and the `openai-judge` server reported that `OPENAI_API_KEY` is not set. What follows is my own review only. It is not a second opinion from another model family.\n\n**To enable the GPT review**, do one of these, then rerun `/harness:second-opinion diff the bulk import endpoint`:\n- Export `OPENAI_API_KEY` in the shell you start Claude Code from, or fill in \"OpenAI API key\" in `/config`. Then run `/mcp` to reconnect.\n- Or install the Codex plugin"
+      }
+    },
+    {
+      "task": "check-setup",
+      "pass": true,
+      "wallSec": 73.769,
+      "costUSD": 0.3787946,
+      "details": {
+        "reportsVersionsAndStatus": true,
+        "finalMessage": "# /harness:setup report\n\nI didn't change any files. No flags were passed, so four of the steps below need your answer first.\n\n**1. Versions**\n- `OK` Claude Code 2.1.296, which meets the 2.1.293 minimum.\n- `OK` Node v22.22.0, which meets the 20+ minimum.\n- `OK` git 2.43.0 is installed, so worktrees are available for `/harness:ship`.\n\n**2. Roles**\n- `OK` `claude plugin validate` passed for harness 1.1.0.\n- `OK` All five roles are registered in this session: `harness:scout`, `harness:web-scout`, `harness:builder`, `harness:refuter`, `harness:judge`.\n- `OK` You're on the Anthropic API, not Bedrock, Vertex or Foundry, so the pinned model IDs will work. Scout and web-scout use Haiku 5.5, builder uses Sonnet 5.5, refuter uses Opus 5.5 and judge uses `fable`.\n- `WARN` There's no install record for"
+      }
+    }
+  ]
+}

@@ -4,3 +4,7 @@ node_modules/
 .env
 .env.*
 !.env.example
+
+# Wiring tests of the benchmark against the mock decision model: not results
+bench/results/wiring-*/
+!bench/results/*/progress.log

@@ -1,0 +1,108 @@
+diff --git a/README.md b/README.md
+index a7b0a40..d4de63c 100644
+--- a/README.md
++++ b/README.md
+@@ -14,12 +14,13 @@ npm test        # node --test
+ - `src/money.js`: amounts are integer cents. `applyDiscount` and `formatUSD` live here.
+ - `src/csv.js`: CSV rendering for invoice exports.
+ - `src/server.js`: the HTTP API.
++- `src/rate-limit.js`: fixed-window rate limiting per API key.
+ 
+ ## HTTP API
+ 
+ | Method and path | What it does |
+ |---|---|
+-| `GET /health` | `{"ok": true}` |
++| `GET /health` | `{"ok": true}`. Not rate limited. |
+ | `POST /events` | Records one usage event for the caller's API key (`x-api-key` header). Body: `{"model", "usage": {"inputTokens", "outputTokens", "cacheReadTokens", "cacheWriteTokens"}, "at"}`; `at` defaults to now. Events are always recorded under the caller's key. |
+ | `GET /invoices/:key` | The invoice for a key as JSON; `?format=csv` returns the invoice lines as CSV |
+ | `GET /docs/:name` | Files from `docs/` |
+@@ -28,3 +29,20 @@ npm test        # node --test
+ | `POST /admin/backup` | Writes a compressed copy of the data directory to `{"dest"}` |
+ 
+ Invoices: usage is costed per request at list price, summed per model, converted to cents, then the key's discount is applied.
++
++## Rate limiting
++
++Every request except `GET /health` is rate limited per API key. The limiter runs before routing and authentication, so requests that end in a 401 or 404 count too. The key is the `x-api-key` header; requests without one (or with an empty one) share the key `anonymous`.
++
++Limits use fixed windows. A key's window starts at its first request and lasts `windowMs`. The first `limit` requests in a window are allowed and the rest are rejected. The first request at or after the end of the window starts a new one. Configure it with `createServer({ rateLimit: { limit, windowMs } })`; the default is `{ limit: 60, windowMs: 60000 }`. Time comes from the server's `now` option.
++
++Every response to a limited request, allowed or rejected, has these headers:
++
++- `X-RateLimit-Limit`: the limit.
++- `X-RateLimit-Remaining`: requests still allowed in the current window after this one, never below 0.
++
++A rejected request gets status `429`, a `Retry-After` header with the whole number of seconds until the window ends (rounded up, at least 1), and the body `{"error": "rate_limited", "retryAfter": <the same number>}`.
++
++`GET /health` is never rejected, does not count toward any key's limit, and has no rate-limit headers.
++
++Counts are kept in memory, so they reset when the server restarts and are not shared between server processes.
+diff --git a/src/server.js b/src/server.js
+index 0393cdd..b222ad3 100644
+--- a/src/server.js
++++ b/src/server.js
+@@ -6,10 +6,14 @@ import { isAdmin } from './auth.js'
+ import { settings, updateSettings } from './config.js'
+ import { backup } from './backup.js'
+ import { serveDoc } from './static.js'
++import { createRateLimiter } from './rate-limit.js'
+ 
+ const CSV_COLUMNS = ['key', 'model', 'requests', 'inputTokens', 'outputTokens', 'cacheReadTokens', 'cacheWriteTokens', 'costMicro']
+ 
+-export function createServer({ ledger = new Ledger(), now = Date.now, dataDir = 'data' } = {}) {
++// options.rateLimit is { limit, windowMs }, 60 requests per 60 000 ms by default.
++export function createServer({ ledger = new Ledger(), now = Date.now, dataDir = 'data', rateLimit } = {}) {
++  const limiter = createRateLimiter({ ...rateLimit, now })
++
+   return http.createServer((req, res) => {
+     handle(req, res).catch((err) => {
+       if (err instanceof ValidationError || err instanceof SyntaxError) {
+@@ -20,11 +24,13 @@ export function createServer({ ledger = new Ledger(), now = Date.now, dataDir =
+   })
+ 
+   async function handle(req, res) {
++    // GET /health is answered before the rate limiter, so it is never limited or counted.
++    if (req.method === 'GET' && pathOf(req) === '/health') return send(res, 200, { ok: true })
++    if (rejectedByRateLimit(req, res)) return
++
+     const url = new URL(req.url, 'http://localhost')
+     const { pathname } = url
+ 
+-    if (req.method === 'GET' && pathname === '/health') return send(res, 200, { ok: true })
+-
+     if (req.method === 'POST' && pathname === '/events') {
+       const key = req.headers['x-api-key']
+       if (!key) return send(res, 401, { error: 'missing_api_key' })
+@@ -57,6 +63,27 @@ export function createServer({ ledger = new Ledger(), now = Date.now, dataDir =
+ 
+     send(res, 404, { error: 'not_found' })
+   }
++
++  // Runs before routing and authentication. Requests without an x-api-key share one key.
++  function rejectedByRateLimit(req, res) {
++    const { allowed, limit, remaining, retryAfter } = limiter.hit(req.headers['x-api-key'] || 'anonymous')
++    // setHeader, so the headers are kept by every response, including ones sent with writeHead.
++    res.setHeader('X-RateLimit-Limit', limit)
++    res.setHeader('X-RateLimit-Remaining', remaining)
++    if (allowed) return false
++    res.setHeader('Retry-After', retryAfter)
++    send(res, 429, { error: 'rate_limited', retryAfter })
++    return true
++  }
++}
++
++// The path a request routes on, or null when its URL can't be parsed.
++function pathOf(req) {
++  try {
++    return new URL(req.url, 'http://localhost').pathname
++  } catch {
++    return null
++  }
+ }
+ 
+ function send(res, status, body) {
+
+# untracked files
+src/rate-limit.js
+test/rate-limit.test.js

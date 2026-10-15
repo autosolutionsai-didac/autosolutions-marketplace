@@ -1,0 +1,251 @@
+{
+  "benchVersion": 2,
+  "label": "2026-10-14-lean",
+  "team": "harness-lean",
+  "teamKind": "harness",
+  "task": "review-import",
+  "taskKind": "findings",
+  "trial": 2,
+  "sessionId": "49fb2718-5684-45f1-9dff-fdfd78ec3ae3",
+  "startedAt": "2026-10-14T21:19:52.941Z",
+  "finishedAt": "2026-10-14T21:26:23.677Z",
+  "wallSec": 390.73499999999996,
+  "timedOut": false,
+  "turns": [
+    {
+      "turn": 1,
+      "exitCode": 0,
+      "signal": null,
+      "timedOut": false,
+      "wallSec": 362.162,
+      "startedAt": "2026-10-14T21:19:52.942Z",
+      "endedAt": "2026-10-14T21:25:55.104Z"
+    },
+    {
+      "turn": 2,
+      "exitCode": 0,
+      "signal": null,
+      "timedOut": false,
+      "wallSec": 28.573,
+      "startedAt": "2026-10-14T21:25:55.104Z",
+      "endedAt": "2026-10-14T21:26:23.677Z"
+    }
+  ],
+  "success": true,
+  "score": {
+    "success": true,
+    "recall": 1,
+    "found": [
+      "D1",
+      "D2",
+      "D3",
+      "D4"
+    ],
+    "missed": [],
+    "duplicates": 0,
+    "validExtras": 4,
+    "validExtraIds": [
+      "a",
+      "b",
+      "d",
+      "f"
+    ],
+    "unmatched": 1,
+    "extras": 1,
+    "unmatchedTitles": [
+      "README.md:24 readme leaves out how bulk import behaves the endpoint entry does not document the 10,000-row limit "
+    ],
+    "findings": 9
+  },
+  "check": null,
+  "costUSD": 2.117035229999999,
+  "costSource": "claude-code",
+  "costUSDFromStream": 2.117035229999999,
+  "costUSDFromTranscripts": 2.11703523,
+  "invalidReason": null,
+  "apiErrors": 0,
+  "usageWindows": {
+    "five_hour": {
+      "utilization": 0.34,
+      "resetsAt": 1792020000
+    },
+    "seven_day": {
+      "utilization": 0.54,
+      "resetsAt": 1792162800
+    }
+  },
+  "modelUsage": {
+    "claude-opus-5-5": {
+      "inputTokens": 158,
+      "outputTokens": 45849,
+      "cacheReadInputTokens": 636265,
+      "cacheCreationInputTokens": 167462,
+      "thinkingTokens": 5608,
+      "webSearchRequests": 0,
+      "costUSD": 1.9349059999999998
+    },
+    "claude-haiku-5-5": {
+      "inputTokens": 6,
+      "outputTokens": 859,
+      "cacheReadInputTokens": 24493,
+      "cacheCreationInputTokens": 12996,
+      "thinkingTokens": 122,
+      "webSearchRequests": 0,
+      "costUSD": 0.00229953
+    },
+    "claude-sonnet-5-5": {
+      "inputTokens": 28,
+      "outputTokens": 6766,
+      "cacheReadInputTokens": 146937,
+      "cacheCreationInputTokens": 38968,
+      "thinkingTokens": 833,
+      "webSearchRequests": 0,
+      "costUSD": 0.1798297
+    }
+  },
+  "tokensByModel": {
+    "claude-opus-5-5": {
+      "requests": 79,
+      "input": 158,
+      "output": 45849,
+      "cacheRead": 636265,
+      "cacheWrite": 167462,
+      "costUSD": 1.934906
+    },
+    "claude-sonnet-5-5": {
+      "requests": 14,
+      "input": 28,
+      "output": 6766,
+      "cacheRead": 146937,
+      "cacheWrite": 38968,
+      "costUSD": 0.17982969999999998
+    },
+    "claude-haiku-5-5": {
+      "requests": 3,
+      "input": 6,
+      "output": 859,
+      "cacheRead": 24493,
+      "cacheWrite": 12996,
+      "costUSD": 0.0022995299999999997
+    }
+  },
+  "byRole": {
+    "harness:refuter (Verify)": {
+      "agents": 18,
+      "requests": 69,
+      "input": 138,
+      "output": 36405,
+      "cacheRead": 416267,
+      "cacheWrite": 123572,
+      "costUSD": 1.4297653999999995,
+      "models": {
+        "claude-opus-5-5": 69
+      }
+    },
+    "workflow:Rank": {
+      "agents": 1,
+      "requests": 1,
+      "input": 2,
+      "output": 4158,
+      "cacheRead": 0,
+      "cacheWrite": 26313,
+      "costUSD": 0.214733,
+      "models": {
+        "claude-opus-5-5": 1
+      }
+    },
+    "workflow:Find": {
+      "agents": 4,
+      "requests": 14,
+      "input": 28,
+      "output": 6766,
+      "cacheRead": 146937,
+      "cacheWrite": 38968,
+      "costUSD": 0.17982969999999998,
+      "models": {
+        "claude-sonnet-5-5": 14
+      }
+    },
+    "workflow:Scope": {
+      "agents": 1,
+      "requests": 3,
+      "input": 6,
+      "output": 859,
+      "cacheRead": 24493,
+      "cacheWrite": 12996,
+      "costUSD": 0.0022995299999999997,
+      "models": {
+        "claude-haiku-5-5": 3
+      }
+    },
+    "main": {
+      "agents": 1,
+      "requests": 9,
+      "input": 18,
+      "output": 5286,
+      "cacheRead": 219998,
+      "cacheWrite": 17577,
+      "costUSD": 0.2904076,
+      "models": {
+        "claude-opus-5-5": 9
+      }
+    }
+  },
+  "agentCount": 24,
+  "workflows": [
+    {
+      "runId": "wf_1d42adc0-91f",
+      "name": "review",
+      "status": "completed",
+      "durationMs": 336472,
+      "agentCount": 24,
+      "totalTokens": 278995,
+      "totalToolCalls": 89,
+      "args": "\"{\\\"base\\\":\\\"main\\\",\\\"findModel\\\":\\\"claude-haiku-5-5\\\",\\\"rankModel\\\":\\\"claude-opus-5-5\\\",\\\"verifyModel\\\":\\\"claude-sonnet-5-5\\\",\\\"verifyEffort\\\":\\\"medium\\\"}\"",
+      "logs": [
+        "Reviewing 4 file(s) against main",
+        "17 confirmed finding(s) across 4 file(s)"
+      ],
+      "findings": {
+        "verdict": "needs-changes",
+        "issues": 9,
+        "files": 4
+      }
+    }
+  ],
+  "ship": null,
+  "decisionGate": null,
+  "hooks": {
+    "SessionStart:started": 2,
+    "SessionStart:success": 2,
+    "Stop:started": 3,
+    "Stop:success": 3
+  },
+  "stopBlocks": [],
+  "toolUses": {
+    "Workflow": 1,
+    "Bash": 4,
+    "Write": 1
+  },
+  "agentSpawns": [],
+  "workflowCalls": [
+    {
+      "name": "harness:review",
+      "scriptPath": null,
+      "args": "\"{\\\"base\\\":\\\"main\\\",\\\"findModel\\\":\\\"claude-haiku-5-5\\\",\\\"rankModel\\\":\\\"claude-opus-5-5\\\",\\\"verifyModel\\\":\\\"claude-sonnet-5-5\\\",\\\"verifyEffort\\\":\\\"medium\\\"}\""
+    }
+  ],
+  "testCommands": 0,
+  "permissionDenials": 0,
+  "errors": [],
+  "contamination": [],
+  "specDelivered": null,
+  "changedFiles": [
+    "REVIEW.json"
+  ],
+  "finalMessage": "I wrote the 9 findings from my report to `REVIEW.json` in the repository root, in the same order and with the same severities (2 blocking, 4 major, 3 minor). The file parses as valid JSON, and `git status` shows it as the only change.\n\nSome findings in my report pointed at a range of lines, so each one needed a single line number:\n- **Finding 1 (wrong key billed):** `src/server.js:41`, where `importEvents` is called without the caller's key.\n- **Finding 2 (shared stats):** `src/importer.js:10`, where the shared defaults object is modified.\n- **Finding 5 (body size limit):** `src/server.js:40`, the line that reads the request body.\n- **Finding 9 (test server left open):** `test/importer.test.js:36`, the first line of the server cleanup.\n\nThe other lines mentioned in those findings are named in their `detail` text.",
+  "workDir": "/tmp/harness-bench/2026-10-14-lean/harness-lean/review-import/t2",
+  "apiErrorTexts": [],
+  "rescoredAt": "2026-10-14T21:39:24.888Z",
+  "optionsDelivered": false
+}

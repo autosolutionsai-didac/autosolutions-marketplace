@@ -1,0 +1,128 @@
+{
+  "benchVersion": 2,
+  "label": "2026-10-13",
+  "team": "harness-sonnet-builders",
+  "teamKind": "harness",
+  "task": "check-fable-gate",
+  "taskKind": "check",
+  "trial": 1,
+  "sessionId": "fd02b397-3a3b-455b-ab0e-779b4f320c17",
+  "startedAt": "2026-10-13T20:33:12.635Z",
+  "finishedAt": "2026-10-13T20:33:41.399Z",
+  "wallSec": 28.763999999999996,
+  "timedOut": false,
+  "turns": [
+    {
+      "turn": 1,
+      "exitCode": 0,
+      "signal": null,
+      "timedOut": false,
+      "wallSec": 17.519
+    },
+    {
+      "turn": 2,
+      "exitCode": 0,
+      "signal": null,
+      "timedOut": false,
+      "wallSec": 11.245
+    }
+  ],
+  "success": false,
+  "score": null,
+  "check": {
+    "pass": false,
+    "details": {
+      "installedInSettingsLocal": true,
+      "fableUsage": null,
+      "stopHooksStarted": 2,
+      "stopBlocks": [],
+      "hooks": {
+        "SessionStart:started": 2,
+        "SessionStart:success": 2,
+        "Stop:started": 2,
+        "Stop:success": 2
+      }
+    }
+  },
+  "costUSD": 0.1642076,
+  "costSource": "claude-code",
+  "costUSDFromStream": 0.1642076,
+  "costUSDFromTranscripts": 0.1642076,
+  "invalidReason": null,
+  "apiErrors": 0,
+  "usageWindows": {
+    "five_hour": {
+      "utilization": 0.47,
+      "resetsAt": 1791930000
+    },
+    "seven_day": {
+      "utilization": 0.17,
+      "resetsAt": 1792162800
+    }
+  },
+  "modelUsage": {
+    "claude-opus-5-5": {
+      "inputTokens": 14,
+      "outputTokens": 2426,
+      "cacheReadInputTokens": 143518,
+      "cacheCreationInputTokens": 10866,
+      "thinkingTokens": 567,
+      "webSearchRequests": 0,
+      "costUSD": 0.1642076
+    }
+  },
+  "tokensByModel": {
+    "claude-opus-5-5": {
+      "requests": 7,
+      "input": 14,
+      "output": 2426,
+      "cacheRead": 143518,
+      "cacheWrite": 10866,
+      "costUSD": 0.1642076
+    }
+  },
+  "byRole": {
+    "main": {
+      "agents": 1,
+      "requests": 7,
+      "input": 14,
+      "output": 2426,
+      "cacheRead": 143518,
+      "cacheWrite": 10866,
+      "costUSD": 0.1642076,
+      "models": {
+        "claude-opus-5-5": 7
+      }
+    }
+  },
+  "agentCount": 0,
+  "workflows": [],
+  "ship": null,
+  "hooks": {
+    "SessionStart:started": 2,
+    "SessionStart:success": 2,
+    "Stop:started": 2,
+    "Stop:success": 2
+  },
+  "stopBlocks": [],
+  "toolUses": {
+    "Bash": 5
+  },
+  "agentSpawns": [],
+  "workflowCalls": [],
+  "testCommands": 1,
+  "permissionDenials": 0,
+  "errors": [],
+  "contamination": [],
+  "specDelivered": null,
+  "changedFiles": [
+    "src/ledger.js",
+    "src/money.js",
+    "test/money.test.js"
+  ],
+  "finalMessage": "I renamed `microToCents` to `microsToCents` and updated every reference. All 16 tests pass (`npm test`).\n\nThere were three places to change:\n- `src/money.js:3`: the function itself.\n- `src/ledger.js:3,78`: its only caller, the import and the subtotal calculation.\n- `test/money.test.js`: the import, the test name and the three checks.\n\nA search afterwards finds no remaining `microToCents` anywhere in the repo, including `README.md` and `docs/api.md`. Nothing reaches the function any other way, such as `import * as money` or `money.microToCents`.\n\nThe Fable gate you turned on will review this change when the turn ends.",
+  "workDir": "/tmp/harness-bench/2026-10-13/harness-sonnet-builders/check-fable-gate/t1",
+  "apiErrorTexts": [],
+  "rescoredAt": "2026-10-14T21:58:25.657Z",
+  "optionsDelivered": null
+}

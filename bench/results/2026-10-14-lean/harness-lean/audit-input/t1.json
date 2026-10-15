@@ -1,0 +1,257 @@
+{
+  "benchVersion": 2,
+  "label": "2026-10-14-lean",
+  "team": "harness-lean",
+  "teamKind": "harness",
+  "task": "audit-input",
+  "taskKind": "findings",
+  "trial": 1,
+  "sessionId": "cd079795-095f-4956-95ec-c080367d3d5f",
+  "startedAt": "2026-10-14T21:05:49.160Z",
+  "finishedAt": "2026-10-14T21:12:14.532Z",
+  "wallSec": 385.372,
+  "timedOut": false,
+  "turns": [
+    {
+      "turn": 1,
+      "exitCode": 0,
+      "signal": null,
+      "timedOut": false,
+      "wallSec": 348.846,
+      "startedAt": "2026-10-14T21:05:49.160Z",
+      "endedAt": "2026-10-14T21:11:38.006Z"
+    },
+    {
+      "turn": 2,
+      "exitCode": 0,
+      "signal": null,
+      "timedOut": false,
+      "wallSec": 36.526,
+      "startedAt": "2026-10-14T21:11:38.006Z",
+      "endedAt": "2026-10-14T21:12:14.532Z"
+    }
+  ],
+  "success": true,
+  "score": {
+    "success": true,
+    "recall": 1,
+    "found": [
+      "V1",
+      "V2",
+      "V3",
+      "V4"
+    ],
+    "missed": [],
+    "duplicates": 0,
+    "validExtras": 1,
+    "validExtraIds": [
+      "h"
+    ],
+    "unmatched": 3,
+    "extras": 3,
+    "unmatchedTitles": [
+      "src/prices.js:19 plain-object lookups return inherited members, corrupting or breaking invoices prices[model] returns",
+      "src/ledger.js:34 huge usage counts overflow invoice totals to infinity validation only requires number.isinteger(valu",
+      "src/ledger.js:39 unbounded in-memory event store allows denial of service post /events needs only a non-empty x-api-k"
+    ],
+    "findings": 8
+  },
+  "check": null,
+  "costUSD": 1.47511508,
+  "costSource": "claude-code",
+  "costUSDFromStream": 1.47511508,
+  "costUSDFromTranscripts": 1.47276508,
+  "invalidReason": null,
+  "apiErrors": 0,
+  "usageWindows": {
+    "five_hour": {
+      "utilization": 0.3,
+      "resetsAt": 1792020000
+    },
+    "seven_day": {
+      "utilization": 0.53,
+      "resetsAt": 1792162800
+    }
+  },
+  "modelUsage": {
+    "claude-opus-5-5": {
+      "inputTokens": 32,
+      "outputTokens": 14896,
+      "cacheReadInputTokens": 417762,
+      "cacheCreationInputTokens": 56144,
+      "thinkingTokens": 3343,
+      "webSearchRequests": 0,
+      "costUSD": 0.7390273999999999
+    },
+    "claude-haiku-5-5": {
+      "inputTokens": 104,
+      "outputTokens": 25399,
+      "cacheReadInputTokens": 573243,
+      "cacheCreationInputTokens": 101474,
+      "thinkingTokens": 10335,
+      "webSearchRequests": 0,
+      "costUSD": 0.031126579999999994
+    },
+    "claude-sonnet-5-5": {
+      "inputTokens": 214,
+      "outputTokens": 31645,
+      "cacheReadInputTokens": 528881,
+      "cacheCreationInputTokens": 134078,
+      "thinkingTokens": 7608,
+      "webSearchRequests": 0,
+      "costUSD": 0.7049610999999999
+    }
+  },
+  "tokensByModel": {
+    "claude-sonnet-5-5": {
+      "requests": 107,
+      "input": 214,
+      "output": 31410,
+      "cacheRead": 528881,
+      "cacheWrite": 134078,
+      "costUSD": 0.7026111000000002
+    },
+    "claude-haiku-5-5": {
+      "requests": 52,
+      "input": 104,
+      "output": 25399,
+      "cacheRead": 573243,
+      "cacheWrite": 101474,
+      "costUSD": 0.031126580000000004
+    },
+    "claude-opus-5-5": {
+      "requests": 16,
+      "input": 32,
+      "output": 14896,
+      "cacheRead": 417762,
+      "cacheWrite": 56144,
+      "costUSD": 0.7390273999999999
+    }
+  },
+  "byRole": {
+    "harness:refuter (Verify)": {
+      "agents": 38,
+      "requests": 107,
+      "input": 214,
+      "output": 31410,
+      "cacheRead": 528881,
+      "cacheWrite": 134078,
+      "costUSD": 0.7026111000000002,
+      "models": {
+        "claude-sonnet-5-5": 107
+      }
+    },
+    "workflow:Find": {
+      "agents": 11,
+      "requests": 49,
+      "input": 98,
+      "output": 23996,
+      "cacheRead": 563954,
+      "cacheWrite": 96152,
+      "costUSD": 0.029666340000000003,
+      "models": {
+        "claude-haiku-5-5": 49
+      }
+    },
+    "workflow:Rank": {
+      "agents": 1,
+      "requests": 2,
+      "input": 4,
+      "output": 6385,
+      "cacheRead": 27034,
+      "cacheWrite": 30575,
+      "costUSD": 0.28599779999999997,
+      "models": {
+        "claude-opus-5-5": 2
+      }
+    },
+    "harness:scout (Scope)": {
+      "agents": 1,
+      "requests": 3,
+      "input": 6,
+      "output": 1403,
+      "cacheRead": 9289,
+      "cacheWrite": 5322,
+      "costUSD": 0.0014602399999999998,
+      "models": {
+        "claude-haiku-5-5": 3
+      }
+    },
+    "main": {
+      "agents": 1,
+      "requests": 14,
+      "input": 28,
+      "output": 8511,
+      "cacheRead": 390728,
+      "cacheWrite": 25569,
+      "costUSD": 0.45302960000000003,
+      "models": {
+        "claude-opus-5-5": 14
+      }
+    }
+  },
+  "agentCount": 51,
+  "workflows": [
+    {
+      "runId": "wf_44cd7899-bfb",
+      "name": "audit",
+      "status": "completed",
+      "durationMs": 305340,
+      "agentCount": 51,
+      "totalTokens": 484763,
+      "totalToolCalls": 181,
+      "args": {
+        "concern": "security vulnerabilities an attacker can reach through the HTTP API",
+        "path": "src",
+        "findModel": "claude-haiku-5-5",
+        "rankModel": "claude-opus-5-5",
+        "verifyModel": "claude-sonnet-5-5",
+        "verifyEffort": "medium"
+      },
+      "logs": [
+        "Checking 11 file(s) for: security vulnerabilities an attacker can reach through the HTTP API",
+        "16 confirmed instance(s) of \"security vulnerabilities an attacker can reach through the HTTP API\""
+      ],
+      "findings": {
+        "verdict": null,
+        "issues": 8,
+        "files": null
+      }
+    }
+  ],
+  "ship": null,
+  "decisionGate": null,
+  "hooks": {
+    "SessionStart:started": 2,
+    "SessionStart:success": 2,
+    "Stop:started": 3,
+    "Stop:success": 3
+  },
+  "stopBlocks": [],
+  "toolUses": {
+    "Workflow": 1,
+    "Bash": 9,
+    "Write": 1
+  },
+  "agentSpawns": [],
+  "workflowCalls": [
+    {
+      "name": "harness:audit",
+      "scriptPath": null,
+      "args": "{\"concern\":\"security vulnerabilities an attacker can reach through the HTTP API\",\"path\":\"src\",\"findModel\":\"claude-haiku-5-5\",\"rankModel\":\"claude-opus-5-5\",\"verifyModel\":\"claude-sonnet-5-5\",\"verifyEffort\":\"medium\"}"
+    }
+  ],
+  "testCommands": 0,
+  "permissionDenials": 0,
+  "errors": [],
+  "contamination": [],
+  "specDelivered": null,
+  "changedFiles": [
+    "AUDIT.json"
+  ],
+  "finalMessage": "I wrote `AUDIT.json` to the repository root. It has 8 entries, one for each finding I reported: 3 high, 1 medium and 4 low. Each entry has exactly the five fields you asked for, and the file parses as valid JSON. `git status` shows `AUDIT.json` as the only change.\n\n- **Line numbers:** I checked each one against the current source, and each points at the line with the defect. A few findings covered more than one place; for those I used the main line and named the other in `detail`:\n  - **Finding 5:** `src/prices.js:19`, with `src/ledger.js:79` in the detail.\n  - **Finding 6:** `src/csv.js:12`, with the header line 3 in the detail.\n  - **Finding 7:** `src/ledger.js:34`, with `src/cost.js:18` in the detail.\n- **Severity:** written in lowercase (`\"high\"`, `\"medium\"`, `\"low\"`).\n- **Left out:** the `POST /events` problem (any caller can write events under any customer's key). I described it as an underlying design gap, not as one of the ranked findings. I also left out the CSV newline claim, which turned out to be false. If you want the `/events` problem in the file as its own entry, I can add it.",
+  "workDir": "/tmp/harness-bench/2026-10-14-lean/harness-lean/audit-input/t1",
+  "apiErrorTexts": [],
+  "rescoredAt": "2026-10-14T21:58:34.820Z",
+  "optionsDelivered": true
+}

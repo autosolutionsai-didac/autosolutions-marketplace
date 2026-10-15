@@ -1,0 +1,106 @@
+diff --git a/src/csv.js b/src/csv.js
+index f1dc79f..1d2743f 100644
+--- a/src/csv.js
++++ b/src/csv.js
+@@ -1,6 +1,6 @@
+ // Renders rows as CSV with a header line. Lines end with \n.
+ export function toCSV(rows, columns) {
+-  const lines = [columns.join(',')]
++  const lines = [columns.map(cell).join(',')]
+   for (const row of rows) {
+     lines.push(columns.map((column) => cell(row[column])).join(','))
+   }
+@@ -9,5 +9,7 @@ export function toCSV(rows, columns) {
+ 
+ function cell(value) {
+   if (value === null || value === undefined) return ''
+-  return String(value)
++  const s = String(value)
++  if (/[,"\r\n]/.test(s)) return '"' + s.replace(/"/g, '""') + '"'
++  return s
+ }
+diff --git a/src/money.js b/src/money.js
+index 95a7ad7..15cddb0 100644
+--- a/src/money.js
++++ b/src/money.js
+@@ -15,5 +15,5 @@ export function formatUSD(cents) {
+ // Applies a percentage discount (0 to 100) to an amount in cents.
+ export function applyDiscount(cents, percent) {
+   if (!(percent >= 0 && percent <= 100)) throw new RangeError('percent must be between 0 and 100')
+-  return Math.floor((cents * (100 - percent)) / 100)
++  return Math.floor((cents * (100 - percent) + 50) / 100)
+ }
+diff --git a/src/server.js b/src/server.js
+index 0393cdd..8474e59 100644
+--- a/src/server.js
++++ b/src/server.js
+@@ -36,6 +36,7 @@ export function createServer({ ledger = new Ledger(), now = Date.now, dataDir =
+     const invoiceMatch = pathname.match(/^\/invoices\/([^/]+)$/)
+     if (req.method === 'GET' && invoiceMatch) {
+       const invoice = ledger.invoice(decodeURIComponent(invoiceMatch[1]))
++      if (!invoice) return send(res, 404, { error: 'not_found' })
+       if (url.searchParams.get('format') === 'csv') {
+         res.writeHead(200, { 'content-type': 'text/csv; charset=utf-8' })
+         return res.end(toCSV(invoice.lines, CSV_COLUMNS))
+diff --git a/test/csv.test.js b/test/csv.test.js
+index 9603268..59eada5 100644
+--- a/test/csv.test.js
++++ b/test/csv.test.js
+@@ -13,3 +13,16 @@ test('toCSV renders a header and one line per row', () => {
+ test('toCSV leaves missing values empty', () => {
+   assert.equal(toCSV([{ a: null }], ['a', 'b']), 'a,b\n,\n')
+ })
++
++test('toCSV quotes values containing a comma', () => {
++  assert.equal(toCSV([{ key: 'team, alpha', n: 1 }], ['key', 'n']), 'key,n\n"team, alpha",1\n')
++})
++
++test('toCSV doubles double quotes inside quoted values', () => {
++  assert.equal(toCSV([{ a: 'say "hi"' }], ['a']), 'a\n"say ""hi"""\n')
++})
++
++test('toCSV quotes values containing LF or CR', () => {
++  assert.equal(toCSV([{ a: 'a\nb' }], ['a']), 'a\n"a\nb"\n')
++  assert.equal(toCSV([{ a: 'a\rb' }], ['a']), 'a\n"a\rb"\n')
++})
+diff --git a/test/money.test.js b/test/money.test.js
+index 917bae5..d5c9edb 100644
+--- a/test/money.test.js
++++ b/test/money.test.js
+@@ -22,3 +22,9 @@ test('applyDiscount', () => {
+   assert.throws(() => applyDiscount(1_000, 101), RangeError)
+   assert.throws(() => applyDiscount(1_000, -1), RangeError)
+ })
++
++test('applyDiscount rounds half up to the nearest cent', () => {
++  assert.equal(applyDiscount(1_001, 15), 851)
++  assert.equal(applyDiscount(10, 15), 9)
++  assert.equal(applyDiscount(1_004, 15), 853)
++})
+diff --git a/test/server.test.js b/test/server.test.js
+index fc813ff..e78830e 100644
+--- a/test/server.test.js
++++ b/test/server.test.js
+@@ -55,6 +55,17 @@ test('GET /invoices/:key as JSON and CSV', async () => {
+   await close()
+ })
+ 
++test('GET /invoices/:key returns 404 for a key without usage', async () => {
++  const { base, close } = await start()
++  const json = await fetch(`${base}/invoices/nobody`)
++  assert.equal(json.status, 404)
++  assert.deepEqual(await json.json(), { error: 'not_found' })
++  const csv = await fetch(`${base}/invoices/nobody?format=csv`)
++  assert.equal(csv.status, 404)
++  assert.deepEqual(await csv.json(), { error: 'not_found' })
++  await close()
++})
++
+ test('GET /docs serves files from docs/', async () => {
+   const { base, close } = await start()
+   const res = await fetch(`${base}/docs/api.md`)
+
+# untracked files
+.claude/worktrees/wf_02f5b8e2-c3d-2/
+.claude/worktrees/wf_02f5b8e2-c3d-3/
+.claude/worktrees/wf_02f5b8e2-c3d-4/

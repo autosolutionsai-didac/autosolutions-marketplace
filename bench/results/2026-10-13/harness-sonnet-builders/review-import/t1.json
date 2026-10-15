@@ -1,0 +1,246 @@
+{
+  "benchVersion": 2,
+  "label": "2026-10-13",
+  "team": "harness-sonnet-builders",
+  "teamKind": "harness",
+  "task": "review-import",
+  "taskKind": "findings",
+  "trial": 1,
+  "sessionId": "1d96a1a5-a46d-4e2f-9776-6d6f074ffd72",
+  "startedAt": "2026-10-13T20:25:10.178Z",
+  "finishedAt": "2026-10-13T20:29:37.161Z",
+  "wallSec": 266.982,
+  "timedOut": false,
+  "turns": [
+    {
+      "turn": 1,
+      "exitCode": 0,
+      "signal": null,
+      "timedOut": false,
+      "wallSec": 242.692
+    },
+    {
+      "turn": 2,
+      "exitCode": 0,
+      "signal": null,
+      "timedOut": false,
+      "wallSec": 24.29
+    }
+  ],
+  "success": true,
+  "score": {
+    "success": true,
+    "recall": 1,
+    "found": [
+      "D1",
+      "D2",
+      "D3",
+      "D4"
+    ],
+    "missed": [],
+    "duplicates": 0,
+    "validExtras": 2,
+    "validExtraIds": [
+      "a",
+      "b"
+    ],
+    "unmatched": 1,
+    "extras": 1,
+    "unmatchedTitles": [
+      "README.md:24 readme row for post /events/bulk does not match the endpoint's behaviour it promises attribution to "
+    ],
+    "findings": 7
+  },
+  "check": null,
+  "costUSD": 1.865291035,
+  "costSource": "claude-code",
+  "costUSDFromStream": 1.865291035,
+  "costUSDFromTranscripts": 1.844791035,
+  "invalidReason": null,
+  "apiErrors": 0,
+  "usageWindows": {
+    "five_hour": {
+      "utilization": 0.45,
+      "resetsAt": 1791930000
+    },
+    "seven_day": {
+      "utilization": 0.17,
+      "resetsAt": 1792162800
+    }
+  },
+  "modelUsage": {
+    "claude-opus-5-5": {
+      "inputTokens": 128,
+      "outputTokens": 39945,
+      "cacheReadInputTokens": 498105,
+      "cacheCreationInputTokens": 147701,
+      "thinkingTokens": 3989,
+      "webSearchRequests": 0,
+      "costUSD": 1.6864530000000002
+    },
+    "claude-haiku-5-5": {
+      "inputTokens": 4,
+      "outputTokens": 504,
+      "cacheReadInputTokens": 11431,
+      "cacheCreationInputTokens": 12065,
+      "thinkingTokens": 98,
+      "webSearchRequests": 0,
+      "costUSD": 0.001874835
+    },
+    "claude-sonnet-5-5": {
+      "inputTokens": 28,
+      "outputTokens": 6477,
+      "cacheReadInputTokens": 146572,
+      "cacheCreationInputTokens": 38992,
+      "thinkingTokens": 1062,
+      "webSearchRequests": 0,
+      "costUSD": 0.17696320000000001
+    }
+  },
+  "tokensByModel": {
+    "claude-opus-5-5": {
+      "requests": 64,
+      "input": 128,
+      "output": 38920,
+      "cacheRead": 498105,
+      "cacheWrite": 147701,
+      "costUSD": 1.665953
+    },
+    "claude-sonnet-5-5": {
+      "requests": 14,
+      "input": 28,
+      "output": 6477,
+      "cacheRead": 146572,
+      "cacheWrite": 38992,
+      "costUSD": 0.17696320000000001
+    },
+    "claude-haiku-5-5": {
+      "requests": 2,
+      "input": 4,
+      "output": 504,
+      "cacheRead": 11431,
+      "cacheWrite": 12065,
+      "costUSD": 0.001874835
+    }
+  },
+  "byRole": {
+    "harness:refuter (Verify)": {
+      "agents": 16,
+      "requests": 55,
+      "input": 110,
+      "output": 30653,
+      "cacheRead": 305433,
+      "cacheWrite": 104554,
+      "costUSD": 1.1973565999999995,
+      "models": {
+        "claude-opus-5-5": 55
+      }
+    },
+    "workflow:Find": {
+      "agents": 4,
+      "requests": 14,
+      "input": 28,
+      "output": 6477,
+      "cacheRead": 146572,
+      "cacheWrite": 38992,
+      "costUSD": 0.17696320000000001,
+      "models": {
+        "claude-sonnet-5-5": 14
+      }
+    },
+    "workflow:Scope": {
+      "agents": 1,
+      "requests": 2,
+      "input": 4,
+      "output": 504,
+      "cacheRead": 11431,
+      "cacheWrite": 12065,
+      "costUSD": 0.001874835,
+      "models": {
+        "claude-haiku-5-5": 2
+      }
+    },
+    "workflow:Rank": {
+      "agents": 1,
+      "requests": 1,
+      "input": 2,
+      "output": 3508,
+      "cacheRead": 0,
+      "cacheWrite": 26842,
+      "costUSD": 0.204378,
+      "models": {
+        "claude-opus-5-5": 1
+      }
+    },
+    "main": {
+      "agents": 1,
+      "requests": 8,
+      "input": 16,
+      "output": 4759,
+      "cacheRead": 192672,
+      "cacheWrite": 16305,
+      "costUSD": 0.26421839999999996,
+      "models": {
+        "claude-opus-5-5": 8
+      }
+    }
+  },
+  "agentCount": 22,
+  "workflows": [
+    {
+      "runId": "wf_036ddcac-1d9",
+      "name": "review",
+      "status": "completed",
+      "durationMs": 221610,
+      "agentCount": 22,
+      "totalTokens": 253088,
+      "totalToolCalls": 74,
+      "args": {
+        "base": "main"
+      },
+      "logs": [
+        "Reviewing 4 file(s) against main",
+        "16 confirmed finding(s) across 4 file(s)"
+      ],
+      "findings": {
+        "verdict": "needs-changes",
+        "issues": 7,
+        "files": 4
+      }
+    }
+  ],
+  "ship": null,
+  "hooks": {
+    "SessionStart:started": 2,
+    "SessionStart:success": 2,
+    "Stop:started": 3,
+    "Stop:success": 3
+  },
+  "stopBlocks": [],
+  "toolUses": {
+    "Workflow": 1,
+    "Bash": 3,
+    "Write": 1
+  },
+  "agentSpawns": [],
+  "workflowCalls": [
+    {
+      "name": "harness:review",
+      "scriptPath": null,
+      "args": "{\"base\":\"main\"}"
+    }
+  ],
+  "testCommands": 0,
+  "permissionDenials": 0,
+  "errors": [],
+  "contamination": [],
+  "specDelivered": null,
+  "changedFiles": [
+    "REVIEW.json"
+  ],
+  "finalMessage": "I wrote `REVIEW.json` to the repository root with the 7 findings I reported, using the same severities: 2 blocking and 5 major. The file parses as valid JSON, and `git status` shows it's the only change.\n\n| # | Location | Severity |\n|---|---|---|\n| 1 | `src/importer.js:30` (rows billed to the key in the row, not the caller's key) | blocking |\n| 2 | `src/importer.js:10` (stats shared across requests) | blocking |\n| 3 | `src/importer.js:15` (a blank line stops the import) | major |\n| 4 | `src/importer.js:16` (a rejected import still commits rows) | major |\n| 5 | `src/server.js:39` (no body-size limit; non-ASCII text garbled) | major |\n| 6 | `src/importer.js:25` (a `null` line crashes the import) | major |\n| 7 | `README.md:24` (endpoint description doesn't match behaviour) | major |\n\nThe format allows one line per finding, so where an issue spans several places I used the line where it happens:\n- **Finding 1:** I used the line in the importer that records `row.key`. The missing key hand-off in `src/server.js:41` is described in the detail text.\n- **Finding 2:** I used line 10, where the shared default object gets overwritten. It's declared at line 4.",
+  "workDir": "/tmp/harness-bench/2026-10-13/harness-sonnet-builders/review-import/t1",
+  "rescoredAt": "2026-10-14T21:58:26.938Z",
+  "apiErrorTexts": [],
+  "optionsDelivered": null
+}

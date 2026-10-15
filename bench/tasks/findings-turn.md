@@ -1,0 +1,1 @@
+Write the findings from your {{what}} to {{file}} in the repository root: a JSON array with one object per finding, each {"file": "<path relative to the repository root>", "line": <number>, "severity": "<as you rated it>", "title": "<one line>", "detail": "<one or two sentences>"}. Include every finding you reported and nothing else, and do not change any other file.

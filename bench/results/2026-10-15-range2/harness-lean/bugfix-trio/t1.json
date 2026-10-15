@@ -1,0 +1,354 @@
+{
+  "benchVersion": 2,
+  "label": "2026-10-15-range2",
+  "team": "harness-lean",
+  "teamKind": "harness",
+  "task": "bugfix-trio",
+  "taskKind": "code",
+  "trial": 1,
+  "sessionId": "7faf7497-e033-4e23-9a96-ad9003fb61f9",
+  "startedAt": "2026-10-15T09:23:37.260Z",
+  "finishedAt": "2026-10-15T09:33:01.070Z",
+  "wallSec": 563.81,
+  "timedOut": false,
+  "turns": [
+    {
+      "turn": 1,
+      "exitCode": 0,
+      "signal": null,
+      "timedOut": false,
+      "wallSec": 563.81,
+      "startedAt": "2026-10-15T09:23:37.260Z",
+      "endedAt": "2026-10-15T09:33:01.070Z"
+    }
+  ],
+  "success": true,
+  "score": {
+    "success": true,
+    "strict": {
+      "tests": 2,
+      "pass": 2,
+      "fail": 0,
+      "failures": []
+    },
+    "specComplete": true,
+    "compliance": {
+      "complete": true,
+      "items": {
+        "regressionTestsFailOnBase": 16,
+        "regressionTests": true
+      }
+    },
+    "visible": {
+      "tests": 35,
+      "pass": 35,
+      "fail": 0,
+      "cancelled": 0,
+      "timedOut": null,
+      "exitCode": 0,
+      "signal": null,
+      "interrupted": false,
+      "failures": []
+    },
+    "hidden": {
+      "tests": 9,
+      "pass": 9,
+      "fail": 0
+    },
+    "hiddenPerFile": {
+      "b1-discount.test.js": {
+        "pass": 3,
+        "fail": 0,
+        "failures": [],
+        "interrupted": false
+      },
+      "b2-csv.test.js": {
+        "pass": 3,
+        "fail": 0,
+        "failures": [],
+        "interrupted": false
+      },
+      "b3-not-found.test.js": {
+        "pass": 3,
+        "fail": 0,
+        "failures": [],
+        "interrupted": false
+      }
+    },
+    "partial": 1,
+    "notes": []
+  },
+  "check": null,
+  "costUSD": 1.3666411799999998,
+  "costSource": "claude-code",
+  "costUSDFromStream": 1.3666411799999998,
+  "costUSDFromTranscripts": 1.3666411800000002,
+  "invalidReason": null,
+  "apiErrors": 0,
+  "usageWindows": {
+    "five_hour": {
+      "utilization": 0.3,
+      "resetsAt": 1792058400
+    },
+    "seven_day": {
+      "utilization": 0.63,
+      "resetsAt": 1792162800
+    }
+  },
+  "modelUsage": {
+    "claude-opus-5-5": {
+      "inputTokens": 92,
+      "outputTokens": 29968,
+      "cacheReadInputTokens": 470361,
+      "cacheCreationInputTokens": 122001,
+      "thinkingTokens": 7056,
+      "webSearchRequests": 0,
+      "costUSD": 1.3481571999999995
+    },
+    "claude-haiku-5-5": {
+      "inputTokens": 48,
+      "outputTokens": 16428,
+      "cacheReadInputTokens": 442418,
+      "cacheCreationInputTokens": 46728,
+      "thinkingTokens": 2195,
+      "webSearchRequests": 0,
+      "costUSD": 0.01848398
+    }
+  },
+  "tokensByModel": {
+    "claude-haiku-5-5": {
+      "requests": 24,
+      "input": 48,
+      "output": 16428,
+      "cacheRead": 442418,
+      "cacheWrite": 46728,
+      "costUSD": 0.018483979999999997
+    },
+    "claude-opus-5-5": {
+      "requests": 46,
+      "input": 92,
+      "output": 29968,
+      "cacheRead": 470361,
+      "cacheWrite": 122001,
+      "costUSD": 1.3481572000000002
+    }
+  },
+  "byRole": {
+    "harness:builder (Build)": {
+      "agents": 3,
+      "requests": 24,
+      "input": 48,
+      "output": 16428,
+      "cacheRead": 442418,
+      "cacheWrite": 46728,
+      "costUSD": 0.018483979999999997,
+      "models": {
+        "claude-haiku-5-5": 24
+      }
+    },
+    "workflow:Plan": {
+      "agents": 1,
+      "requests": 4,
+      "input": 8,
+      "output": 9346,
+      "cacheRead": 45195,
+      "cacheWrite": 24641,
+      "costUSD": 0.319196,
+      "models": {
+        "claude-opus-5-5": 4
+      }
+    },
+    "harness:judge (Gate)": {
+      "agents": 1,
+      "requests": 8,
+      "input": 16,
+      "output": 4310,
+      "cacheRead": 82427,
+      "cacheWrite": 15859,
+      "costUSD": 0.1820444,
+      "models": {
+        "claude-opus-5-5": 8
+      }
+    },
+    "harness:refuter (Refute)": {
+      "agents": 6,
+      "requests": 27,
+      "input": 54,
+      "output": 12651,
+      "cacheRead": 224373,
+      "cacheWrite": 59844,
+      "costUSD": 0.5973306,
+      "models": {
+        "claude-opus-5-5": 27
+      }
+    },
+    "workflow:Integrate": {
+      "agents": 1,
+      "requests": 3,
+      "input": 6,
+      "output": 1119,
+      "cacheRead": 32843,
+      "cacheWrite": 6873,
+      "costUSD": 0.0633376,
+      "models": {
+        "claude-opus-5-5": 3
+      }
+    },
+    "main": {
+      "agents": 1,
+      "requests": 4,
+      "input": 8,
+      "output": 2542,
+      "cacheRead": 85523,
+      "cacheWrite": 14784,
+      "costUSD": 0.18624860000000001,
+      "models": {
+        "claude-opus-5-5": 4
+      }
+    }
+  },
+  "agentCount": 12,
+  "workflows": [
+    {
+      "runId": "wf_72a580a2-d56",
+      "name": "ship",
+      "status": "completed",
+      "durationMs": 540384,
+      "agentCount": 12,
+      "totalTokens": 208479,
+      "totalToolCalls": 73,
+      "args": {
+        "task": "Fix these three bug reports. Each fix needs a regression test that fails before the fix and passes after it.\n\n1. Discounted invoice totals are sometimes one cent low. A $10.01 subtotal with a 15% discount should total $8.51, but the invoice shows $8.50. The rule: the discounted total, subtotal x (100 - percent) / 100, is rounded half up to the nearest cent. So 10 cents with 15% off is 8.5 cents, which becomes 9.\n2. The invoice CSV export (GET /invoices/:key?format=csv) breaks when a value contains a comma, a double quote or a line break, for example for the API key \"team, alpha\". Quote fields as RFC 4180 describes: wrap a field in double quotes when it contains a comma, a double quote, a CR or an LF, and double every double quote inside it. Leave all other fields unquoted and keep the \\n line endings.\n3. GET /invoices/:key returns a 500 error for a key that has no usage. It should return 404 with the JSON body {\"error\":\"not_found\"}, for both the JSON and the CSV format.\n\nThe existing test suite (npm test) must keep passing.",
+        "buildModel": "claude-haiku-5-5",
+        "refuteLenses": [
+          "correctness",
+          "edges-and-regressions"
+        ],
+        "refuteEffort": "medium",
+        "gateModel": "claude-opus-5-5"
+      },
+      "logs": [
+        "Planning: Fix these three bug reports. Each fix needs a regression test that fails before the fix and passes after it.\n\n1. Discounted invoice totals a",
+        "3 unit(s) on base main: u1, u2, u3",
+        "3 passed, 0 failed or unbuilt"
+      ],
+      "ship": {
+        "verdict": "PASS",
+        "gate": {
+          "verdict": "PASS",
+          "confidence": "high",
+          "blocking": [],
+          "summary": "All three fixes do what was asked, each with tests, and npm test passes 35/35. 1) Discounted totals now use exact BigInt math and round half up, so $10.01 at 15% gives $8.51. 2) CSV fields are quoted per RFC 4180: quotes are added only for a comma, a double quote, CR or LF, inner quotes are doubled, and line endings stay \\n. 3) An unknown key, or a key whose percent-encoding cannot be decoded, returns 404 {\"error\":\"not_found\"} as JSON for both the JSON and the CSV format. The new regression tests fail when run against the old sources. One advisory: a discount percent with more than 6 decimals can round one cent off at a half-cent boundary."
+        },
+        "integration": {
+          "merged": [
+            "worktree-wf_72a580a2-d56-2",
+            "worktree-wf_72a580a2-d56-3",
+            "worktree-wf_72a580a2-d56-4"
+          ],
+          "skipped": [],
+          "conflicts": [],
+          "checks": {
+            "ran": true,
+            "passed": true,
+            "commands": [
+              "npm test"
+            ],
+            "notes": "Full suite (node --test): 35 tests, 35 pass, 0 fail. The repo has no type check or lint configured (package.json defines only the test script). Before merging, main's only uncommitted content was the untracked .claude/ directory (the harness worktrees). It was left untouched. Nothing was pushed."
+          }
+        },
+        "units": [
+          {
+            "id": "u1",
+            "title": "Round discounted totals half up to the nearest cent",
+            "status": "passed",
+            "refuted_by": "0/2",
+            "findings": 0
+          },
+          {
+            "id": "u2",
+            "title": "RFC 4180 quoting in CSV export",
+            "status": "passed",
+            "refuted_by": "0/2",
+            "findings": 0
+          },
+          {
+            "id": "u3",
+            "title": "Return 404 not_found for invoices of keys without usage",
+            "status": "passed",
+            "refuted_by": "0/2",
+            "findings": 1
+          }
+        ]
+      }
+    }
+  ],
+  "ship": {
+    "runs": 1,
+    "verdict": "PASS",
+    "gateVerdict": "PASS",
+    "units": 3,
+    "unitsPassed": 3,
+    "unitsFailed": 0,
+    "fixRounds": 0,
+    "unitStatuses": [
+      "u1:passed:0/2",
+      "u2:passed:0/2",
+      "u3:passed:0/2"
+    ],
+    "merged": [
+      "worktree-wf_72a580a2-d56-2",
+      "worktree-wf_72a580a2-d56-3",
+      "worktree-wf_72a580a2-d56-4"
+    ],
+    "integrationChecks": {
+      "ran": true,
+      "passed": true,
+      "commands": [
+        "npm test"
+      ],
+      "notes": "Full suite (node --test): 35 tests, 35 pass, 0 fail. The repo has no type check or lint configured (package.json defines only the test script). Before merging, main's only uncommitted content was the untracked .claude/ directory (the harness worktrees). It was left untouched. Nothing was pushed."
+    },
+    "firstPassRefutedApprox": 0
+  },
+  "decisionGate": null,
+  "hooks": {
+    "SessionStart:started": 1,
+    "SessionStart:success": 1,
+    "Stop:started": 2,
+    "Stop:success": 2
+  },
+  "stopBlocks": [],
+  "toolUses": {
+    "Workflow": 1,
+    "Bash": 2
+  },
+  "agentSpawns": [],
+  "workflowCalls": [
+    {
+      "name": "harness:ship",
+      "scriptPath": null,
+      "args": "{\"task\":\"Fix these three bug reports. Each fix needs a regression test that fails before the fix and passes after it.\\n\\n1. Discounted invoice totals are sometimes one cent low. A $10.01 subtotal with a 15% discount should total $8.51, but the invoice shows $8.50. The rule: the discounted total, sub"
+    }
+  ],
+  "testCommands": 1,
+  "permissionDenials": 0,
+  "errors": [],
+  "contamination": [],
+  "specDelivered": true,
+  "optionsDelivered": true,
+  "changedFiles": [
+    "src/csv.js",
+    "src/money.js",
+    "src/server.js",
+    "test/csv.test.js",
+    "test/invoice-csv-export.test.js",
+    "test/money.test.js",
+    "test/server.test.js",
+    ".claude/worktrees/wf_72a580a2-d56-2/",
+    ".claude/worktrees/wf_72a580a2-d56-3/",
+    ".claude/worktrees/wf_72a580a2-d56-4/"
+  ],
+  "finalMessage": "All three bugs are fixed and merged into `main`, each with a regression test. I re-ran `npm test` on the merged result and all 35 tests pass. The final review gave a PASS with high confidence. The reviewer also ran the new tests against the original code, where they failed as they should. Nothing was pushed.\n\n**What changed** (7 files, +164/−4):\n\n1. **Rounding** (`src/money.js`): `applyDiscount` used to round down. It now computes subtotal × (100 − percent) / 100 in exact integer math and rounds half up. $10.01 at 15% off now gives $8.51, and 10 cents at 15% off gives 9. A brute-force comparison against exact rounding over 3,000 subtotals and every percent from 0 to 100 in 0.07 steps found no mismatches.\n2. **CSV quoting** (`src/csv.js`): a field is wrapped in double quotes only if it contains a comma, a double quote, a CR or an LF. Inner double quotes are doubled, other fields stay unquoted, and lines still end with `\\n`. Header names get the same treatment.\n3. **404 for a key with no usage** (`src/server.js`): `GET /invoices/:key` returns 404 `{\"error\":\"not_found\"}` for both the JSON and the CSV format. The check runs before the format branch, so a CSV request also gets a JSON error body. A key with broken percent-encoding (such as `%E0%A4%A`) also gets this 404; before, it caused a 500.\n\nThe tests are in `test/money.test.js`, `test/csv.test.js`, `test/invoice-csv-export.test.js` and `test/server.test.js`.\n\n**Worth knowing:**\n- **Very precise percents:** a percent with more than 6 decimal places is rounded to 6 before the discount is applied. That can put the result one cent off when it lands exactly on a half cent, for example `applyDiscount(100, 0.5000001)` returns 100 instead of 99. A real discount won't look like this, and a code comment documents it.\n- **Stricter input:** `applyDiscount` now throws a `RangeError` if cents isn't a non-negative whole number. Its only caller always passes valid amounts, so nothing breaks today.\n- **Hanging test runs:** if a server test fails, the test server isn't closed and the run hangs instead of exiting. This was already true before; the new tests just follow the existing pattern.\n- **Separate bug:** an API key named `__proto__` that has usage still gets a 500. It's unrelated to these three bugs and wasn't fixed.\n\nEach fix is its own commit, merged with a separate merge commit (`307e6f0`, `88e9520`, `96f2af8`). The `.claude/` directory left in the repo holds the workflow's worktrees and can be deleted.",
+  "workDir": "/tmp/harness-bench/2026-10-15-range2/harness-lean/bugfix-trio/t1"
+}

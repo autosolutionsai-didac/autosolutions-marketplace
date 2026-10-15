@@ -1,0 +1,416 @@
+#!/usr/bin/env node
+// Harness benchmark runner.
+//
+//   node bench/run.mjs [--label NAME] [--teams a,b] [--tasks x,y] [--trials N] [--parallel N]
+//                      [--budget-usd N] [--work DIR] [--dry-run] [--force] [--decision-mock[=block]]
+//
+// Teams with "decisionGate" (the *-jev teams) run the harness decision gate on Jev. They need
+// TYPESAFE_API_KEY (or OPENROUTER_API_KEY) in the runner's environment. --decision-mock answers with the
+// local rule-based stand-in instead, and --decision-mock=block makes it send Claude back at every turn's
+// first stop; both are for testing the wiring only.
+//
+// Every run gets a fresh copy of the fixture as its own git repository, a fresh CLAUDE_CONFIG_DIR
+// (so no user settings, plugins, memory or transcripts leak in), and one headless `claude -p` per turn.
+// Results go to bench/results/<label>/<team>/<task>/t<trial>.json; raw streams and transcripts stay in
+// the work directory. Completed runs are skipped on a rerun unless --force, so an interrupted
+// benchmark resumes where it stopped. `node bench/report.mjs <label>` builds the comparison.
+import { spawn, spawnSync } from 'node:child_process'
+import { randomUUID } from 'node:crypto'
+import { appendFileSync, cpSync, existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
+import path from 'node:path'
+import { fileURLToPath } from 'node:url'
+import { childEnv } from './lib/env.mjs'
+import { resolveTeams } from './lib/teams.mjs'
+import { gateEffect, shipInternals, summarizeStreams, summarizeTranscripts, summarizeWorkflows } from './lib/collect.mjs'
+import { scoreCodeTask, scoreFindingsTask } from './lib/score.mjs'
+import { startMockDecisionServer } from './lib/mock-decision.mjs'
+import { CHECKS } from './lib/checks.mjs'
+import { contamination, optionsDelivered, specDelivered } from './lib/evaluate.mjs'
+
+const BENCH = path.dirname(fileURLToPath(import.meta.url))
+const REPO_ROOT = path.dirname(BENCH)
+const PLUGIN_DIR = path.join(REPO_ROOT, 'plugins', 'harness')
+const FIXTURE = path.join(BENCH, 'fixture', 'usage-ledger')
+export const BENCH_VERSION = 2
+
+function parseArgs(argv) {
+  const o = { label: null, teams: null, tasks: null, trials: 1, parallel: 3, budgetUsd: 60, work: null, dryRun: false, force: false, decisionMock: false }
+  for (let i = 0; i < argv.length; i++) {
+    const a = argv[i]
+    const next = () => argv[++i]
+    if (a === '--label') o.label = next()
+    else if (a === '--teams') o.teams = next().split(',')
+    else if (a === '--tasks') o.tasks = next().split(',')
+    else if (a === '--trials') o.trials = Number(next())
+    else if (a === '--parallel') o.parallel = Number(next())
+    else if (a === '--budget-usd') o.budgetUsd = Number(next())
+    else if (a === '--work') o.work = next()
+    else if (a === '--dry-run') o.dryRun = true
+    else if (a === '--force') o.force = true
+    else if (a === '--decision-mock' || a.startsWith('--decision-mock=')) o.decisionMock = a.split('=')[1] || 'rules'
+    else throw new Error(`unknown argument ${a}`)
+  }
+  o.label ||= new Date().toISOString().slice(0, 10)
+  o.work ||= path.join('/tmp', 'harness-bench', o.label)
+  return o
+}
+
+const readJson = (p) => JSON.parse(readFileSync(p, 'utf8'))
+let lastUsage = null
+
+// Which Jev endpoint the decision-gate teams use, from the runner's own environment.
+function decisionBackend(opts) {
+  if (opts.decisionMock) return { provider: 'typesafe', mock: opts.decisionMock }
+  if (process.env.TYPESAFE_API_KEY) return { provider: 'typesafe', env: { TYPESAFE_API_KEY: process.env.TYPESAFE_API_KEY } }
+  if (process.env.OPENROUTER_API_KEY) return { provider: 'openrouter', env: { OPENROUTER_API_KEY: process.env.OPENROUTER_API_KEY } }
+  return null
+}
+
+// Waits before a new run while the account's plan window is nearly used up, so the benchmark neither
+// fails runs on rate limits nor leaves the account unusable. HARNESS_BENCH_USAGE_CEILING (default 0.85).
+async function waitForUsage(log) {
+  const ceiling = Number(process.env.HARNESS_BENCH_USAGE_CEILING) || 0.85
+  for (;;) {
+    const w = lastUsage || {}
+    const over = ['five_hour', 'seven_day'].map((k) => w[k] && w[k].utilization >= ceiling ? { k, resetsAt: w[k].resetsAt } : null).filter(Boolean)
+    if (!over.length) return
+    const until = Math.max(...over.map((o) => o.resetsAt * 1000)) + 60_000
+    log(`usage ${over.map((o) => `${o.k} ${Math.round(w[o.k].utilization * 100)}%`).join(', ')} is at or over ${Math.round(ceiling * 100)}%; waiting until ${new Date(until).toISOString()}`)
+    await new Promise((r) => setTimeout(r, Math.max(60_000, until - Date.now())))
+    lastUsage = null
+  }
+}
+
+function git(cwd, ...args) {
+  const r = spawnSync('git', args, { cwd, encoding: 'utf8' })
+  if (r.status !== 0) throw new Error(`git ${args.join(' ')} failed: ${r.stderr}`)
+  return r.stdout.trim()
+}
+
+function prepareRepo(task, repo) {
+  rmSync(repo, { recursive: true, force: true })
+  cpSync(FIXTURE, repo, { recursive: true })
+  git(repo, 'init', '-q', '-b', 'main')
+  git(repo, 'config', 'user.email', 'bench@example.com')
+  git(repo, 'config', 'user.name', 'Bench')
+  git(repo, 'add', '-A')
+  git(repo, 'commit', '-q', '-m', 'usage-ledger 0.3.0')
+  if (task.setup && task.setup.branch) {
+    git(repo, 'checkout', '-q', '-b', task.setup.branch)
+    const from = path.join(BENCH, 'tasks', task.setup.from || task.id, task.setup.overlay)
+    cpSync(from, repo, { recursive: true })
+    git(repo, 'add', '-A')
+    git(repo, 'commit', '-q', '-m', task.setup.commitMessage || 'Feature branch')
+  }
+  return git(repo, 'rev-parse', 'HEAD')
+}
+
+function fill(template, vars) {
+  return template.replace(/\{\{(\w+)\}\}/g, (_, k) => {
+    if (!(k in vars)) throw new Error(`unknown template variable ${k}`)
+    return vars[k]
+  })
+}
+
+function turnsFor(team, task) {
+  const taskDir = path.join(BENCH, 'tasks', task.id)
+  const spec = existsSync(path.join(taskDir, 'spec.md')) ? readFileSync(path.join(taskDir, 'spec.md'), 'utf8').trim() : ''
+  const findingsTurn = task.findingsFile ? fill(readFileSync(path.join(BENCH, 'tasks', 'findings-turn.md'), 'utf8').trim(), { what: task.findingsWhat, file: task.findingsFile }) : ''
+  const shipArgs = JSON.stringify({ task: spec, ...(team.shipArgs || {}) })
+  const reviewArgs = JSON.stringify({ base: 'main', ...(team.reviewArgs || {}) })
+  const auditArgs = JSON.stringify({ concern: 'security vulnerabilities an attacker can reach through the HTTP API', path: 'src', ...(team.auditArgs || {}) })
+  const templates = task.turns[team.kind] || task.turns.harness
+  return templates.map((t) => fill(t, { spec, shipArgs, reviewArgs, auditArgs, findingsTurn }))
+}
+
+// A team can move a plugin agent role to another model ("roleModels": { "builder": "claude-haiku-5-5" }).
+// It gets its own copy of the frozen plugin with that agent's `model:` line rewritten, so the role's
+// model changes wherever the role is used: workflow stages that name no model and direct subagent calls.
+// A team with a decision gate also gets its own copy: the gate's Stop hook runs through gate-probe.mjs,
+// which records the work tree whenever the gate sends Claude back. A team without the plugin gets only that
+// Stop hook, through a settings file next to the copy.
+function pluginDirFor(team, opts) {
+  if (!team.decisionGate && (!team.roleModels || !Object.keys(team.roleModels).length)) return opts.pluginDir
+  return path.join(opts.work, 'plugin-snapshot', team.id, 'harness')
+}
+
+function gateSettingsFor(team, opts) {
+  return team.decisionGate && !team.plugin ? path.join(path.dirname(pluginDirFor(team, opts)), 'settings.json') : null
+}
+
+function snapshotPlugin(team, opts) {
+  const dir = pluginDirFor(team, opts)
+  if (dir === opts.pluginDir) return
+  rmSync(path.dirname(dir), { recursive: true, force: true })
+  cpSync(opts.pluginDir, dir, { recursive: true })
+  if (team.decisionGate) {
+    cpSync(path.join(BENCH, 'lib', 'gate-probe.mjs'), path.join(dir, 'scripts', 'bench-gate-probe.mjs'))
+    const hooksFile = path.join(dir, 'hooks', 'hooks.json')
+    const hooks = readJson(hooksFile)
+    const stop = hooks.hooks.Stop.flatMap((h) => h.hooks).find((h) => (h.args || []).some((a) => a.endsWith('/decision-gate.mjs')))
+    if (!stop) throw new Error('plugin hooks.json has no decision-gate Stop hook')
+    stop.args = stop.args.map((a) => a.replace(/decision-gate\.mjs$/, 'bench-gate-probe.mjs'))
+    writeFileSync(hooksFile, JSON.stringify(hooks, null, 2))
+    const settingsFile = gateSettingsFor(team, opts)
+    if (settingsFile) {
+      const settings = team.settings ? readJson(path.resolve(BENCH, team.settings)) : {}
+      settings.hooks ||= {}
+      settings.hooks.Stop = [...(settings.hooks.Stop || []), { hooks: [{ type: 'command', command: `node ${path.join(dir, 'scripts', 'bench-gate-probe.mjs')}`, timeout: stop.timeout || 25 }] }]
+      writeFileSync(settingsFile, JSON.stringify(settings, null, 2))
+    }
+  }
+  for (const [role, model] of Object.entries(team.roleModels || {})) {
+    const f = path.join(dir, 'agents', `${role}.md`)
+    if (!existsSync(f)) throw new Error(`team ${team.id}: no agent ${role} in the plugin`)
+    const src = readFileSync(f, 'utf8')
+    if (!/^model: .*$/m.test(src)) throw new Error(`team ${team.id}: agent ${role} has no model line`)
+    writeFileSync(f, src.replace(/^model: .*$/m, `model: ${model}`))
+  }
+}
+
+// Concurrent runs share the machine. In its own PID namespace a run's `ps` and `pkill` see only its own
+// processes, so an agent cannot read another run's command lines or kill its tests (or the scorer's).
+const PID_ISOLATION = spawnSync('unshare', ['--pid', '--fork', '--mount-proc', 'true'], { encoding: 'utf8' }).status === 0
+
+function runClaude({ prompt, cwd, env, args, timeoutMs, streamFile, stderrFile }) {
+  return new Promise((resolve) => {
+    const started = Date.now()
+    const [cmd, argv] = PID_ISOLATION ? ['unshare', ['--pid', '--fork', '--mount-proc', 'claude', '-p', prompt, ...args]] : ['claude', ['-p', prompt, ...args]]
+    const child = spawn(cmd, argv, { cwd, env, stdio: ['ignore', 'pipe', 'pipe'], detached: true })
+    const out = []
+    child.stdout.on('data', (d) => appendFileSync(streamFile, d))
+    child.stderr.on('data', (d) => appendFileSync(stderrFile, d))
+    let timedOut = false
+    // SIGINT first so Claude Code can stop cleanly and write its result event (with the cost), then
+    // SIGTERM, then SIGKILL.
+    const timer = setTimeout(() => {
+      timedOut = true
+      try { process.kill(-child.pid, 'SIGINT') } catch {}
+      setTimeout(() => { try { process.kill(-child.pid, 'SIGTERM') } catch {} }, 45_000)
+      setTimeout(() => { try { process.kill(-child.pid, 'SIGKILL') } catch {} }, 75_000)
+    }, timeoutMs)
+    child.on('close', (code, signal) => {
+      clearTimeout(timer)
+      resolve({ exitCode: code, signal, timedOut, wallSec: (Date.now() - started) / 1000, out })
+    })
+  })
+}
+
+async function runJob(job, opts, log) {
+  const { team, task, trial } = job
+  const dir = path.join(opts.work, team.id, task.id, `t${trial}`)
+  const repo = path.join(dir, 'repo')
+  const configDir = path.join(dir, 'home')
+  const raw = path.join(dir, 'raw')
+  rmSync(dir, { recursive: true, force: true })
+  mkdirSync(raw, { recursive: true })
+  mkdirSync(configDir, { recursive: true })
+  const baseSha = prepareRepo(task, repo)
+  const turns = turnsFor(team, task)
+  const sessionId = randomUUID()
+  const gateBackend = team.decisionGate ? opts.decisionBackend : null
+  const mock = task.mockDecision || (gateBackend && gateBackend.mock) ? await startMockDecisionServer({ mode: (gateBackend && gateBackend.mock) || 'rules' }) : null
+  const extraEnv = { ...(team.env || {}), ...(task.env || {}) }
+  if (mock) Object.assign(extraEnv, { TYPESAFE_API_KEY: 'bench-mock', TYPESAFE_BASE_URL: mock.url, HARNESS_DEBUG: '1' })
+  const gateLog = path.join(raw, 'gate.jsonl')
+  const gateSnapshots = path.join(raw, 'gate-snapshots.jsonl')
+  if (gateBackend) {
+    Object.assign(extraEnv, gateBackend.env || {}, { HARNESS_DECISION_PROVIDER: gateBackend.provider, HARNESS_GATE_LOG: gateLog, HARNESS_GATE_LOG_TEXT: '1', BENCH_GATE_SNAPSHOTS: gateSnapshots, BENCH_REPO: repo })
+  }
+  const env = childEnv({ configDir, extra: extraEnv })
+  const common = ['--model', team.model, '--effort', team.effort, '--output-format', 'stream-json', '--verbose', '--include-hook-events', '--permission-mode', 'bypassPermissions', '--max-budget-usd', String(opts.budgetUsd)]
+  if (team.plugin) common.push('--plugin-dir', pluginDirFor(team, opts))
+  const settingsFile = gateSettingsFor(team, opts) || (team.settings && path.resolve(BENCH, team.settings))
+  if (settingsFile) common.push('--settings', settingsFile)
+
+  const startedAt = new Date().toISOString()
+  const deadline = Date.now() + task.timeoutMin * 60_000
+  const turnResults = []
+  const streamFiles = []
+  for (let i = 0; i < turns.length; i++) {
+    const streamFile = path.join(raw, `turn-${i + 1}.stream.jsonl`)
+    const stderrFile = path.join(raw, `turn-${i + 1}.stderr.txt`)
+    writeFileSync(path.join(raw, `turn-${i + 1}.prompt.txt`), turns[i])
+    streamFiles.push(streamFile)
+    // Later turns (writing the findings file) are short; keep 8 minutes for each so a long first turn
+    // cannot use up the whole task budget and leave the run without its deliverable.
+    const reserve = (turns.length - 1 - i) * 8 * 60_000
+    const remaining = deadline - Date.now() - reserve
+    if (remaining <= 0) { turnResults.push({ turn: i + 1, skipped: 'task deadline passed' }); break }
+    const args = [...common, ...(i === 0 ? ['--session-id', sessionId] : ['--resume', sessionId])]
+    log(`  ${team.id} ${task.id} t${trial}: turn ${i + 1}/${turns.length} started`)
+    const turnStarted = new Date().toISOString()
+    const r = await runClaude({ prompt: turns[i], cwd: repo, env, args, timeoutMs: remaining, streamFile, stderrFile })
+    turnResults.push({ turn: i + 1, exitCode: r.exitCode, signal: r.signal, timedOut: r.timedOut, wallSec: r.wallSec, startedAt: turnStarted, endedAt: new Date().toISOString() })
+    if (r.timedOut) break
+  }
+  const finishedAt = new Date().toISOString()
+  if (mock) await mock.close()
+
+  const streams = summarizeStreams(streamFiles.filter((f) => existsSync(f)))
+  const transcripts = summarizeTranscripts(configDir, sessionId)
+  const workflows = summarizeWorkflows(configDir)
+  const taskDir = path.join(BENCH, 'tasks', task.id)
+  let score = null
+  let check = null
+  try {
+    if (task.kind === 'code') score = scoreCodeTask(repo, task, taskDir)
+    else if (task.kind === 'findings') score = scoreFindingsTask(repo, task, taskDir)
+    else if (task.kind === 'check') check = CHECKS[task.check]({ repo, streams, transcripts, workflows, mock }, task)
+  } catch (e) {
+    score = { success: false, error: `scoring failed: ${e.message}` }
+  }
+  const contam = contamination(configDir, dir, opts.work)
+  const decisionGate = gateBackend ? gateEffect({ gateLog, gateSnapshots, configDir, repo, task, taskDir, turns: turnResults, finalScore: score && { ...score, success: !!score.success && contam.length === 0 }, backend: gateBackend.mock ? 'mock' : gateBackend.provider }) : null
+  const diff = spawnSync('git', ['diff', baseSha, '--', '.', ':(exclude).bench-hidden'], { cwd: repo, encoding: 'utf8', maxBuffer: 64 * 1024 * 1024 }).stdout || ''
+  const untracked = spawnSync('git', ['ls-files', '--others', '--exclude-standard', '--', '.', ':(exclude).bench-hidden'], { cwd: repo, encoding: 'utf8' }).stdout.trim()
+  const transcriptCost = Object.values(transcripts.byModel).reduce((a, m) => a + m.costUSD, 0)
+  const wallSec = turnResults.reduce((a, t) => a + (t.wallSec || 0), 0)
+  // A killed or crashed turn writes no result event, so its cost is missing from the stream total.
+  // Fall back to the transcripts (a lower bound) so a timeout cannot make a team look cheaper.
+  const incomplete = streams.turns.some((t) => t.results === 0) || turnResults.some((t) => t.timedOut || t.signal || t.skipped)
+  const costUSD = incomplete ? Math.max(streams.costUSD, transcriptCost) : streams.costUSD
+  const crashed = streams.turns.some((t) => t.results === 0) && !turnResults.some((t) => t.timedOut)
+  const apiErrors = transcripts.agents.reduce((a, x) => a + (x.apiErrors || 0), 0)
+  // Runs that ended because of the account's usage limits, or crashed without a timeout, say nothing
+  // about the team: they are written as invalid and retried on the next invocation.
+  // A gate whose backend never answered let every stop through (it fails open): that is a run without Jev.
+  const gateDown = decisionGate && decisionGate.errors > 0 && decisionGate.calls === 0
+  const testsKilled = score && ((score.visible && score.visible.interrupted) || Object.values(score.hiddenPerFile || {}).some((x) => x && x.interrupted))
+  const invalidReason = streams.rateLimited ? 'rate limited' : crashed ? 'crashed (no result event, no timeout)' : gateDown ? `decision backend never answered: ${decisionGate.errorTexts[0] || 'error'}` : testsKilled ? 'scoring test run was killed' : null
+  const result = {
+    benchVersion: BENCH_VERSION,
+    label: opts.label,
+    team: team.id,
+    teamKind: team.kind,
+    task: task.id,
+    taskKind: task.kind,
+    trial,
+    sessionId,
+    startedAt,
+    finishedAt,
+    wallSec,
+    timedOut: turnResults.some((t) => t.timedOut),
+    turns: turnResults,
+    success: task.kind === 'check' ? !!(check && check.pass) : !!(score && score.success) && contam.length === 0,
+    score,
+    check,
+    costUSD,
+    costSource: incomplete ? 'transcripts-estimate (lower bound)' : 'claude-code',
+    costUSDFromStream: streams.costUSD,
+    costUSDFromTranscripts: transcriptCost,
+    invalidReason,
+    apiErrors,
+    usageWindows: streams.usageWindows,
+    modelUsage: streams.modelUsage,
+    tokensByModel: transcripts.byModel,
+    byRole: transcripts.byRole,
+    agentCount: transcripts.agents.filter((a) => a.role !== 'main').length,
+    workflows,
+    ship: shipInternals(workflows, transcripts),
+    decisionGate,
+    hooks: streams.hooks,
+    stopBlocks: streams.stopBlocks,
+    toolUses: streams.toolUses,
+    agentSpawns: streams.agentSpawns,
+    workflowCalls: streams.workflowCalls,
+    testCommands: streams.testCommands.length,
+    permissionDenials: streams.permissionDenials,
+    errors: streams.errors,
+    contamination: contam,
+    specDelivered: specDelivered(workflows, existsSync(path.join(taskDir, 'spec.md')) ? readFileSync(path.join(taskDir, 'spec.md'), 'utf8') : ''),
+    optionsDelivered: optionsDelivered(workflows, transcripts.agents, team),
+    changedFiles: (spawnSync('git', ['diff', '--name-only', baseSha], { cwd: repo, encoding: 'utf8' }).stdout.trim() + '\n' + untracked).split('\n').filter(Boolean),
+    finalMessage: streams.finalMessage.slice(0, 4000),
+    workDir: dir,
+  }
+  const outDir = path.join(BENCH, 'results', opts.label, team.id, task.id)
+  mkdirSync(outDir, { recursive: true })
+  if (invalidReason) {
+    writeFileSync(path.join(outDir, `t${trial}.invalid.json`), JSON.stringify(result, null, 2))
+  } else {
+    rmSync(path.join(outDir, `t${trial}.invalid.json`), { force: true })
+    writeFileSync(path.join(outDir, `t${trial}.json`), JSON.stringify(result, null, 2))
+    writeFileSync(path.join(outDir, `t${trial}.diff`), diff + (untracked ? `\n# untracked files\n${untracked}\n` : ''))
+  }
+  lastUsage = streams.usageWindows || lastUsage
+  return result
+}
+
+async function main() {
+  const opts = parseArgs(process.argv.slice(2))
+  const teams = resolveTeams(readJson(path.join(BENCH, 'teams.json')).teams).filter((t) => !opts.teams || opts.teams.includes(t.id))
+  if (opts.teams) for (const id of opts.teams) if (!teams.some((t) => t.id === id)) throw new Error(`unknown team ${id}`)
+  opts.decisionBackend = decisionBackend(opts)
+  if (teams.some((t) => t.decisionGate) && !opts.decisionBackend && !opts.dryRun) {
+    throw new Error('the decision-gate teams need TYPESAFE_API_KEY or OPENROUTER_API_KEY in the environment (or --decision-mock to test the wiring)')
+  }
+  // The gate fails open, so a wrong key or an outage would quietly turn every *-jev run into a run without
+  // Jev. Check the live backend answers before spending anything.
+  if (teams.some((t) => t.decisionGate) && opts.decisionBackend && !opts.decisionBackend.mock && !opts.dryRun) {
+    const smoke = spawnSync(process.execPath, [path.join(BENCH, 'jev-smoke.mjs')], { encoding: 'utf8', env: process.env, timeout: 120_000 })
+    process.stdout.write(smoke.stdout || '')
+    if (smoke.status !== 0) throw new Error(`jev-smoke failed (exit ${smoke.status}); not starting the decision-gate runs`)
+  }
+  const tasks = readJson(path.join(BENCH, 'tasks.json')).tasks.filter((t) => !opts.tasks || opts.tasks.includes(t.id))
+  // Task-major order, so the teams run the same task at about the same time and see the same API conditions.
+  const jobs = []
+  for (let trial = 1; trial <= opts.trials; trial++) {
+    for (const task of tasks) {
+      for (const team of teams) {
+        if (task.teams && !task.teams.includes(team.id)) continue
+        if (!task.turns[team.kind] && !(team.kind === 'harness' && task.turns.harness)) continue
+        jobs.push({ team, task, trial })
+      }
+    }
+  }
+  const resultsDir = path.join(BENCH, 'results', opts.label)
+  mkdirSync(resultsDir, { recursive: true })
+  mkdirSync(opts.work, { recursive: true })
+  // Freeze the plugin as it is now, so edits made while a long benchmark runs cannot leak into later runs.
+  opts.pluginDir = path.join(opts.work, 'plugin-snapshot', 'harness')
+  if (!opts.dryRun) {
+    rmSync(opts.pluginDir, { recursive: true, force: true })
+    cpSync(PLUGIN_DIR, opts.pluginDir, { recursive: true })
+    for (const team of teams) if (team.plugin || team.decisionGate) snapshotPlugin(team, opts)
+  }
+  const progress = path.join(resultsDir, 'progress.log')
+  const log = (m) => { const line = `${new Date().toISOString()} ${m}`; console.log(line); appendFileSync(progress, line + '\n') }
+  const done = (j) => {
+    const f = path.join(resultsDir, j.team.id, j.task.id, `t${j.trial}.json`)
+    if (!existsSync(f)) return false
+    try { return readJson(f).benchVersion === BENCH_VERSION } catch { return false }
+  }
+  const pending = jobs.filter((j) => opts.force || !done(j))
+  log(`bench ${opts.label}: ${jobs.length} runs planned, ${jobs.length - pending.length} already done, ${pending.length} to run, ${opts.parallel} at a time. Work dir ${opts.work}`)
+  if (opts.dryRun) {
+    for (const j of pending) console.log(`${j.team.id.padEnd(26)} ${j.task.id.padEnd(22)} t${j.trial}  turns: ${turnsFor(j.team, j.task).map((t) => JSON.stringify(t.slice(0, 90))).join(' | ')}`)
+    return
+  }
+  // The first invocation of a label writes run-config.json; later ones (resumes, reruns of a subset)
+  // add run-config-<n>.json so the original settings stay on record.
+  let cfgName = 'run-config.json'
+  for (let n = 2; existsSync(path.join(resultsDir, cfgName)); n++) cfgName = `run-config-${n}.json`
+  writeFileSync(path.join(resultsDir, cfgName), JSON.stringify({ label: opts.label, benchVersion: BENCH_VERSION, startedAt: new Date().toISOString(), claudeVersion: spawnSync('claude', ['--version'], { encoding: 'utf8' }).stdout.trim(), gitSha: spawnSync('git', ['rev-parse', 'HEAD'], { cwd: REPO_ROOT, encoding: 'utf8' }).stdout.trim(), gitDirty: spawnSync('git', ['status', '--porcelain'], { cwd: REPO_ROOT, encoding: 'utf8' }).stdout.trim().length > 0, node: process.version, cpus: (await import('node:os')).cpus().length, workflowAgentConcurrency: Math.min(16, Math.max(2, (await import('node:os')).availableParallelism() - 2)), childEnvKeys: Object.keys(childEnv({ configDir: '/tmp/x' })).sort(), teams, tasks: tasks.map((t) => t.id), trials: opts.trials, parallel: opts.parallel, budgetUsdPerTurn: opts.budgetUsd, decisionBackend: opts.decisionBackend ? (opts.decisionBackend.mock ? `mock (${opts.decisionBackend.mock})` : opts.decisionBackend.provider) : null, pidIsolation: PID_ISOLATION }, null, 2))
+  let next = 0
+  async function worker(w) {
+    while (next < pending.length) {
+      await waitForUsage(log)
+      if (next >= pending.length) break
+      const job = pending[next++]
+      log(`[w${w}] start ${job.team.id} ${job.task.id} t${job.trial}`)
+      try {
+        const r = await runJob(job, opts, log)
+        const usage = r.usageWindows && r.usageWindows.five_hour ? `, plan 5h ${Math.round(r.usageWindows.five_hour.utilization * 100)}%` : ''
+        const g = r.decisionGate ? `, gate ${r.decisionGate.calls} calls ${r.decisionGate.blocks} blocks${r.decisionGate.errors ? ` ${r.decisionGate.errors} errors` : ''}` : ''
+        log(`[w${w}] done  ${job.team.id} ${job.task.id} t${job.trial}: ${r.invalidReason ? `INVALID (${r.invalidReason}, will retry on rerun)` : r.success ? 'SUCCESS' : 'FAIL'} in ${Math.round(r.wallSec)}s, $${r.costUSD.toFixed(2)}${g}${usage}${r.errors.length ? `, errors: ${r.errors.join('; ').slice(0, 200)}` : ''}`)
+      } catch (e) {
+        log(`[w${w}] crash ${job.team.id} ${job.task.id} t${job.trial}: ${e.stack || e.message}`)
+      }
+    }
+  }
+  await Promise.all(Array.from({ length: Math.max(1, opts.parallel) }, (_, i) => worker(i + 1)))
+  log('all runs finished')
+}
+
+main().catch((e) => { console.error(e); process.exit(1) })

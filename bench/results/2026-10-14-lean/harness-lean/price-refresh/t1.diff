@@ -1,0 +1,43 @@
+diff --git a/src/prices.js b/src/prices.js
+index 539d942..8af6203 100644
+--- a/src/prices.js
++++ b/src/prices.js
+@@ -1,10 +1,15 @@
+ // Anthropic list prices in USD per million tokens.
+ // cacheWrite is the 5-minute cache write price.
+-// Last updated: 2026-07-01, at the Claude 5 launch.
++// Source: https://platform.claude.com/docs/en/about-claude/pricing
++// Last updated: 2026-10-13, with the Claude 5.5 models.
+ export const PRICES = {
+   'claude-haiku-4-5': { input: 1, output: 5, cacheRead: 0.1, cacheWrite: 1.25 },
+   'claude-sonnet-5': { input: 2, output: 10, cacheRead: 0.2, cacheWrite: 2.5 },
+   'claude-opus-5': { input: 5, output: 25, cacheRead: 0.5, cacheWrite: 6.25 },
++  // Prices for prompts up to 100,000 tokens. Longer prompts cost 5x as much, which is not modeled here.
++  'claude-haiku-5-5': { input: 0.1, output: 0.5, cacheRead: 0.01, cacheWrite: 0.125 },
++  'claude-sonnet-5-5': { input: 2, output: 10, cacheRead: 0.1, cacheWrite: 2.5 },
++  'claude-opus-5-5': { input: 4, output: 20, cacheRead: 0.2, cacheWrite: 5 },
+ }
+ 
+ export class UnknownModelError extends Error {
+diff --git a/test/cost.test.js b/test/cost.test.js
+index 1cd49e6..a775d55 100644
+--- a/test/cost.test.js
++++ b/test/cost.test.js
+@@ -9,6 +9,17 @@ test('costOf prices every usage component', () => {
+   assert.equal(costOf(usage, 'claude-sonnet-5'), 2_000 + 20_000 + 2_000 + 1_250)
+ })
+ 
++test('costOf prices the Claude 5.5 models', () => {
++  // A 60,000-token prompt, under the 100,000-token threshold for claude-haiku-5-5.
++  const usage = { inputTokens: 2_000, outputTokens: 1_000, cacheReadTokens: 50_000, cacheWriteTokens: 8_000 }
++  // claude-haiku-5-5: 0.1, 0.5, 0.01, 0.125 USD per million tokens
++  assert.equal(costOf(usage, 'claude-haiku-5-5'), 200 + 500 + 500 + 1_000)
++  // claude-sonnet-5-5: 2, 10, 0.1, 2.5 USD per million tokens
++  assert.equal(costOf(usage, 'claude-sonnet-5-5'), 4_000 + 10_000 + 5_000 + 20_000)
++  // claude-opus-5-5: 4, 20, 0.2, 5 USD per million tokens
++  assert.equal(costOf(usage, 'claude-opus-5-5'), 8_000 + 20_000 + 10_000 + 40_000)
++})
++
+ test('costOf treats missing components as zero', () => {
+   assert.equal(costOf({ outputTokens: 100 }, 'claude-opus-5'), 2_500)
+ })

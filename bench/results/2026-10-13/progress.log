@@ -1,0 +1,90 @@
+2026-10-13T20:05:23.210Z bench 2026-10-13: 23 runs planned, 0 already done, 23 to run, 3 at a time. Work dir /tmp/harness-bench/2026-10-13
+2026-10-13T20:05:23.235Z [w1] start native-opus-xhigh rate-limit t1
+2026-10-13T20:05:23.362Z   native-opus-xhigh rate-limit t1: turn 1/1 started
+2026-10-13T20:05:23.366Z [w2] start harness-sonnet-builders rate-limit t1
+2026-10-13T20:05:23.497Z   harness-sonnet-builders rate-limit t1: turn 1/1 started
+2026-10-13T20:05:23.499Z [w3] start harness-opus-builders rate-limit t1
+2026-10-13T20:05:23.643Z   harness-opus-builders rate-limit t1: turn 1/1 started
+2026-10-13T20:10:07.885Z [w3] done  harness-opus-builders rate-limit t1: FAIL in 284s, $2.32, plan 5h 37%
+2026-10-13T20:10:07.885Z [w3] start native-opus-xhigh bugfix-trio t1
+2026-10-13T20:10:08.016Z   native-opus-xhigh bugfix-trio t1: turn 1/1 started
+2026-10-13T20:12:29.383Z [w1] done  native-opus-xhigh rate-limit t1: FAIL in 425s, $1.19, plan 5h 38%
+2026-10-13T20:12:29.383Z [w1] start harness-sonnet-builders bugfix-trio t1
+2026-10-13T20:12:29.517Z   harness-sonnet-builders bugfix-trio t1: turn 1/1 started
+2026-10-13T20:17:28.377Z [w3] done  native-opus-xhigh bugfix-trio t1: FAIL in 439s, $0.92, plan 5h 39%
+2026-10-13T20:17:28.377Z [w3] start harness-opus-builders bugfix-trio t1
+2026-10-13T20:17:28.537Z   harness-opus-builders bugfix-trio t1: turn 1/1 started
+2026-10-13T20:20:00.124Z [w2] done  harness-sonnet-builders rate-limit t1: FAIL in 876s, $2.34, plan 5h 40%
+2026-10-13T20:20:00.124Z [w2] start native-opus-xhigh price-refresh t1
+2026-10-13T20:20:00.255Z   native-opus-xhigh price-refresh t1: turn 1/1 started
+2026-10-13T20:21:27.431Z [w2] done  native-opus-xhigh price-refresh t1: FAIL in 87s, $0.90, plan 5h 41%
+2026-10-13T20:21:27.431Z [w2] start harness-sonnet-builders price-refresh t1
+2026-10-13T20:21:27.583Z   harness-sonnet-builders price-refresh t1: turn 1/1 started
+2026-10-13T20:22:33.301Z [w2] done  harness-sonnet-builders price-refresh t1: FAIL in 65s, $0.30, plan 5h 42%
+2026-10-13T20:22:33.301Z [w2] start harness-opus-builders price-refresh t1
+2026-10-13T20:22:33.438Z   harness-opus-builders price-refresh t1: turn 1/1 started
+2026-10-13T20:23:48.402Z [w2] done  harness-opus-builders price-refresh t1: FAIL in 74s, $0.79, plan 5h 42%
+2026-10-13T20:23:48.403Z [w2] start native-opus-xhigh review-import t1
+2026-10-13T20:23:48.628Z   native-opus-xhigh review-import t1: turn 1/2 started
+2026-10-13T20:24:58.818Z   native-opus-xhigh review-import t1: turn 2/2 started
+2026-10-13T20:25:09.913Z [w3] done  harness-opus-builders bugfix-trio t1: FAIL in 460s, $2.26, plan 5h 43%
+2026-10-13T20:25:09.913Z [w3] start harness-sonnet-builders review-import t1
+2026-10-13T20:25:10.178Z   harness-sonnet-builders review-import t1: turn 1/2 started
+2026-10-13T20:25:18.764Z [w2] done  native-opus-xhigh review-import t1: FAIL in 90s, $0.41, plan 5h 43%
+2026-10-13T20:25:18.765Z [w2] start harness-opus-builders review-import t1
+2026-10-13T20:25:19.092Z   harness-opus-builders review-import t1: turn 1/2 started
+2026-10-13T20:25:33.082Z [w1] done  harness-sonnet-builders bugfix-trio t1: FAIL in 782s, $3.32, plan 5h 43%
+2026-10-13T20:25:33.082Z [w1] start native-opus-xhigh audit-input t1
+2026-10-13T20:25:33.265Z   native-opus-xhigh audit-input t1: turn 1/2 started
+2026-10-13T20:28:22.058Z   native-opus-xhigh audit-input t1: turn 2/2 started
+2026-10-13T20:28:44.239Z [w1] done  native-opus-xhigh audit-input t1: FAIL in 191s, $0.69, plan 5h 45%
+2026-10-13T20:28:44.239Z [w1] start harness-sonnet-builders audit-input t1
+2026-10-13T20:28:44.385Z   harness-sonnet-builders audit-input t1: turn 1/2 started
+2026-10-13T20:29:12.870Z   harness-sonnet-builders review-import t1: turn 2/2 started
+2026-10-13T20:29:37.223Z [w3] done  harness-sonnet-builders review-import t1: FAIL in 267s, $1.87, plan 5h 45%
+2026-10-13T20:29:37.223Z [w3] start harness-opus-builders audit-input t1
+2026-10-13T20:29:37.362Z   harness-opus-builders audit-input t1: turn 1/2 started
+2026-10-13T20:30:04.569Z   harness-opus-builders review-import t1: turn 2/2 started
+2026-10-13T20:30:37.808Z [w2] done  harness-opus-builders review-import t1: FAIL in 319s, $2.08, plan 5h 46%
+2026-10-13T20:30:37.808Z [w2] start harness-sonnet-builders check-routing t1
+2026-10-13T20:30:37.944Z   harness-sonnet-builders check-routing t1: turn 1/1 started
+2026-10-13T20:31:27.626Z [w2] done  harness-sonnet-builders check-routing t1: SUCCESS in 50s, $0.26, plan 5h 46%
+2026-10-13T20:31:27.626Z [w2] start harness-sonnet-builders check-judge t1
+2026-10-13T20:31:27.916Z   harness-sonnet-builders check-judge t1: turn 1/1 started
+2026-10-13T20:32:59.692Z [w2] done  harness-sonnet-builders check-judge t1: SUCCESS in 92s, $0.62, plan 5h 47%
+2026-10-13T20:32:59.692Z [w2] start harness-sonnet-builders check-decision-gate t1
+2026-10-13T20:32:59.848Z   harness-sonnet-builders check-decision-gate t1: turn 1/1 started
+2026-10-13T20:33:12.523Z [w2] done  harness-sonnet-builders check-decision-gate t1: SUCCESS in 13s, $0.10, plan 5h 47%
+2026-10-13T20:33:12.523Z [w2] start harness-sonnet-builders check-fable-gate t1
+2026-10-13T20:33:12.635Z   harness-sonnet-builders check-fable-gate t1: turn 1/2 started
+2026-10-13T20:33:30.154Z   harness-sonnet-builders check-fable-gate t1: turn 2/2 started
+2026-10-13T20:33:41.422Z [w2] done  harness-sonnet-builders check-fable-gate t1: FAIL in 29s, $0.16, plan 5h 47%
+2026-10-13T20:33:41.422Z [w2] start harness-sonnet-builders check-second-opinion t1
+2026-10-13T20:33:41.688Z   harness-sonnet-builders check-second-opinion t1: turn 1/1 started
+2026-10-13T20:34:37.512Z [w2] done  harness-sonnet-builders check-second-opinion t1: SUCCESS in 56s, $0.28, plan 5h 48%
+2026-10-13T20:34:37.512Z [w2] start harness-sonnet-builders check-setup t1
+2026-10-13T20:34:37.640Z   harness-sonnet-builders check-setup t1: turn 1/1 started
+2026-10-13T20:35:51.434Z [w2] done  harness-sonnet-builders check-setup t1: SUCCESS in 74s, $0.38, plan 5h 48%
+2026-10-13T20:35:51.434Z [w2] start harness-sonnet-builders check-gate-claude-cli t1
+2026-10-13T20:35:51.568Z   harness-sonnet-builders check-gate-claude-cli t1: turn 1/1 started
+2026-10-13T20:36:08.007Z [w2] done  harness-sonnet-builders check-gate-claude-cli t1: SUCCESS in 16s, $0.10, plan 5h 49%
+2026-10-13T20:36:08.007Z [w2] start harness-sonnet-builders check-gate-heuristic t1
+2026-10-13T20:36:08.147Z   harness-sonnet-builders check-gate-heuristic t1: turn 1/1 started
+2026-10-13T20:36:22.575Z [w2] done  harness-sonnet-builders check-gate-heuristic t1: SUCCESS in 14s, $0.10, plan 5h 49%
+2026-10-13T20:36:25.034Z   harness-sonnet-builders audit-input t1: turn 2/2 started
+2026-10-13T20:36:53.430Z [w1] crash harness-sonnet-builders audit-input t1: ReferenceError: Cannot access 'agent' before initialization
+    at summarizeTranscripts (file:///home/user/autosolutions-marketplace/bench/lib/collect.mjs:124:77)
+    at runJob (file:///home/user/autosolutions-marketplace/bench/run.mjs:200:23)
+    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+    at async worker (file:///home/user/autosolutions-marketplace/bench/run.mjs:328:19)
+    at async Promise.all (index 0)
+    at async main (file:///home/user/autosolutions-marketplace/bench/run.mjs:336:3)
+2026-10-13T20:38:38.122Z   harness-opus-builders audit-input t1: turn 2/2 started
+2026-10-13T20:39:14.312Z [w3] done  harness-opus-builders audit-input t1: FAIL in 577s, $3.22, plan 5h 49%
+2026-10-13T20:39:14.312Z all runs finished
+2026-10-13T20:39:37.777Z bench 2026-10-13: 2 runs planned, 1 already done, 1 to run, 1 at a time. Work dir /tmp/harness-bench/2026-10-13
+2026-10-13T20:39:37.817Z [w1] start harness-sonnet-builders check-fable-gate t2
+2026-10-13T20:39:38.012Z   harness-sonnet-builders check-fable-gate t2: turn 1/2 started
+2026-10-13T20:40:16.731Z   harness-sonnet-builders check-fable-gate t2: turn 2/2 started
+2026-10-13T20:41:04.065Z [w1] done  harness-sonnet-builders check-fable-gate t2: SUCCESS in 86s, $0.83, plan 5h 50%
+2026-10-13T20:41:04.065Z all runs finished

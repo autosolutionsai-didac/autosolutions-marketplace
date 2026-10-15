@@ -1,0 +1,185 @@
+{
+  "benchVersion": 2,
+  "label": "2026-10-14-jev",
+  "team": "harness-haiku-builders-jev",
+  "teamKind": "harness",
+  "task": "price-refresh",
+  "taskKind": "code",
+  "trial": 1,
+  "sessionId": "bbc18ea1-4138-4eb7-b624-40d44fa0057a",
+  "startedAt": "2026-10-14T10:43:24.398Z",
+  "finishedAt": "2026-10-14T10:44:36.708Z",
+  "wallSec": 72.31,
+  "timedOut": false,
+  "turns": [
+    {
+      "turn": 1,
+      "exitCode": 0,
+      "signal": null,
+      "timedOut": false,
+      "wallSec": 72.31,
+      "startedAt": "2026-10-14T10:43:24.398Z",
+      "endedAt": "2026-10-14T10:44:36.708Z"
+    }
+  ],
+  "success": true,
+  "score": {
+    "success": true,
+    "specComplete": true,
+    "compliance": {
+      "complete": true,
+      "items": {
+        "sourceUrl": true,
+        "lastUpdatedChanged": true,
+        "testForNewModels": true
+      }
+    },
+    "visible": {
+      "tests": 17,
+      "pass": 17,
+      "fail": 0,
+      "cancelled": 0,
+      "timedOut": null,
+      "exitCode": 0,
+      "signal": null,
+      "interrupted": false,
+      "failures": []
+    },
+    "hidden": {
+      "tests": 5,
+      "pass": 5,
+      "fail": 0
+    },
+    "hiddenPerFile": {
+      "prices.test.js": {
+        "pass": 5,
+        "fail": 0,
+        "failures": [],
+        "interrupted": false
+      }
+    },
+    "partial": 1,
+    "notes": []
+  },
+  "check": null,
+  "costUSD": 0.9224444,
+  "costSource": "claude-code",
+  "costUSDFromStream": 0.9224444,
+  "costUSDFromTranscripts": 0.9224444,
+  "invalidReason": null,
+  "apiErrors": 0,
+  "usageWindows": {
+    "five_hour": {
+      "utilization": 0.32,
+      "resetsAt": 1791984000
+    },
+    "seven_day": {
+      "utilization": 0.27,
+      "resetsAt": 1792162800
+    }
+  },
+  "modelUsage": {
+    "claude-opus-5-5": {
+      "inputTokens": 26,
+      "outputTokens": 6745,
+      "cacheReadInputTokens": 897722,
+      "cacheCreationInputTokens": 75987,
+      "thinkingTokens": 2235,
+      "webSearchRequests": 0,
+      "costUSD": 0.9224444
+    }
+  },
+  "tokensByModel": {
+    "claude-opus-5-5": {
+      "requests": 13,
+      "input": 26,
+      "output": 6745,
+      "cacheRead": 897722,
+      "cacheWrite": 75987,
+      "costUSD": 0.9224444
+    }
+  },
+  "byRole": {
+    "main": {
+      "agents": 1,
+      "requests": 13,
+      "input": 26,
+      "output": 6745,
+      "cacheRead": 897722,
+      "cacheWrite": 75987,
+      "costUSD": 0.9224444,
+      "models": {
+        "claude-opus-5-5": 13
+      }
+    }
+  },
+  "agentCount": 0,
+  "workflows": [],
+  "ship": null,
+  "decisionGate": {
+    "backend": "typesafe",
+    "stops": 1,
+    "calls": 1,
+    "blocks": 0,
+    "errors": 0,
+    "errorTexts": [],
+    "msMedian": 234,
+    "msMax": 234,
+    "jev": {
+      "inputTokens": 1236,
+      "costUSD": 0.00005191200000000001,
+      "estimated": false
+    },
+    "extraSec": 0,
+    "extraCostUSD": 0,
+    "counterfactual": {
+      "applicable": true,
+      "note": "the gate never sent Claude back, so the result is what the run delivers without it",
+      "withoutGate": {
+        "success": true,
+        "hidden": "5/5",
+        "specComplete": true
+      },
+      "withGate": {
+        "success": true,
+        "hidden": "5/5",
+        "specComplete": true
+      }
+    },
+    "events": [
+      {
+        "ts": "2026-10-14T10:44:36.018Z",
+        "turn": 1,
+        "blocked": false,
+        "gateMs": 315
+      }
+    ]
+  },
+  "hooks": {
+    "SessionStart:started": 1,
+    "SessionStart:success": 1,
+    "Stop:started": 1,
+    "Stop:success": 1
+  },
+  "stopBlocks": [],
+  "toolUses": {
+    "Bash": 11,
+    "Skill": 1,
+    "Edit": 2
+  },
+  "agentSpawns": [],
+  "workflowCalls": [],
+  "testCommands": 2,
+  "permissionDenials": 0,
+  "errors": [],
+  "contamination": [],
+  "specDelivered": null,
+  "changedFiles": [
+    "src/prices.js",
+    "test/cost.test.js"
+  ],
+  "finalMessage": "I've added the three models to `src/prices.js` and a test that costs one request on each. All 17 tests pass: the original 16 plus the new one. Nothing is committed.\n\n**Prices** (USD per million tokens), from https://platform.claude.com/docs/en/about-claude/pricing:\n\n| Model | input | output | cacheRead | cacheWrite (5 min) |\n|---|---|---|---|---|\n| `claude-haiku-5-5` (prompts up to 100,000 tokens) | 0.10 | 0.50 | 0.01 | 0.125 |\n| `claude-sonnet-5-5` | 2 | 10 | **0.10** | 2.50 |\n| `claude-opus-5-5` | 4 | 20 | 0.20 | 5 |\n\n**The recent change:** Anthropic's API release notes for 2026-10-07 say Sonnet 5.5 cache reads dropped from $0.20 to $0.10. That's why it's $0.10 above. The release notes show no price changes between then and today (2026-10-14), so these are the prices as of 2026-10-13. The models overview page agrees with them.\n\n**Changes:**\n- **`src/prices.js`:** added a comment with the source URL and changed the \"Last updated\" line to 2026-10-13. The three existing entries are unchanged. A one-line comment on the Haiku 5.5 entry says these are the prices for prompts up to 100,000 tokens. Longer prompts are billed at higher rates (0.50 / 2.50 / 0.05 / 0.625), which this file doesn't model.\n- **`test/cost.test.js`:** the new test, `costOf prices the Claude 5.5 models`, costs the same request on each of the three models. To check that it catches a wrong price, I briefly set Sonnet 5.5's cache read back to the old $0.20, and the test failed. I then restored the file.",
+  "workDir": "/tmp/harness-bench/2026-10-14-jev/harness-haiku-builders-jev/price-refresh/t1",
+  "apiErrorTexts": [],
+  "rescoredAt": "2026-10-14T11:02:15.572Z"
+}

@@ -24,7 +24,7 @@ Every role below is a real, separate AI worker with its own instructions, its ow
 
 **The scouts** are interns with a flashlight. They search the codebase or the web and come back with exact locations and quotes, nothing else. They run on Claude Haiku 5.5, the cheapest and fastest model, because finding things is mechanical work and the result is easy to verify. Several scouts can run at the same time.
 
-**The builders** are reliable carpenters working from a written spec. Each one gets one well-defined piece of the job, its own copy of the project to work in, and a list of what "done" means. They run on Claude Sonnet 5.5, the mid-tier model: strong enough to write good code when the brief is clear, a fifth of the price of the senior model. Several builders work in parallel.
+**The builders** are reliable carpenters working from a written spec. Each one gets one well-defined piece of the job, its own copy of the project to work in, and a list of what "done" means. They run on Claude Sonnet 5.5, the mid-tier model: strong enough to write good code when the brief is clear, at half the price per token of the senior model and, at the medium effort they run at, well under half the cost per task. Several builders work in parallel. When the refuters reject a piece, the one retry it gets is done by the senior model, because by then the piece has shown it is harder than the brief suggested.
 
 **The refuters** are the colleagues whose job is to break your work before a customer does. For every piece a builder finishes, three refuters each attack it from a different angle: does it do what was asked, what happens at the edges, and did anyone actually run the tests. They run on Opus 5.5 at high effort, because finding a subtle bug is judgment work. A piece only passes when the refuters cannot break it.
 
@@ -42,12 +42,14 @@ The default way of working is one model doing one thing at a time. The harness f
 
 Prices per million tokens, as published by Anthropic in September and October 2026 (input / output):
 
-| Model | Price | Used for |
-|---|---|---|
-| Haiku 5.5 | $0.10 / $0.50 | search, reading, summaries |
-| Sonnet 5.5 | $2 / $10 | implementation from a spec |
-| Opus 5.5 | $4 / $20 | planning, decisions, trying to break things |
-| Fable 5.1 | $10 / $50 | the final verdict |
+| Model | Price | Cache reads | Used for |
+|---|---|---|---|
+| Haiku 5.5 | $0.10 / $0.50 | $0.01 | search, reading, summaries |
+| Sonnet 5.5 | $2 / $10 | $0.10 | implementation from a spec |
+| Opus 5.5 | $4 / $20 | $0.20 | planning, decisions, trying to break things, retrying a rejected piece |
+| Fable 5.1 | $10 / $50 | | the final verdict |
+
+Cache reads matter because most of the tokens in agentic coding are the same context read again on every step. Anthropic halved Sonnet 5.5's cache-read price on October 7, 2026, which makes it about 20% cheaper on agentic work than at launch.
 
 Haiku is forty times cheaper than Opus. Most of the tokens in a coding task are reading, not thinking: scanning files, running tests, paging through logs. When all of that runs on the expensive model you pay the expensive price for intern work.
 

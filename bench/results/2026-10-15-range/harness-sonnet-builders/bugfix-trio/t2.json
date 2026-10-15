@@ -1,0 +1,364 @@
+{
+  "benchVersion": 2,
+  "label": "2026-10-15-range",
+  "team": "harness-sonnet-builders",
+  "teamKind": "harness",
+  "task": "bugfix-trio",
+  "taskKind": "code",
+  "trial": 2,
+  "sessionId": "96b9c3cc-ae1d-433b-b839-5e792cc71fe1",
+  "startedAt": "2026-10-15T08:58:54.196Z",
+  "finishedAt": "2026-10-15T09:22:32.750Z",
+  "wallSec": 1418.554,
+  "timedOut": false,
+  "turns": [
+    {
+      "turn": 1,
+      "exitCode": 0,
+      "signal": null,
+      "timedOut": false,
+      "wallSec": 1418.554,
+      "startedAt": "2026-10-15T08:58:54.196Z",
+      "endedAt": "2026-10-15T09:22:32.750Z"
+    }
+  ],
+  "success": true,
+  "score": {
+    "success": true,
+    "strict": {
+      "tests": 2,
+      "pass": 2,
+      "fail": 0,
+      "failures": []
+    },
+    "specComplete": true,
+    "compliance": {
+      "complete": true,
+      "items": {
+        "regressionTestsFailOnBase": 11,
+        "regressionTests": true
+      }
+    },
+    "visible": {
+      "tests": 28,
+      "pass": 28,
+      "fail": 0,
+      "cancelled": 0,
+      "timedOut": null,
+      "exitCode": 0,
+      "signal": null,
+      "interrupted": false,
+      "failures": []
+    },
+    "hidden": {
+      "tests": 9,
+      "pass": 9,
+      "fail": 0
+    },
+    "hiddenPerFile": {
+      "b1-discount.test.js": {
+        "pass": 3,
+        "fail": 0,
+        "failures": [],
+        "interrupted": false
+      },
+      "b2-csv.test.js": {
+        "pass": 3,
+        "fail": 0,
+        "failures": [],
+        "interrupted": false
+      },
+      "b3-not-found.test.js": {
+        "pass": 3,
+        "fail": 0,
+        "failures": [],
+        "interrupted": false
+      }
+    },
+    "partial": 1,
+    "notes": []
+  },
+  "check": null,
+  "costUSD": 3.20051405,
+  "costSource": "claude-code",
+  "costUSDFromStream": 3.20051405,
+  "costUSDFromTranscripts": 3.19907405,
+  "invalidReason": null,
+  "apiErrors": 0,
+  "usageWindows": {
+    "five_hour": {
+      "utilization": 0.29,
+      "resetsAt": 1792058400
+    },
+    "seven_day": {
+      "utilization": 0.63,
+      "resetsAt": 1792162800
+    }
+  },
+  "modelUsage": {
+    "claude-opus-5-5": {
+      "inputTokens": 112,
+      "outputTokens": 46102,
+      "cacheReadInputTokens": 843101,
+      "cacheCreationInputTokens": 212330,
+      "thinkingTokens": 12708,
+      "webSearchRequests": 0,
+      "costUSD": 2.2176782000000004
+    },
+    "claude-sonnet-5-5": {
+      "inputTokens": 46,
+      "outputTokens": 10450,
+      "cacheReadInputTokens": 385086,
+      "cacheCreationInputTokens": 37301,
+      "thinkingTokens": 566,
+      "webSearchRequests": 0,
+      "costUSD": 0.23635309999999998
+    },
+    "claude-fable-5-1": {
+      "inputTokens": 196,
+      "outputTokens": 8652,
+      "cacheReadInputTokens": 120091,
+      "cacheCreationInputTokens": 22552,
+      "thinkingTokens": 2766,
+      "webSearchRequests": 0,
+      "costUSD": 0.74648275
+    }
+  },
+  "tokensByModel": {
+    "claude-fable-5-1": {
+      "requests": 8,
+      "input": 196,
+      "output": 8652,
+      "cacheRead": 120091,
+      "cacheWrite": 22552,
+      "costUSD": 0.74648275
+    },
+    "claude-opus-5-5": {
+      "requests": 56,
+      "input": 112,
+      "output": 46102,
+      "cacheRead": 843101,
+      "cacheWrite": 212330,
+      "costUSD": 2.2176782
+    },
+    "claude-sonnet-5-5": {
+      "requests": 23,
+      "input": 46,
+      "output": 10306,
+      "cacheRead": 385086,
+      "cacheWrite": 37301,
+      "costUSD": 0.2349131
+    }
+  },
+  "byRole": {
+    "harness:judge (Gate)": {
+      "agents": 1,
+      "requests": 8,
+      "input": 196,
+      "output": 8652,
+      "cacheRead": 120091,
+      "cacheWrite": 22552,
+      "costUSD": 0.74648275,
+      "models": {
+        "claude-fable-5-1": 8
+      }
+    },
+    "harness:refuter (Refute)": {
+      "agents": 9,
+      "requests": 38,
+      "input": 76,
+      "output": 31480,
+      "cacheRead": 472361,
+      "cacheWrite": 158821,
+      "costUSD": 1.5184812,
+      "models": {
+        "claude-opus-5-5": 38
+      }
+    },
+    "workflow:Plan": {
+      "agents": 1,
+      "requests": 5,
+      "input": 10,
+      "output": 9146,
+      "cacheRead": 65807,
+      "cacheWrite": 25089,
+      "costUSD": 0.3215664,
+      "models": {
+        "claude-opus-5-5": 5
+      }
+    },
+    "workflow:Integrate": {
+      "agents": 1,
+      "requests": 3,
+      "input": 6,
+      "output": 1054,
+      "cacheRead": 32763,
+      "cacheWrite": 6780,
+      "costUSD": 0.0615566,
+      "models": {
+        "claude-opus-5-5": 3
+      }
+    },
+    "harness:builder (Build)": {
+      "agents": 3,
+      "requests": 23,
+      "input": 46,
+      "output": 10306,
+      "cacheRead": 385086,
+      "cacheWrite": 37301,
+      "costUSD": 0.2349131,
+      "models": {
+        "claude-sonnet-5-5": 23
+      }
+    },
+    "main": {
+      "agents": 1,
+      "requests": 10,
+      "input": 20,
+      "output": 4422,
+      "cacheRead": 272170,
+      "cacheWrite": 21640,
+      "costUSD": 0.316074,
+      "models": {
+        "claude-opus-5-5": 10
+      }
+    }
+  },
+  "agentCount": 15,
+  "workflows": [
+    {
+      "runId": "wf_2b22b691-9b5",
+      "name": "ship",
+      "status": "completed",
+      "durationMs": 670396,
+      "agentCount": 15,
+      "totalTokens": 315071,
+      "totalToolCalls": 94,
+      "args": {
+        "task": "Fix these three bug reports. Each fix needs a regression test that fails before the fix and passes after it.\n\n1. Discounted invoice totals are sometimes one cent low. A $10.01 subtotal with a 15% discount should total $8.51, but the invoice shows $8.50. The rule: the discounted total, subtotal x (100 - percent) / 100, is rounded half up to the nearest cent. So 10 cents with 15% off is 8.5 cents, which becomes 9.\n2. The invoice CSV export (GET /invoices/:key?format=csv) breaks when a value contains a comma, a double quote or a line break, for example for the API key \"team, alpha\". Quote fields as RFC 4180 describes: wrap a field in double quotes when it contains a comma, a double quote, a CR or an LF, and double every double quote inside it. Leave all other fields unquoted and keep the \\n line endings.\n3. GET /invoices/:key returns a 500 error for a key that has no usage. It should return 404 with the JSON body {\"error\":\"not_found\"}, for both the JSON and the CSV format.\n\nThe existing test suite (npm test) must keep passing."
+      },
+      "logs": [
+        "Planning: Fix these three bug reports. Each fix needs a regression test that fails before the fix and passes after it.\n\n1. Discounted invoice totals a",
+        "3 unit(s) on base main: u1, u2, u3",
+        "3 passed, 0 failed or unbuilt"
+      ],
+      "ship": {
+        "verdict": "PASS",
+        "gate": {
+          "verdict": "PASS",
+          "confidence": "high",
+          "blocking": [],
+          "summary": "Three bug fixes, each confined to one source file plus tests, all do what was asked. (1) src/money.js applyDiscount computes cents*(100-percent)/100 exactly with BigInt and rounds half up: 1001@15% -> 851, 10@15% -> 9, and a brute-force sweep over 0..5000 cents x 0..100% in 0.5 steps found zero mismatches against the exact rational; non-integer percents like 7.25, 1e-7, 0.1+0.2 and 5e-324 handled. (2) src/csv.js quotes fields containing , \\\" CR or LF, doubles inner quotes, leaves others unquoted, keeps \\\\n endings; header cells get the same treatment. (3) src/server.js returns 404 {\\\"error\\\":\\\"not_found\\\"} for both JSON and ?format=csv when the ledger has no usage. All 11 new regression tests fail on the base commit 763c4ba and pass on main; full suite 28/28. End-to-end over HTTP with key \\\"team, alpha\\\" at 15% off a 1001-cent subtotal returned total $8.51 and a correctly quoted CSV row."
+        },
+        "integration": {
+          "merged": [
+            "worktree-wf_2b22b691-9b5-2 (u1: Round discounted totals half up to the cent, exactly) - merge commit 2cd3174",
+            "worktree-wf_2b22b691-9b5-3 (u2: RFC 4180 quoting in toCSV) - merge commit b8c6316",
+            "worktree-wf_2b22b691-9b5-4 (u3: 404 not_found for invoices of keys without usage) - merge commit 73ad872"
+          ],
+          "skipped": [],
+          "conflicts": [],
+          "checks": {
+            "ran": true,
+            "passed": true,
+            "commands": [
+              "npm test (node --test)"
+            ],
+            "notes": "All 28 tests pass after merging the three branches into main. The repo has no type check or lint script; package.json defines only the test script. The working tree was clean before the merge, apart from the untracked .claude/ directory that holds the worktrees, which was left alone. Nothing was pushed."
+          }
+        },
+        "units": [
+          {
+            "id": "u1",
+            "title": "Round discounted totals half up to the cent, exactly",
+            "status": "passed",
+            "refuted_by": "0/3",
+            "findings": 3
+          },
+          {
+            "id": "u2",
+            "title": "RFC 4180 quoting in toCSV",
+            "status": "passed",
+            "refuted_by": "0/3",
+            "findings": 0
+          },
+          {
+            "id": "u3",
+            "title": "404 not_found for invoices of keys without usage",
+            "status": "passed",
+            "refuted_by": "0/3",
+            "findings": 7
+          }
+        ]
+      }
+    }
+  ],
+  "ship": {
+    "runs": 1,
+    "verdict": "PASS",
+    "gateVerdict": "PASS",
+    "units": 3,
+    "unitsPassed": 3,
+    "unitsFailed": 0,
+    "fixRounds": 0,
+    "unitStatuses": [
+      "u1:passed:0/3",
+      "u2:passed:0/3",
+      "u3:passed:0/3"
+    ],
+    "merged": [
+      "worktree-wf_2b22b691-9b5-2 (u1: Round discounted totals half up to the cent, exactly) - merge commit 2cd3174",
+      "worktree-wf_2b22b691-9b5-3 (u2: RFC 4180 quoting in toCSV) - merge commit b8c6316",
+      "worktree-wf_2b22b691-9b5-4 (u3: 404 not_found for invoices of keys without usage) - merge commit 73ad872"
+    ],
+    "integrationChecks": {
+      "ran": true,
+      "passed": true,
+      "commands": [
+        "npm test (node --test)"
+      ],
+      "notes": "All 28 tests pass after merging the three branches into main. The repo has no type check or lint script; package.json defines only the test script. The working tree was clean before the merge, apart from the untracked .claude/ directory that holds the worktrees, which was left alone. Nothing was pushed."
+    },
+    "firstPassRefutedApprox": 0
+  },
+  "decisionGate": null,
+  "hooks": {
+    "SessionStart:started": 1,
+    "SessionStart:success": 1,
+    "Stop:started": 3,
+    "Stop:success": 3
+  },
+  "stopBlocks": [],
+  "toolUses": {
+    "Workflow": 1,
+    "Bash": 5,
+    "Read": 1
+  },
+  "agentSpawns": [],
+  "workflowCalls": [
+    {
+      "name": "harness:ship",
+      "scriptPath": null,
+      "args": "{\"task\":\"Fix these three bug reports. Each fix needs a regression test that fails before the fix and passes after it.\\n\\n1. Discounted invoice totals are sometimes one cent low. A $10.01 subtotal with a 15% discount should total $8.51, but the invoice shows $8.50. The rule: the discounted total, sub"
+    }
+  ],
+  "testCommands": 3,
+  "permissionDenials": 0,
+  "errors": [],
+  "contamination": [],
+  "specDelivered": true,
+  "optionsDelivered": null,
+  "changedFiles": [
+    "src/csv.js",
+    "src/money.js",
+    "src/server.js",
+    "test/csv.test.js",
+    "test/money.test.js",
+    "test/server.test.js",
+    ".claude/worktrees/wf_2b22b691-9b5-2/",
+    ".claude/worktrees/wf_2b22b691-9b5-3/",
+    ".claude/worktrees/wf_2b22b691-9b5-4/"
+  ],
+  "finalMessage": "The check I ran earlier, which put the new tests on the pre-fix commit, was stopped when it hit its time limit. It had already printed its results, and all 11 new tests failed there, so the earlier result stands. What timed out was the test run itself.\n\nThe likely cause is how the old code fails: on the pre-fix commit, a request for a key with no usage makes the server throw instead of replying, so the 404 test waits forever. On `main` the full suite finishes in about 0.4 seconds.\n\nBecause the check was stopped, it never removed the temporary checkout it had made of the pre-fix commit. I removed it, and no test processes are still running. The repo is back where I left it: `main` at `73ad872`. The only things left besides your files are the three workflow worktrees under `.claude/`, which you can delete or keep.",
+  "workDir": "/tmp/harness-bench/2026-10-15-range/harness-sonnet-builders/bugfix-trio/t2"
+}

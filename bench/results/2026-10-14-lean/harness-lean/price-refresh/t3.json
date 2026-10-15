@@ -1,0 +1,149 @@
+{
+  "benchVersion": 2,
+  "label": "2026-10-14-lean",
+  "team": "harness-lean",
+  "teamKind": "harness",
+  "task": "price-refresh",
+  "taskKind": "code",
+  "trial": 3,
+  "sessionId": "af79f94a-5293-40ac-89a0-a94792202a51",
+  "startedAt": "2026-10-14T21:26:39.876Z",
+  "finishedAt": "2026-10-14T21:27:55.453Z",
+  "wallSec": 75.577,
+  "timedOut": false,
+  "turns": [
+    {
+      "turn": 1,
+      "exitCode": 0,
+      "signal": null,
+      "timedOut": false,
+      "wallSec": 75.577,
+      "startedAt": "2026-10-14T21:26:39.876Z",
+      "endedAt": "2026-10-14T21:27:55.453Z"
+    }
+  ],
+  "success": true,
+  "score": {
+    "success": true,
+    "strict": null,
+    "specComplete": true,
+    "compliance": {
+      "complete": true,
+      "items": {
+        "sourceUrl": true,
+        "lastUpdatedChanged": true,
+        "testForNewModels": true
+      }
+    },
+    "visible": {
+      "tests": 17,
+      "pass": 17,
+      "fail": 0,
+      "cancelled": 0,
+      "timedOut": null,
+      "exitCode": 0,
+      "signal": null,
+      "interrupted": false,
+      "failures": []
+    },
+    "hidden": {
+      "tests": 5,
+      "pass": 5,
+      "fail": 0
+    },
+    "hiddenPerFile": {
+      "prices.test.js": {
+        "pass": 5,
+        "fail": 0,
+        "failures": [],
+        "interrupted": false
+      }
+    },
+    "partial": 1,
+    "notes": []
+  },
+  "check": null,
+  "costUSD": 0.4885964,
+  "costSource": "claude-code",
+  "costUSDFromStream": 0.4885964,
+  "costUSDFromTranscripts": 0.4885964,
+  "invalidReason": null,
+  "apiErrors": 0,
+  "usageWindows": {
+    "five_hour": {
+      "utilization": 0.34,
+      "resetsAt": 1792020000
+    },
+    "seven_day": {
+      "utilization": 0.54,
+      "resetsAt": 1792162800
+    }
+  },
+  "modelUsage": {
+    "claude-opus-5-5": {
+      "inputTokens": 24,
+      "outputTokens": 7226,
+      "cacheReadInputTokens": 378782,
+      "cacheCreationInputTokens": 33528,
+      "thinkingTokens": 2584,
+      "webSearchRequests": 0,
+      "costUSD": 0.4885964
+    }
+  },
+  "tokensByModel": {
+    "claude-opus-5-5": {
+      "requests": 12,
+      "input": 24,
+      "output": 7226,
+      "cacheRead": 378782,
+      "cacheWrite": 33528,
+      "costUSD": 0.4885964
+    }
+  },
+  "byRole": {
+    "main": {
+      "agents": 1,
+      "requests": 12,
+      "input": 24,
+      "output": 7226,
+      "cacheRead": 378782,
+      "cacheWrite": 33528,
+      "costUSD": 0.4885964,
+      "models": {
+        "claude-opus-5-5": 12
+      }
+    }
+  },
+  "agentCount": 0,
+  "workflows": [],
+  "ship": null,
+  "decisionGate": null,
+  "hooks": {
+    "SessionStart:started": 1,
+    "SessionStart:success": 1,
+    "Stop:started": 1,
+    "Stop:success": 1
+  },
+  "stopBlocks": [],
+  "toolUses": {
+    "Bash": 11,
+    "ToolSearch": 1,
+    "WebFetch": 1
+  },
+  "agentSpawns": [],
+  "workflowCalls": [],
+  "testCommands": 3,
+  "permissionDenials": 0,
+  "errors": [],
+  "contamination": [],
+  "specDelivered": null,
+  "changedFiles": [
+    "src/prices.js",
+    "test/cost.test.js"
+  ],
+  "finalMessage": "I've added the three Claude 5.5 models to `src/prices.js` and added a test that costs one request on each. `npm test` passes, 17 of 17. The three existing entries are unchanged, and I haven't committed anything.\n\n**Prices added** (USD per million tokens):\n\n| Model | input | output | cacheRead | cacheWrite (5-minute) |\n|---|---|---|---|---|\n| `claude-haiku-5-5` (prompts up to 100,000 tokens) | 0.1 | 0.5 | 0.01 | 0.125 |\n| `claude-sonnet-5-5` | 2 | 10 | 0.1 | 2.5 |\n| `claude-opus-5-5` | 4 | 20 | 0.2 | 5 |\n\n**Where they come from:** I read the numbers straight from Anthropic's docs pricing page, https://platform.claude.com/docs/en/about-claude/pricing, which is the URL in the new comment. claude.com/pricing shows the same numbers. The recent change was on October 7: Anthropic cut the Sonnet 5.5 cache read price from $0.20 to $0.10. The release notes list no price changes after that date, so these are the prices that applied on 2026-10-13. The \"Last updated\" line now reads `2026-10-13, after the Claude 5.5 launches.`\n\n**The test** is \"costOf prices the Claude 5.5 models\" in `test/cost.test.js`. Its usage numbers keep the Haiku prompt under 100,000 tokens. I checked that it fails if Sonnet 5.5's cache read is put back to the old $0.20.\n\n**One thing to decide:** the price table has one price per model, so a Haiku 5.5 request with a prompt over 100,000 tokens will be billed at 1/5 of the real price ($0.50 input and $2.50 output instead of $0.10 and $0.50). That tier also applies when most of the prompt is a cache hit. I left a comment on the Haiku 5.5 entry about this. Handling it would mean adding a second price tier for prompts over 100,000 tokens and having `costOf` choose by the request's total input tokens. Tell me if you want that.",
+  "workDir": "/tmp/harness-bench/2026-10-14-lean/harness-lean/price-refresh/t3",
+  "apiErrorTexts": [],
+  "rescoredAt": "2026-10-14T21:58:43.056Z",
+  "optionsDelivered": null
+}

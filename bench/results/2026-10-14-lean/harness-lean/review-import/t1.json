@@ -1,0 +1,254 @@
+{
+  "benchVersion": 2,
+  "label": "2026-10-14-lean",
+  "team": "harness-lean",
+  "teamKind": "harness",
+  "task": "review-import",
+  "taskKind": "findings",
+  "trial": 1,
+  "sessionId": "d34f4708-f56b-4a9e-b3f6-b2c9fec24be2",
+  "startedAt": "2026-10-14T21:02:23.722Z",
+  "finishedAt": "2026-10-14T21:05:48.985Z",
+  "wallSec": 205.261,
+  "timedOut": false,
+  "turns": [
+    {
+      "turn": 1,
+      "exitCode": 0,
+      "signal": null,
+      "timedOut": false,
+      "wallSec": 171.277,
+      "startedAt": "2026-10-14T21:02:23.723Z",
+      "endedAt": "2026-10-14T21:05:15.001Z"
+    },
+    {
+      "turn": 2,
+      "exitCode": 0,
+      "signal": null,
+      "timedOut": false,
+      "wallSec": 33.984,
+      "startedAt": "2026-10-14T21:05:15.001Z",
+      "endedAt": "2026-10-14T21:05:48.985Z"
+    }
+  ],
+  "success": true,
+  "score": {
+    "success": true,
+    "recall": 1,
+    "found": [
+      "D1",
+      "D2",
+      "D3",
+      "D4"
+    ],
+    "missed": [],
+    "duplicates": 0,
+    "validExtras": 4,
+    "validExtraIds": [
+      "b",
+      "c",
+      "f"
+    ],
+    "unmatched": 0,
+    "extras": 0,
+    "unmatchedTitles": [],
+    "findings": 8
+  },
+  "check": null,
+  "costUSD": 0.750449465,
+  "costSource": "claude-code",
+  "costUSDFromStream": 0.750449465,
+  "costUSDFromTranscripts": 0.7504494649999999,
+  "invalidReason": null,
+  "apiErrors": 0,
+  "usageWindows": {
+    "five_hour": {
+      "utilization": 0.27,
+      "resetsAt": 1792020000
+    },
+    "seven_day": {
+      "utilization": 0.52,
+      "resetsAt": 1792162800
+    }
+  },
+  "modelUsage": {
+    "claude-opus-5-5": {
+      "inputTokens": 18,
+      "outputTokens": 8983,
+      "cacheReadInputTokens": 196479,
+      "cacheCreationInputTokens": 37273,
+      "thinkingTokens": 2164,
+      "webSearchRequests": 0,
+      "costUSD": 0.4625968
+    },
+    "claude-haiku-5-5": {
+      "inputTokens": 38,
+      "outputTokens": 14922,
+      "cacheReadInputTokens": 213854,
+      "cacheCreationInputTokens": 59717,
+      "thinkingTokens": 7370,
+      "webSearchRequests": 0,
+      "costUSD": 0.017067965
+    },
+    "claude-sonnet-5-5": {
+      "inputTokens": 72,
+      "outputTokens": 11186,
+      "cacheReadInputTokens": 177232,
+      "cacheCreationInputTokens": 56423,
+      "thinkingTokens": 1028,
+      "webSearchRequests": 0,
+      "costUSD": 0.2707847
+    }
+  },
+  "tokensByModel": {
+    "claude-sonnet-5-5": {
+      "requests": 36,
+      "input": 72,
+      "output": 11186,
+      "cacheRead": 177232,
+      "cacheWrite": 56423,
+      "costUSD": 0.2707847
+    },
+    "claude-opus-5-5": {
+      "requests": 9,
+      "input": 18,
+      "output": 8983,
+      "cacheRead": 196479,
+      "cacheWrite": 37273,
+      "costUSD": 0.4625967999999999
+    },
+    "claude-haiku-5-5": {
+      "requests": 19,
+      "input": 38,
+      "output": 14922,
+      "cacheRead": 213854,
+      "cacheWrite": 59717,
+      "costUSD": 0.017067964999999997
+    }
+  },
+  "byRole": {
+    "harness:refuter (Verify)": {
+      "agents": 12,
+      "requests": 36,
+      "input": 72,
+      "output": 11186,
+      "cacheRead": 177232,
+      "cacheWrite": 56423,
+      "costUSD": 0.2707847,
+      "models": {
+        "claude-sonnet-5-5": 36
+      }
+    },
+    "workflow:Rank": {
+      "agents": 1,
+      "requests": 1,
+      "input": 2,
+      "output": 3484,
+      "cacheRead": 0,
+      "cacheWrite": 18205,
+      "costUSD": 0.160713,
+      "models": {
+        "claude-opus-5-5": 1
+      }
+    },
+    "workflow:Find": {
+      "agents": 4,
+      "requests": 17,
+      "input": 34,
+      "output": 14303,
+      "cacheRead": 202425,
+      "cacheWrite": 47517,
+      "costUSD": 0.015118775,
+      "models": {
+        "claude-haiku-5-5": 17
+      }
+    },
+    "workflow:Scope": {
+      "agents": 1,
+      "requests": 2,
+      "input": 4,
+      "output": 619,
+      "cacheRead": 11429,
+      "cacheWrite": 12200,
+      "costUSD": 0.0019491900000000002,
+      "models": {
+        "claude-haiku-5-5": 2
+      }
+    },
+    "main": {
+      "agents": 1,
+      "requests": 8,
+      "input": 16,
+      "output": 5499,
+      "cacheRead": 196479,
+      "cacheWrite": 19068,
+      "costUSD": 0.3018838,
+      "models": {
+        "claude-opus-5-5": 8
+      }
+    }
+  },
+  "agentCount": 18,
+  "workflows": [
+    {
+      "runId": "wf_b440f0aa-a07",
+      "name": "review",
+      "status": "completed",
+      "durationMs": 150610,
+      "agentCount": 18,
+      "totalTokens": 192211,
+      "totalToolCalls": 62,
+      "args": {
+        "base": "main",
+        "findModel": "claude-haiku-5-5",
+        "rankModel": "claude-opus-5-5",
+        "verifyModel": "claude-sonnet-5-5",
+        "verifyEffort": "medium"
+      },
+      "logs": [
+        "Reviewing 4 file(s) against main",
+        "11 confirmed finding(s) across 4 file(s)"
+      ],
+      "findings": {
+        "verdict": "needs-changes",
+        "issues": 8,
+        "files": 4
+      }
+    }
+  ],
+  "ship": null,
+  "decisionGate": null,
+  "hooks": {
+    "SessionStart:started": 2,
+    "SessionStart:success": 2,
+    "Stop:started": 3,
+    "Stop:success": 3
+  },
+  "stopBlocks": [],
+  "toolUses": {
+    "Workflow": 1,
+    "Bash": 3,
+    "Write": 1
+  },
+  "agentSpawns": [],
+  "workflowCalls": [
+    {
+      "name": "harness:review",
+      "scriptPath": null,
+      "args": "{\"base\":\"main\",\"findModel\":\"claude-haiku-5-5\",\"rankModel\":\"claude-opus-5-5\",\"verifyModel\":\"claude-sonnet-5-5\",\"verifyEffort\":\"medium\"}"
+    }
+  ],
+  "testCommands": 0,
+  "permissionDenials": 0,
+  "errors": [],
+  "contamination": [],
+  "specDelivered": null,
+  "changedFiles": [
+    "REVIEW.json"
+  ],
+  "finalMessage": "I wrote `REVIEW.json` to the repository root with all 8 findings in the order I reported them: 1 blocking, 4 major and 3 minor. It parses as valid JSON, and `git status` shows it as the only change.\n\nWhere my report gave a line range or no line, I had to pick one line per finding:\n- **Finding 1 (cross-tenant writes):** `src/server.js:41`, where `importEvents` is called without the caller's key. The `detail` also names `src/importer.js:30` and `README.md:24`.\n- **Finding 7 (test gaps and partial writes):** `test/importer.test.js:24`, the `maxRows` test that doesn't check what was already written to the ledger. My report didn't give a line for this one.\n- **Finding 8 (test can hang):** `test/importer.test.js:36`, where the server is closed only after the assertions pass.",
+  "workDir": "/tmp/harness-bench/2026-10-14-lean/harness-lean/review-import/t1",
+  "apiErrorTexts": [],
+  "rescoredAt": "2026-10-14T21:58:45.439Z",
+  "optionsDelivered": true
+}

@@ -33,7 +33,9 @@ Claude Code asks for a few optional settings. You can press Enter to skip every 
 
 | Setting | What it does | Skip it if |
 |---|---|---|
-| Decision gate | `auto` runs the cheap "is this really done?" check when a Jev or OpenAI key is present; `off` never runs it | You are unsure. `auto` is silent until a key exists |
+| Decision gate | `auto` runs the cheap "is this really done?" check when a backend is configured; `off` never runs it | You are unsure. `auto` is silent until a backend exists |
+| Decision provider | Which backend answers the gate: `auto`, or a free one (`local`, `claude-cli`, `heuristic`), or a paid one | You have no preference. `claude-cli` is the zero-setup free choice |
+| Local decision server URL | Where your local decision model listens, for the `local` provider | You do not run one |
 | OpenAI API key | Enables the GPT second-opinion reviewer and, if no Jev key exists, the OpenAI Decisions gate | You do not use OpenAI, or you prefer the Codex plugin with your ChatGPT login (see optional modules) |
 | OpenAI reviewer model | Which GPT model reviews; default `gpt-6-sol` | Keep the default |
 | TypeSafe (Jev) API key | Enables the Jev decision gate | You do not have one. It is optional |
@@ -88,7 +90,7 @@ Remap the `fable` alias with Claude Code's own setting. In `~/.claude/settings.j
 }
 ```
 
-`/harness:setup --judge-opus` makes this edit for you. The judge agent, the `/harness:ship` gate and the Fable stop-gate hook all use the `fable` alias, so all three switch to Opus 5.5 on the next session. Every other role keeps its own model.
+`/harness:setup --judge-opus` makes this edit for you. The judge agent and the `/harness:ship` gate use the `fable` alias, so both switch to Opus 5.5 on the next session. The Fable stop gate is a hook, and hooks need a full model ID, so `/harness:gate on` writes the remapped model into it when it installs the gate; if the gate was already on, run `/harness:gate off` and `/harness:gate on` again. Every other role keeps its own model.
 
 ## Optional modules
 
@@ -99,7 +101,7 @@ Remap the `fable` alias with Claude Code's own setting. In `~/.claude/settings.j
 
 Details, costs and privacy notes: [OPTIONAL-OPENAI.md](OPTIONAL-OPENAI.md).
 
-**Decision gate.** Set either `TYPESAFE_API_KEY` (or the plugin option), `OPENROUTER_API_KEY` (Jev through OpenRouter, no waitlist), or `OPENAI_API_KEY` (OpenAI Decisions API). The gate activates on the next session. Details and tuning: [OPTIONAL-DECISION-GATE.md](OPTIONAL-DECISION-GATE.md).
+**Decision gate.** Free: set the plugin option "Decision provider" to `claude-cli` (Haiku through your Claude Code login, no setup), or run an open decision model locally and set "Local decision server URL". Paid: set `TYPESAFE_API_KEY` (or the plugin option), `OPENROUTER_API_KEY` (Jev through OpenRouter, no waitlist), or `OPENAI_API_KEY` (OpenAI Decisions API). The gate activates on the next session. Details and tuning: [OPTIONAL-DECISION-GATE.md](OPTIONAL-DECISION-GATE.md).
 
 **Fable stop gate.** Per project, when you want it: `/harness:gate on`. Off: `/harness:gate off`.
 

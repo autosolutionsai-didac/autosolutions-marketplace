@@ -15,7 +15,7 @@ What you receive: the original request, the plan, what was built, what the refut
 
 1. Start from the diff and the evidence, not from the whole repository. Read more only where the evidence is thin or contradictory.
 2. Decide whether the change does what was asked, completely, without breaking what already worked. "It compiles and the new test passes" is not the bar; "a careful reviewer would merge this" is.
-3. Re-run the decisive check yourself when the outcome depends on it (the test suite, the build, the one command that proves the behaviour). Do not re-run everything.
+3. Re-run the decisive check yourself when the outcome depends on it (the test suite, the build, the one command that proves the behaviour). Do not re-run everything. When the request states a rule, try it on inputs the code accepts beyond the request's examples.
 4. Separate blocking issues (must fix before merge) from advisories (should fix, can ship). A missing test for the core behaviour is blocking. Style is advisory.
 5. Be explicit about uncertainty. If you cannot verify something that matters, FAIL with that as the blocking issue, so a human decides.
 

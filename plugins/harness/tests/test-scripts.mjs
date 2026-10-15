@@ -1,7 +1,7 @@
 // Mock-backed tests for the harness scripts (no real API calls). Run: node tests/test-scripts.mjs
 import { createServer } from 'node:http'
 import { spawn, spawnSync } from 'node:child_process'
-import { writeFileSync, mkdtempSync } from 'node:fs'
+import { writeFileSync, mkdtempSync, readFileSync, chmodSync, existsSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 
@@ -14,6 +14,13 @@ const server = createServer((req, res) => {
     const json = body ? JSON.parse(body) : {}
     requests.push({ url: req.url, auth: req.headers.authorization, json })
     res.setHeader('content-type', 'application/json')
+    if (req.url === '/v1/models') {
+      return res.end(JSON.stringify({ data: [{ id: 'chat-model', output_modalities: ['text'] }, { id: 'kev-0.8b', output_modalities: ['decisions'] }] }))
+    }
+    if (req.url === '/client/v4/accounts/acct/ai/run/@cf/cloudflare/clef-flash') {
+      const answers = Object.fromEntries(Object.keys(json.questions).map((k) => [k, { noul: k === 'claims_done' ? 0.9 : 0.05 }]))
+      return res.end(JSON.stringify({ success: true, result: { answers } }))
+    }
     if (req.url === '/v1/systemone') {
       const answers = Object.fromEntries(Object.keys(json.questions).map((k) => [k, { type: 'noul', noul: k === 'claims_done' ? 0.93 : k === 'cites_verification' ? 0.08 : 0.1 }]))
       return res.end(JSON.stringify({ model: 'jev-1.13.0', answers, usage: { input_tokens: 400, output_tokens: 4 } }))
@@ -43,9 +50,9 @@ const transcript = (withTests) => {
     { type: 'assistant', message: { content: [{ type: 'tool_use', name: 'Edit', input: { file_path: '/repo/src/a.ts' } }] } },
     { type: 'user', message: { content: [{ type: 'tool_result', content: 'ok' }] } },
   ]
-  if (withTests) rows.push({ type: 'assistant', message: { content: [{ type: 'tool_use', name: 'Bash', input: { command: 'npm test -- a.spec.ts' } }] } })
+  if (withTests) rows.push({ type: 'assistant', message: { content: [{ type: 'tool_use', name: 'Bash', input: { command: typeof withTests === 'string' ? withTests : 'npm test -- a.spec.ts' } }] } })
   rows.push({ type: 'assistant', message: { content: [{ type: 'text', text: 'Done, fixed the bug.' }] } })
-  const p = join(dir, `t-${withTests ? 'tests' : 'notests'}.jsonl`)
+  const p = join(dir, `t-${withTests ? String(withTests).replace(/\W+/g, '_') : 'notests'}.jsonl`)
   writeFileSync(p, rows.map((r) => JSON.stringify(r)).join('\n') + '\n')
   return p
 }
@@ -84,6 +91,195 @@ const check = (name, cond, extra = '') => { console.log(`${cond ? 'PASS' : 'FAIL
   check('gate: typesafe request shape (model/state/questions noul)', requests.some((q) => q.url === '/v1/systemone' && q.json.model === 'jev-latest' && q.json.questions.claims_done.type === 'noul' && q.auth === 'Bearer k'))
   r = await runGate({ TYPESAFE_API_KEY: 'k', TYPESAFE_BASE_URL: base }, true)
   check('gate: typesafe, done WITH tests -> allow', r.status === 0 && r.stdout === '', r.stderr.split('\n').pop())
+  for (const cmd of ['node --test test/', 'node --test-reporter=spec --test', 'deno test -A', 'python -m unittest discover', 'python3 -m pytest -q']) {
+    r = await runGate({ TYPESAFE_API_KEY: 'k', TYPESAFE_BASE_URL: base }, cmd)
+    check(`gate: "${cmd}" counts as a test run -> allow`, r.status === 0 && r.stdout === '', r.stdout.slice(0, 80))
+  }
+  // Edits made through the shell or by a subagent are not Edit/Write calls; with a dirty git tree they still count.
+  {
+    const repo = mkdtempSync(join(tmpdir(), 'harness-gate-repo-'))
+    spawnSync('git', ['init', '-q'], { cwd: repo })
+    writeFileSync(join(repo, 'a.js'), 'x\n')
+    const shellTurn = (tool, input) => {
+      const p = join(dir, `t-${tool}.jsonl`)
+      writeFileSync(p, [
+        { type: 'user', message: { role: 'user', content: [{ type: 'text', text: 'change a.js' }] } },
+        { type: 'assistant', message: { content: [{ type: 'tool_use', name: tool, input }] } },
+        { type: 'assistant', message: { content: [{ type: 'text', text: 'Done.' }] } },
+      ].map((x) => JSON.stringify(x)).join('\n') + '\n')
+      return p
+    }
+    const gateIn = (transcript_path, cwd) => JSON.stringify({ hook_event_name: 'Stop', stop_hook_active: false, cwd, transcript_path, last_assistant_message: 'Done.' })
+    const env = { ...process.env, HARNESS_DEBUG: '1', TYPESAFE_API_KEY: 'k', TYPESAFE_BASE_URL: base }
+    for (const [tool, input, label] of [['Bash', { command: "sed -i 's/x/y/' a.js" }, 'sed -i'], ['Bash', { command: 'cat > a.js <<EOF\ny\nEOF' }, 'heredoc write'], ['Agent', { subagent_type: 'harness:builder', prompt: 'edit a.js' }, 'subagent'], ['Workflow', { name: 'harness:ship', args: 'x' }, 'workflow']]) {
+      r = await runAsync([join(ROOT, 'scripts/decision-gate.mjs')], { input: gateIn(shellTurn(tool, input), repo), env })
+      check(`gate: change via ${label} with a dirty tree -> block`, r.status === 0 && /"decision":"block"/.test(r.stdout), (r.stdout || r.stderr).slice(0, 100))
+    }
+    r = await runAsync([join(ROOT, 'scripts/decision-gate.mjs')], { input: gateIn(shellTurn('Bash', { command: 'grep -rn foo .' }), repo), env })
+    check('gate: read-only shell turn on a dirty tree -> allow', r.status === 0 && r.stdout === '', r.stderr.split('\n').pop())
+  }
+  // A ship workflow runs in the background, merges its work (clean tree, new commits), and reports back
+  // through a <task-notification>. The turn that ends after that notice is the one claiming completion.
+  {
+    const repo = mkdtempSync(join(tmpdir(), 'harness-gate-wf-'))
+    const g = (...a) => spawnSync('git', a, { cwd: repo, env: { ...process.env, GIT_AUTHOR_NAME: 't', GIT_AUTHOR_EMAIL: 't@t', GIT_COMMITTER_NAME: 't', GIT_COMMITTER_EMAIL: 't@t' } })
+    g('init', '-q')
+    writeFileSync(join(repo, 'a.js'), 'x\n')
+    g('add', '-A')
+    g('commit', '-q', '-m', 'merge unit 1')
+    let n = 0
+    const wfTurn = (promptAt, notificationRow, { before = [], after = [] } = {}) => {
+      const p = join(dir, `t-wf-${n++}.jsonl`)
+      writeFileSync(p, [
+        { type: 'user', timestamp: promptAt, message: { role: 'user', content: '<command-name>/harness:ship</command-name> add rate limiting' } },
+        ...before,
+        { type: 'assistant', message: { content: [{ type: 'tool_use', id: 'toolu_wf1', name: 'Workflow', input: { name: 'harness:ship', args: 'x' } }] } },
+        { type: 'user', message: { content: [{ type: 'tool_result', tool_use_id: 'toolu_wf1', content: 'started in the background' }] } },
+        // Mid-turn meta row (as skills and hooks inject): not a prompt, so it must not end the turn.
+        { type: 'user', isMeta: true, message: { role: 'user', content: [{ type: 'text', text: '<command-message>harness:ship</command-message>' }] } },
+        { type: 'assistant', message: { content: [{ type: 'text', text: 'The ship workflow is running in the background.' }] } },
+        ...after,
+        notificationRow,
+        { type: 'assistant', message: { content: [{ type: 'tool_use', name: 'Bash', input: { command: 'git log --oneline -3' } }] } },
+        { type: 'user', message: { content: [{ type: 'tool_result', content: 'abc merge unit 1' }] } },
+        { type: 'assistant', message: { content: [{ type: 'text', text: 'Done: rate limiting is merged into main.' }] } },
+      ].map((x) => JSON.stringify(x)).join('\n') + '\n')
+      return p
+    }
+    const note = { type: 'user', origin: { kind: 'task-notification' }, message: { role: 'user', content: '<task-notification>\n<task-id>w1</task-id>\n<tool-use-id>toolu_wf1</tool-use-id>\n<status>completed</status>\n</task-notification>' } }
+    const noteNoOrigin = { type: 'user', message: { role: 'user', content: [{ type: 'text', text: '<task-notification><task-id>w1</task-id><tool-use-id>toolu_wf1</tool-use-id></task-notification>' }] } }
+    const logFile = join(dir, 'gate-log-wf.jsonl')
+    const env = { ...process.env, HARNESS_DEBUG: '1', TYPESAFE_API_KEY: 'k', TYPESAFE_BASE_URL: base, HARNESS_GATE_LOG: logFile }
+    const gateIn = (transcript_path) => JSON.stringify({ hook_event_name: 'Stop', stop_hook_active: false, cwd: repo, transcript_path, last_assistant_message: 'Done: rate limiting is merged into main.' })
+    const hourAgo = new Date(Date.now() - 3600_000).toISOString()
+    r = await runAsync([join(ROOT, 'scripts/decision-gate.mjs')], { input: gateIn(wfTurn(hourAgo, note)), env })
+    check('gate: turn ending after a workflow notification, work merged as commits, clean tree -> checked and blocked', r.status === 0 && /"decision":"block"/.test(r.stdout), (r.stdout || r.stderr).slice(0, 120))
+    r = await runAsync([join(ROOT, 'scripts/decision-gate.mjs')], { input: gateIn(wfTurn(new Date(Date.now() - 3000_000).toISOString(), noteNoOrigin)), env })
+    check('gate: a <task-notification> text row without origin is not a new prompt either', r.status === 0 && /"decision":"block"/.test(r.stdout), (r.stdout || r.stderr).slice(0, 120))
+    const future = new Date(Date.now() + 3600_000).toISOString()
+    r = await runAsync([join(ROOT, 'scripts/decision-gate.mjs')], { input: gateIn(wfTurn(future, note)), env })
+    check('gate: clean tree and no commits since the turn started -> allow without a call', r.status === 0 && r.stdout === '' && /no edits this turn/.test(r.stderr), r.stderr.split('\n').pop())
+    const logged = existsSync(logFile) ? readFileSync(logFile, 'utf8').trim().split('\n').map((l) => JSON.parse(l)) : []
+    check('gate: the log records commits, backend usage, request size and the block reasons', logged.length === 2 && logged[0].commits === 1 && logged[0].usage && logged[0].usage.input_tokens === 400 && logged[0].model === 'jev-1.13.0' && logged[0].request_bytes > 0 && Array.isArray(logged[0].reasons) && logged[0].reasons.length === 1, JSON.stringify(logged[0] || {}).slice(0, 200))
+    const q = requests.filter((x) => x.url === '/v1/systemone').pop()
+    check('gate: Jev sees the commits made this turn', q && q.json.state.commits_made_this_turn === 1 && /merge unit 1/.test(q.json.state.commit_sample), q && JSON.stringify(q.json.state).slice(0, 120))
+    // A test run before the workflow reported back does not verify what it merged.
+    r = await runAsync([join(ROOT, 'scripts/decision-gate.mjs')], { input: gateIn(wfTurn(hourAgo, note, { before: [{ type: 'assistant', message: { content: [{ type: 'tool_use', name: 'Bash', input: { command: 'npm test' } }] } }] })), env })
+    check('gate: a test run before the workflow reported back does not count as verification', /"decision":"block"/.test(r.stdout), (r.stdout || r.stderr).slice(0, 100))
+    // A compaction summary in the middle of the turn is not a prompt.
+    r = await runAsync([join(ROOT, 'scripts/decision-gate.mjs')], { input: gateIn(wfTurn(hourAgo, note, { after: [{ type: 'user', isCompactSummary: true, isVisibleInTranscriptOnly: true, message: { role: 'user', content: 'This session is being continued from a previous conversation.' } }] })), env })
+    check('gate: a compaction summary mid-turn does not end the turn', /"decision":"block"/.test(r.stdout), (r.stdout || r.stderr).slice(0, 100))
+
+    // Notifications that carry no work of the turn's own (a monitor event, a background shell command) still
+    // end the turn: the reply to them is checked on its own, not with the edits of the turn before.
+    const plain = (rows) => { const p = join(dir, `t-plain-${n++}.jsonl`); writeFileSync(p, rows.map((x) => JSON.stringify(x)).join('\n') + '\n'); return p }
+    const editTurn = [
+      { type: 'user', timestamp: hourAgo, message: { role: 'user', content: 'fix a.js and keep an eye on the run' } },
+      { type: 'assistant', message: { content: [{ type: 'tool_use', name: 'Edit', input: { file_path: join(repo, 'a.js') } }] } },
+      { type: 'assistant', message: { content: [{ type: 'tool_use', name: 'Bash', input: { command: 'npm test' } }] } },
+      { type: 'assistant', message: { content: [{ type: 'text', text: 'Fixed and tested.' }] } },
+    ]
+    const monitor = { type: 'user', origin: { kind: 'task-notification' }, message: { role: 'user', content: '<task-notification>\n<task-id>m1</task-id>\n<summary>Monitor event: w3 finished</summary>\n</task-notification>' } }
+    const before = requests.length
+    r = await runAsync([join(ROOT, 'scripts/decision-gate.mjs')], { input: JSON.stringify({ hook_event_name: 'Stop', stop_hook_active: false, cwd: repo, transcript_path: plain([...editTurn, monitor, { type: 'assistant', message: { content: [{ type: 'text', text: 'w3 finished: bugfix-trio still fails.' }] } }]), last_assistant_message: 'w3 finished: bugfix-trio still fails.' }), env })
+    check('gate: a monitor event is a turn boundary, so the reply to it is not checked against older edits', r.stdout === '' && requests.length === before, (r.stdout || r.stderr.split('\n').pop()).slice(0, 100))
+    const bgTest = [
+      { type: 'user', timestamp: hourAgo, message: { role: 'user', content: 'run the suite in the background and fix failures' } },
+      { type: 'assistant', message: { content: [{ type: 'tool_use', id: 'toolu_bg', name: 'Bash', input: { command: 'npm test', run_in_background: true } }] } },
+      { type: 'user', origin: { kind: 'task-notification' }, message: { role: 'user', content: '<task-notification><task-id>b1</task-id><tool-use-id>toolu_bg</tool-use-id><status>failed</status></task-notification>' } },
+      { type: 'assistant', message: { content: [{ type: 'tool_use', name: 'Edit', input: { file_path: join(repo, 'a.js') } }] } },
+      { type: 'assistant', message: { content: [{ type: 'text', text: 'Fixed the failing test in a.js.' }] } },
+    ]
+    r = await runAsync([join(ROOT, 'scripts/decision-gate.mjs')], { input: JSON.stringify({ hook_event_name: 'Stop', stop_hook_active: false, cwd: repo, transcript_path: plain(bgTest), last_assistant_message: 'Fixed the failing test in a.js.' }), env })
+    check('gate: an edit after a background test reported a failure, with no new test run -> block', /"decision":"block"/.test(r.stdout), (r.stdout || r.stderr).slice(0, 100))
+    // Committing finished work is not a change to check.
+    const commitOnly = [
+      { type: 'user', timestamp: hourAgo, message: { role: 'user', content: 'commit my changes' } },
+      { type: 'assistant', message: { content: [{ type: 'tool_use', name: 'Bash', input: { command: 'git add -A && git commit -m "Add a.js -> b"' } }] } },
+      { type: 'assistant', message: { content: [{ type: 'text', text: 'Done: committed as abc123.' }] } },
+    ]
+    const before2 = requests.length
+    r = await runAsync([join(ROOT, 'scripts/decision-gate.mjs')], { input: JSON.stringify({ hook_event_name: 'Stop', stop_hook_active: false, cwd: repo, transcript_path: plain(commitOnly), last_assistant_message: 'Done: committed as abc123.' }), env })
+    check('gate: a turn that only commits existing work on a clean tree -> allow without a call', r.stdout === '' && requests.length === before2, (r.stdout || r.stderr.split('\n').pop()).slice(0, 100))
+    const sedCommit = [commitOnly[0], { type: 'assistant', message: { content: [{ type: 'tool_use', name: 'Bash', input: { command: "sed -i 's/x/y/' a.js && git commit -am fix" } }] } }, commitOnly[2]]
+    r = await runAsync([join(ROOT, 'scripts/decision-gate.mjs')], { input: JSON.stringify({ hook_event_name: 'Stop', stop_hook_active: false, cwd: repo, transcript_path: plain(sedCommit), last_assistant_message: 'Done: committed as abc123.' }), env })
+    check('gate: a shell edit committed in the same turn is still checked', /"decision":"block"/.test(r.stdout), (r.stdout || r.stderr).slice(0, 100))
+    // A turn that only writes a document or data file (a report, notes) has nothing to test.
+    const writeTurn = (file) => plain([
+      { type: 'user', timestamp: new Date(Date.now() + 2000).toISOString(), message: { role: 'user', content: `write the findings to ${file}` } },
+      { type: 'assistant', message: { content: [{ type: 'tool_use', name: 'Write', input: { file_path: join(repo, file) } }] } },
+      { type: 'assistant', message: { content: [{ type: 'text', text: `Done: wrote ${file}.` }] } },
+    ])
+    writeFileSync(join(repo, 'REVIEW.json'), '[]\n')
+    r = await runAsync([join(ROOT, 'scripts/decision-gate.mjs')], { input: JSON.stringify({ hook_event_name: 'Stop', stop_hook_active: false, cwd: repo, transcript_path: writeTurn('REVIEW.json'), last_assistant_message: 'Done: wrote REVIEW.json.' }), env })
+    check('gate: a turn that only wrote a JSON report is not asked for a test run', r.stdout === '', (r.stdout || r.stderr.split('\n').pop()).slice(0, 100))
+    const writeAndCheck = plain([
+      { type: 'user', timestamp: new Date(Date.now() + 2000).toISOString(), message: { role: 'user', content: 'write the findings to REVIEW.json' } },
+      { type: 'assistant', message: { content: [{ type: 'tool_use', name: 'Write', input: { file_path: join(repo, 'REVIEW.json') } }] } },
+      { type: 'assistant', message: { content: [{ type: 'tool_use', name: 'Bash', input: { command: 'node -e "JSON.parse(require(\'fs\').readFileSync(\'REVIEW.json\'))"' } }] } },
+      { type: 'assistant', message: { content: [{ type: 'text', text: 'Done: wrote REVIEW.json.' }] } },
+    ])
+    r = await runAsync([join(ROOT, 'scripts/decision-gate.mjs')], { input: JSON.stringify({ hook_event_name: 'Stop', stop_hook_active: false, cwd: repo, transcript_path: writeAndCheck, last_assistant_message: 'Done: wrote REVIEW.json.' }), env })
+    check('gate: checking the report with node -e does not make it code', r.stdout === '', (r.stdout || r.stderr.split('\n').pop()).slice(0, 100))
+    writeFileSync(join(repo, 'package.json'), '{}\n')
+    r = await runAsync([join(ROOT, 'scripts/decision-gate.mjs')], { input: JSON.stringify({ hook_event_name: 'Stop', stop_hook_active: false, cwd: repo, transcript_path: writeTurn('package.json'), last_assistant_message: 'Done: wrote package.json.' }), env })
+    check('gate: package.json is code for this purpose, so the turn still needs verification', /"decision":"block"/.test(r.stdout), (r.stdout || r.stderr).slice(0, 100))
+    spawnSync('rm', ['-f', join(repo, 'REVIEW.json'), join(repo, 'package.json')])
+    const q2 = requests.filter((x) => x.url === '/v1/systemone').pop()
+    check('gate: the unresolved-problem question excludes problems reported as fixed', q2 && /reports as fixed/.test(q2.json.questions.unresolved_problem.instructions))
+  }
+  // Free backends
+  {
+    const before = requests.length
+    r = await runGate({ HARNESS_LOCAL_URL: base }, false)
+    const q = requests.slice(before).find((x) => x.url === '/v1/systemone')
+    check('gate: local System One server, no key, auto-selected -> block', r.status === 0 && /"decision":"block"/.test(r.stdout) && /Decision gate \(local\)/.test(r.stdout), r.stdout.slice(0, 100))
+    check('gate: local request discovers the decision model, sends text state, no auth header', q && q.json.model === 'kev-0.8b' && typeof q.json.state === 'string' && /FINAL ASSISTANT MESSAGE/.test(q.json.state) && !q.auth, q && JSON.stringify({ model: q.json.model, auth: q.auth }))
+    r = await runGate({ HARNESS_DECISION_PROVIDER: 'local', HARNESS_LOCAL_URL: `${base}/client/v4/accounts/acct/ai/run/@cf/cloudflare/clef-flash`, HARNESS_LOCAL_MODEL: 'clef-flash', HARNESS_LOCAL_API_KEY: 'cf' }, false)
+    const cf = requests.slice(before).find((x) => x.url.includes('clef-flash'))
+    check('gate: local endpoint URL used as given, Cloudflare result envelope, bearer key', r.status === 0 && /"decision":"block"/.test(r.stdout) && cf && cf.auth === 'Bearer cf' && cf.json.model === 'clef-flash', r.stdout.slice(0, 80))
+    r = await runGate({ TYPESAFE_API_KEY: 'k', TYPESAFE_BASE_URL: base, HARNESS_LOCAL_URL: 'http://127.0.0.1:1' }, false)
+    check('gate: auto prefers a paid key over a local URL', /Decision gate \(typesafe\)/.test(r.stdout), r.stdout.slice(0, 60))
+
+    // claude-cli: a stand-in claude binary that checks what the gate passes it.
+    const bin = join(dir, 'fake-claude.mjs')
+    const seen = join(dir, 'fake-claude-seen.json')
+    writeFileSync(bin, `#!/usr/bin/env node
+import { writeFileSync, readFileSync } from 'node:fs'
+const stdin = readFileSync(0, 'utf8')
+writeFileSync(${JSON.stringify(seen)}, JSON.stringify({ args: process.argv.slice(2), apiKey: process.env.ANTHROPIC_API_KEY || null, authToken: process.env.ANTHROPIC_AUTH_TOKEN || null, gate: process.env.HARNESS_DECISION_GATE, cwd: process.cwd(), stdin }))
+const done = /Done/.test(stdin)
+console.log(JSON.stringify({ type: 'result', is_error: false, structured_output: { claims_done: done ? 0.92 : 0.1, cites_verification: 0.04, unresolved_problem: 0.03, deferred_to_user: 0.02 } }))
+`)
+    chmodSync(bin, 0o755)
+    r = await runGate({ HARNESS_DECISION_PROVIDER: 'claude-cli', HARNESS_CLAUDE_BIN: bin, ANTHROPIC_API_KEY: 'sk-should-not-leak', ANTHROPIC_AUTH_TOKEN: 'tok' }, false)
+    const got = existsSync(seen) ? JSON.parse(readFileSync(seen, 'utf8')) : {}
+    check('gate: claude-cli, done without tests -> block', r.status === 0 && /Decision gate \(claude-cli\)/.test(r.stdout), r.stdout.slice(0, 80) || r.stderr.split('\n').pop())
+    check('gate: claude-cli child gets no API key or auth token (bills the plan, not an API key)', got.apiKey === null && got.authToken === null)
+    check('gate: claude-cli child has hooks disabled and the gate off (no recursion), no tools, no MCP', got.gate === 'off' && got.args.includes('{"disableAllHooks": true}') && got.args.includes('--strict-mcp-config') && got.args[got.args.indexOf('--tools') + 1] === '' && got.args.includes('claude-haiku-5-5'))
+    r = await runGate({ HARNESS_DECISION_PROVIDER: 'claude-cli', HARNESS_CLAUDE_BIN: join(dir, 'missing-claude') }, false)
+    check('gate: claude-cli missing binary -> fail open', r.status === 0 && r.stdout === '', r.stderr.split('\n').pop())
+
+    // heuristic
+    const H = { HARNESS_DECISION_PROVIDER: 'heuristic' }
+    r = await runGate(H, false, 'Done.')
+    check('gate: heuristic, "Done." with no test run -> block', /"decision":"block"/.test(r.stdout))
+    r = await runGate(H, false, 'Not done yet: the parser change is in, but I have not wired it to the CLI.')
+    check('gate: heuristic, negated completion -> allow', r.stdout === '', r.stdout.slice(0, 80))
+    r = await runGate(H, false, 'Implemented the fix. All 16 tests pass.')
+    check('gate: heuristic, done with a concrete pass report -> allow', r.stdout === '', r.stdout.slice(0, 80))
+    r = await runGate(H, true, 'Fixed it.')
+    check('gate: heuristic, done after a test command ran -> allow', r.stdout === '', r.stdout.slice(0, 80))
+    r = await runGate(H, false, 'I updated the config. Please run npm test to verify.')
+    check('gate: heuristic, step left to the user -> block', /leaves verification or a step to the user/.test(r.stdout), r.stdout.slice(0, 80))
+
+    // fallback and the decision log
+    const logFile = join(dir, 'gate-log.jsonl')
+    r = await runGate({ HARNESS_LOCAL_URL: 'http://127.0.0.1:1', HARNESS_DECISION_FALLBACK: 'heuristic', HARNESS_GATE_LOG: logFile }, false, 'Done.')
+    check('gate: local unreachable, heuristic fallback -> block', /Decision gate \(heuristic\)/.test(r.stdout), r.stdout.slice(0, 80))
+    const logged = existsSync(logFile) ? readFileSync(logFile, 'utf8').trim().split('\n').map((l) => JSON.parse(l)) : []
+    check('gate: HARNESS_GATE_LOG records provider, probabilities and a message hash, not the text', logged.length === 1 && logged[0].provider === 'heuristic' && logged[0].blocked === true && logged[0].message_sha256 && !logged[0].message)
+  }
   r = await runGate({ OPENAI_API_KEY: 'k2', OPENAI_BASE_URL: base }, false)
   check('gate: openai decisions, verified per model -> allow', r.status === 0 && r.stdout === '', r.stderr.split('\n').pop())
   check('gate: openai request shape (predicate questions array)', requests.some((q) => q.url === '/v1/decisions' && q.json.model === 'gpt-6-luna' && Array.isArray(q.json.questions) && q.json.questions[0].type === 'predicate'))

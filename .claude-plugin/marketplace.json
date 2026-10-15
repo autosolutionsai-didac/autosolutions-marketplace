@@ -6,14 +6,14 @@
   },
   "metadata": {
     "description": "Plugins from AutoSolutions.ai for Claude Code: the multi-model harness, and the tools we run our own work with.",
-    "version": "1.0.0"
+    "version": "1.1.0"
   },
   "plugins": [
     {
       "name": "harness",
       "source": "./plugins/harness",
-      "description": "Opus plans, Haiku scouts, Sonnet builds, Opus tries to break it, Fable signs off. Role-based subagents, /harness:ship /harness:review /harness:audit workflows, an opt-in Fable release gate, a cheap decision gate (Jev or OpenAI Decisions), and a GPT second-opinion reviewer.",
-      "version": "1.0.0",
+      "description": "Opus plans, Haiku scouts, Sonnet builds, Opus tries to break it, Fable signs off. Role-based subagents, /harness:ship /harness:review /harness:audit workflows, an opt-in Fable release gate, a cheap decision gate (Jev, OpenAI Decisions, or free: a local decision model, Haiku through your Claude login, or rules), and a GPT second-opinion reviewer.",
+      "version": "1.1.0",
       "author": {
         "name": "AutoSolutions.ai"
       },
@@ -33,7 +33,12 @@
         "openai"
       ],
       "category": "development",
-      "tags": ["harness", "orchestration", "review", "quality-gate"]
+      "tags": [
+        "harness",
+        "orchestration",
+        "review",
+        "quality-gate"
+      ]
     }
   ]
 }

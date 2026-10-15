@@ -1,0 +1,243 @@
+diff --git a/src/csv.js b/src/csv.js
+index f1dc79f..1f07065 100644
+--- a/src/csv.js
++++ b/src/csv.js
+@@ -1,6 +1,9 @@
+ // Renders rows as CSV with a header line. Lines end with \n.
++// Per RFC 4180, a field is wrapped in double quotes when it contains a comma,
++// a double quote, CR or LF; embedded double quotes are doubled. null and
++// undefined render as an empty field.
+ export function toCSV(rows, columns) {
+-  const lines = [columns.join(',')]
++  const lines = [columns.map(cell).join(',')]
+   for (const row of rows) {
+     lines.push(columns.map((column) => cell(row[column])).join(','))
+   }
+@@ -9,5 +12,7 @@ export function toCSV(rows, columns) {
+ 
+ function cell(value) {
+   if (value === null || value === undefined) return ''
+-  return String(value)
++  const s = String(value)
++  if (/[",\r\n]/.test(s)) return '"' + s.replaceAll('"', '""') + '"'
++  return s
+ }
+diff --git a/src/money.js b/src/money.js
+index 95a7ad7..da7c89b 100644
+--- a/src/money.js
++++ b/src/money.js
+@@ -13,7 +13,12 @@ export function formatUSD(cents) {
+ }
+ 
+ // Applies a percentage discount (0 to 100) to an amount in cents.
++// Returns cents * (100 - percent) / 100 rounded half up to the nearest cent.
++// Percent is rounded to the nearest 0.000001 first (exact for up to 6 decimal places).
++// Cents must be a non-negative safe integer.
+ export function applyDiscount(cents, percent) {
+   if (!(percent >= 0 && percent <= 100)) throw new RangeError('percent must be between 0 and 100')
+-  return Math.floor((cents * (100 - percent)) / 100)
++  if (!(Number.isSafeInteger(cents) && cents >= 0)) throw new RangeError('cents must be a non-negative integer')
++  const keep = 100_000_000 - Math.round(percent * 1_000_000)
++  return Number((BigInt(cents) * BigInt(keep) + 50_000_000n) / 100_000_000n)
+ }
+diff --git a/src/server.js b/src/server.js
+index 0393cdd..34961e8 100644
+--- a/src/server.js
++++ b/src/server.js
+@@ -35,7 +35,15 @@ export function createServer({ ledger = new Ledger(), now = Date.now, dataDir =
+ 
+     const invoiceMatch = pathname.match(/^\/invoices\/([^/]+)$/)
+     if (req.method === 'GET' && invoiceMatch) {
+-      const invoice = ledger.invoice(decodeURIComponent(invoiceMatch[1]))
++      let key
++      try {
++        key = decodeURIComponent(invoiceMatch[1])
++      } catch (err) {
++        if (err instanceof URIError) return send(res, 404, { error: 'not_found' })
++        throw err
++      }
++      const invoice = ledger.invoice(key)
++      if (!invoice) return send(res, 404, { error: 'not_found' })
+       if (url.searchParams.get('format') === 'csv') {
+         res.writeHead(200, { 'content-type': 'text/csv; charset=utf-8' })
+         return res.end(toCSV(invoice.lines, CSV_COLUMNS))
+diff --git a/test/csv.test.js b/test/csv.test.js
+index 9603268..b71d870 100644
+--- a/test/csv.test.js
++++ b/test/csv.test.js
+@@ -13,3 +13,47 @@ test('toCSV renders a header and one line per row', () => {
+ test('toCSV leaves missing values empty', () => {
+   assert.equal(toCSV([{ a: null }], ['a', 'b']), 'a,b\n,\n')
+ })
++
++test('toCSV quotes a value containing a comma', () => {
++  assert.equal(toCSV([{ key: 'team, alpha', n: 1 }], ['key', 'n']), 'key,n\n"team, alpha",1\n')
++})
++
++test('toCSV doubles embedded double quotes', () => {
++  assert.equal(toCSV([{ key: 'say "hi"' }], ['key']), 'key\n"say ""hi"""\n')
++})
++
++test('toCSV quotes a value that is only a double quote', () => {
++  assert.equal(toCSV([{ key: '"' }], ['key']), 'key\n""""\n')
++})
++
++test('toCSV keeps an LF inside quotes', () => {
++  assert.equal(toCSV([{ key: 'a\nb' }], ['key']), 'key\n"a\nb"\n')
++})
++
++test('toCSV keeps a CR inside quotes', () => {
++  assert.equal(toCSV([{ key: 'a\rb' }], ['key']), 'key\n"a\rb"\n')
++})
++
++test('toCSV keeps a CRLF inside quotes', () => {
++  assert.equal(toCSV([{ key: 'a\r\nb' }], ['key']), 'key\n"a\r\nb"\n')
++})
++
++test('toCSV leaves the empty string and leading spaces unquoted', () => {
++  assert.equal(toCSV([{ a: '', b: ' x' }], ['a', 'b']), 'a,b\n, x\n')
++})
++
++test('toCSV leaves numbers, including 0, unquoted', () => {
++  assert.equal(toCSV([{ a: 0, b: 42, c: -1.5 }], ['a', 'b', 'c']), 'a,b,c\n0,42,-1.5\n')
++})
++
++test('toCSV leaves tabs, semicolons and non-ASCII text unquoted', () => {
++  assert.equal(toCSV([{ a: 'x\ty', b: 'p;q', c: 'café' }], ['a', 'b', 'c']), 'a,b,c\nx\ty,p;q,café\n')
++})
++
++test('toCSV quotes a header column containing a comma', () => {
++  assert.equal(toCSV([{ 'a,b': 1, c: 2 }], ['a,b', 'c']), '"a,b",c\n1,2\n')
++})
++
++test('toCSV quotes a header column containing a quote', () => {
++  assert.equal(toCSV([], ['say "hi"']), '"say ""hi"""\n')
++})
+diff --git a/test/invoice-csv-export.test.js b/test/invoice-csv-export.test.js
+new file mode 100644
+index 0000000..7886475
+--- /dev/null
++++ b/test/invoice-csv-export.test.js
+@@ -0,0 +1,30 @@
++import { test } from 'node:test'
++import assert from 'node:assert/strict'
++import { createServer } from '../src/server.js'
++import { Ledger } from '../src/ledger.js'
++
++const event = { model: 'claude-sonnet-5', usage: { inputTokens: 1_000_000, outputTokens: 100_000 } }
++
++test('invoice CSV export quotes a key containing a comma', async () => {
++  const server = createServer({ ledger: new Ledger(), now: () => 1_000 })
++  await new Promise((resolve) => server.listen(0, '127.0.0.1', resolve))
++  const base = `http://127.0.0.1:${server.address().port}`
++  try {
++    const posted = await fetch(`${base}/events`, {
++      method: 'POST',
++      headers: { 'content-type': 'application/json', 'x-api-key': 'team, alpha' },
++      body: JSON.stringify(event),
++    })
++    assert.equal(posted.status, 201)
++    const res = await fetch(`${base}/invoices/` + encodeURIComponent('team, alpha') + '?format=csv')
++    assert.equal(res.status, 200)
++    assert.equal(
++      await res.text(),
++      'key,model,requests,inputTokens,outputTokens,cacheReadTokens,cacheWriteTokens,costMicro\n' +
++        '"team, alpha",claude-sonnet-5,1,1000000,100000,0,0,3000000\n',
++    )
++  } finally {
++    server.closeAllConnections()
++    await new Promise((resolve) => server.close(resolve))
++  }
++})
+diff --git a/test/money.test.js b/test/money.test.js
+index 917bae5..0a32da4 100644
+--- a/test/money.test.js
++++ b/test/money.test.js
+@@ -22,3 +22,29 @@ test('applyDiscount', () => {
+   assert.throws(() => applyDiscount(1_000, 101), RangeError)
+   assert.throws(() => applyDiscount(1_000, -1), RangeError)
+ })
++
++test('applyDiscount rounds half up to the nearest cent', () => {
++  assert.equal(applyDiscount(1_001, 15), 851)
++  assert.equal(applyDiscount(10, 15), 9)
++  assert.equal(applyDiscount(1, 50), 1)
++  assert.equal(applyDiscount(3, 50), 2)
++  assert.equal(applyDiscount(7, 50), 4)
++  assert.equal(applyDiscount(1, 49), 1)
++  assert.equal(applyDiscount(1, 51), 0)
++  assert.equal(applyDiscount(999, 10), 899)
++  assert.equal(applyDiscount(1_001, 12.5), 876)
++  assert.equal(applyDiscount(500, 0.1), 500)
++  assert.equal(applyDiscount(0, 15), 0)
++  assert.equal(applyDiscount(1_001, 0), 1_001)
++  assert.equal(applyDiscount(1_001, 100), 0)
++  assert.equal(applyDiscount(9_007_199_254_740_991, 50), 4_503_599_627_370_496)
++})
++
++test('applyDiscount rejects invalid cents and percent', () => {
++  for (const cents of [-1, 1.5, NaN, Infinity]) {
++    assert.throws(() => applyDiscount(cents, 10), RangeError)
++  }
++  for (const percent of [100.0001, -0.0001, NaN]) {
++    assert.throws(() => applyDiscount(1_000, percent), RangeError)
++  }
++})
+diff --git a/test/server.test.js b/test/server.test.js
+index fc813ff..c7c42bd 100644
+--- a/test/server.test.js
++++ b/test/server.test.js
+@@ -55,6 +55,48 @@ test('GET /invoices/:key as JSON and CSV', async () => {
+   await close()
+ })
+ 
++test('GET /invoices/:key with no usage returns 404 not_found', async () => {
++  const { base, close } = await start()
++  const res = await fetch(`${base}/invoices/nobody`)
++  assert.equal(res.status, 404)
++  assert.deepEqual(await res.json(), { error: 'not_found' })
++  await close()
++})
++
++test('GET /invoices/:key with no usage returns 404 for CSV too', async () => {
++  const { base, close } = await start()
++  const res = await fetch(`${base}/invoices/nobody?format=csv`)
++  assert.equal(res.status, 404)
++  assert.match(res.headers.get('content-type'), /^application\/json/)
++  assert.deepEqual(await res.json(), { error: 'not_found' })
++  await close()
++})
++
++test('GET /invoices/:key is 404 for a key without its own usage', async () => {
++  const { base, close } = await start()
++  await post(base, 'acme')
++  const res = await fetch(`${base}/invoices/other`)
++  assert.equal(res.status, 404)
++  assert.deepEqual(await res.json(), { error: 'not_found' })
++  await close()
++})
++
++test('GET /invoices/:key whose key decodes to whitespace returns 404', async () => {
++  const { base, close } = await start()
++  const res = await fetch(`${base}/invoices/%20`)
++  assert.equal(res.status, 404)
++  assert.deepEqual(await res.json(), { error: 'not_found' })
++  await close()
++})
++
++test('GET /invoices/:key with malformed percent-encoding returns 404', async () => {
++  const { base, close } = await start()
++  const res = await fetch(`${base}/invoices/%E0%A4%A`)
++  assert.equal(res.status, 404)
++  assert.deepEqual(await res.json(), { error: 'not_found' })
++  await close()
++})
++
+ test('GET /docs serves files from docs/', async () => {
+   const { base, close } = await start()
+   const res = await fetch(`${base}/docs/api.md`)
+
+# untracked files
+.claude/worktrees/wf_72a580a2-d56-2/
+.claude/worktrees/wf_72a580a2-d56-3/
+.claude/worktrees/wf_72a580a2-d56-4/
