@@ -11,3 +11,17 @@
 2026-10-15T08:38:34.970Z [w2] done  harness-lean bugfix-trio t1: SUCCESS in 369s, $1.42, plan 5h 8%
 2026-10-15T08:38:34.970Z [w2] start harness-lean rate-limit t3
 2026-10-15T08:38:35.097Z   harness-lean rate-limit t3: turn 1/1 started
+2026-10-15T08:43:43.589Z [w2] done  harness-lean rate-limit t3: SUCCESS in 308s, $1.27, plan 5h 12%
+2026-10-15T08:43:43.589Z [w2] start harness-lean bugfix-trio t3
+2026-10-15T08:43:43.729Z   harness-lean bugfix-trio t3: turn 1/1 started
+2026-10-15T08:45:23.148Z [w1] done  harness-lean bugfix-trio t2: SUCCESS in 530s, $1.81, plan 5h 12%
+2026-10-15T08:46:34.447Z [w3] done  harness-lean rate-limit t2: SUCCESS in 851s, $2.82, plan 5h 13%
+2026-10-15T08:58:53.750Z [w2] done  harness-lean bugfix-trio t3: SUCCESS in 907s, $1.69, plan 5h 15%
+2026-10-15T08:58:53.751Z all runs finished
+2026-10-15T08:58:53.888Z bench 2026-10-15-range: 3 runs planned, 0 already done, 3 to run, 3 at a time. Work dir /tmp/harness-bench/2026-10-15-range
+2026-10-15T08:58:53.913Z [w1] start harness-sonnet-builders bugfix-trio t1
+2026-10-15T08:58:54.052Z   harness-sonnet-builders bugfix-trio t1: turn 1/1 started
+2026-10-15T08:58:54.056Z [w2] start harness-sonnet-builders bugfix-trio t2
+2026-10-15T08:58:54.196Z   harness-sonnet-builders bugfix-trio t2: turn 1/1 started
+2026-10-15T08:58:54.198Z [w3] start harness-sonnet-builders bugfix-trio t3
+2026-10-15T08:58:54.331Z   harness-sonnet-builders bugfix-trio t3: turn 1/1 started
