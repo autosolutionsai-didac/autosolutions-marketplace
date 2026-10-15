@@ -61,6 +61,7 @@ Per run (`results/<label>/<team>/<task>/t<n>.json`):
 - [2026-10-14](results/2026-10-14/FINDINGS.md): Haiku builders with an Opus architect and a Fable final reviewer ([report](results/2026-10-14/REPORT.md)).
 - [2026-10-14-jev](results/2026-10-14-jev/FINDINGS.md): all four teams with the decision gate on Jev, plus a replay of the gate's calls with the fixed rules ([report](results/2026-10-14-jev/REPORT.md)).
 - [2026-10-14-lean](results/2026-10-14-lean/FINDINGS.md): the lean harness (Haiku builders, two Opus refuters at medium, Opus gate and reports, Sonnet verifiers), three trials per task, and the strict check on the bugfix task across all teams ([report](results/2026-10-14-lean/REPORT.md); [pooled report, all 9 teams](results/2026-10-13/REPORT-pooled.md)).
+- [2026-10-15-range](results/2026-10-15-range/FINDINGS.md): ship checks the whole input range, not only the request's examples; the strict check moves from 1 in 11 harness runs to 12 of 12, with a second label for the reworded planner ([report](results/2026-10-15-range/REPORT.md), [2026-10-15-range2 report](results/2026-10-15-range2/REPORT.md)).
 
 ## Running it
 
