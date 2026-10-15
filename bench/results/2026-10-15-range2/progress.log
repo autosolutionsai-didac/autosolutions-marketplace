@@ -1,0 +1,7 @@
+2026-10-15T09:23:36.956Z bench 2026-10-15-range2: 6 runs planned, 0 already done, 6 to run, 3 at a time. Work dir /tmp/harness-bench/2026-10-15-range2
+2026-10-15T09:23:36.989Z [w1] start harness-lean rate-limit t1
+2026-10-15T09:23:37.123Z   harness-lean rate-limit t1: turn 1/1 started
+2026-10-15T09:23:37.127Z [w2] start harness-lean bugfix-trio t1
+2026-10-15T09:23:37.260Z   harness-lean bugfix-trio t1: turn 1/1 started
+2026-10-15T09:23:37.263Z [w3] start harness-lean rate-limit t2
+2026-10-15T09:23:37.407Z   harness-lean rate-limit t2: turn 1/1 started
