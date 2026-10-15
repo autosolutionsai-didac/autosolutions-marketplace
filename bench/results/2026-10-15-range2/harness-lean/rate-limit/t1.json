@@ -1,0 +1,323 @@
+{
+  "benchVersion": 2,
+  "label": "2026-10-15-range2",
+  "team": "harness-lean",
+  "teamKind": "harness",
+  "task": "rate-limit",
+  "taskKind": "code",
+  "trial": 1,
+  "sessionId": "a8234964-7189-4618-b481-a97ae5af47bd",
+  "startedAt": "2026-10-15T09:23:37.123Z",
+  "finishedAt": "2026-10-15T09:32:12.090Z",
+  "wallSec": 514.966,
+  "timedOut": false,
+  "turns": [
+    {
+      "turn": 1,
+      "exitCode": 0,
+      "signal": null,
+      "timedOut": false,
+      "wallSec": 514.966,
+      "startedAt": "2026-10-15T09:23:37.124Z",
+      "endedAt": "2026-10-15T09:32:12.090Z"
+    }
+  ],
+  "success": true,
+  "score": {
+    "success": true,
+    "strict": null,
+    "specComplete": true,
+    "compliance": {
+      "complete": true,
+      "items": {
+        "testFile": true,
+        "readmeDocumented": true
+      }
+    },
+    "visible": {
+      "tests": 44,
+      "pass": 44,
+      "fail": 0,
+      "cancelled": 0,
+      "timedOut": null,
+      "exitCode": 0,
+      "signal": null,
+      "interrupted": false,
+      "failures": []
+    },
+    "hidden": {
+      "tests": 9,
+      "pass": 9,
+      "fail": 0
+    },
+    "hiddenPerFile": {
+      "rate-limit.test.js": {
+        "pass": 9,
+        "fail": 0,
+        "failures": [],
+        "interrupted": false
+      }
+    },
+    "partial": 1,
+    "notes": []
+  },
+  "check": null,
+  "costUSD": 0.9986108049999999,
+  "costSource": "claude-code",
+  "costUSDFromStream": 0.9986108049999999,
+  "costUSDFromTranscripts": 0.9986108049999998,
+  "invalidReason": null,
+  "apiErrors": 0,
+  "usageWindows": {
+    "five_hour": {
+      "utilization": 0.3,
+      "resetsAt": 1792058400
+    },
+    "seven_day": {
+      "utilization": 0.63,
+      "resetsAt": 1792162800
+    }
+  },
+  "modelUsage": {
+    "claude-opus-5-5": {
+      "inputTokens": 68,
+      "outputTokens": 21746,
+      "cacheReadInputTokens": 393561,
+      "cacheCreationInputTokens": 81790,
+      "thinkingTokens": 4230,
+      "webSearchRequests": 0,
+      "costUSD": 0.9706052
+    },
+    "claude-haiku-5-5": {
+      "inputTokens": 40,
+      "outputTokens": 27022,
+      "cacheReadInputTokens": 599848,
+      "cacheCreationInputTokens": 67937,
+      "thinkingTokens": 10884,
+      "webSearchRequests": 0,
+      "costUSD": 0.028005605
+    }
+  },
+  "tokensByModel": {
+    "claude-opus-5-5": {
+      "requests": 34,
+      "input": 68,
+      "output": 21746,
+      "cacheRead": 393561,
+      "cacheWrite": 81790,
+      "costUSD": 0.9706051999999997
+    },
+    "claude-haiku-5-5": {
+      "requests": 20,
+      "input": 40,
+      "output": 27022,
+      "cacheRead": 599848,
+      "cacheWrite": 67937,
+      "costUSD": 0.028005605000000003
+    }
+  },
+  "byRole": {
+    "harness:refuter (Refute)": {
+      "agents": 4,
+      "requests": 15,
+      "input": 30,
+      "output": 7174,
+      "cacheRead": 108186,
+      "cacheWrite": 34499,
+      "costUSD": 0.33773220000000004,
+      "models": {
+        "claude-opus-5-5": 15
+      }
+    },
+    "harness:builder (Build)": {
+      "agents": 2,
+      "requests": 20,
+      "input": 40,
+      "output": 27022,
+      "cacheRead": 599848,
+      "cacheWrite": 67937,
+      "costUSD": 0.028005605000000003,
+      "models": {
+        "claude-haiku-5-5": 20
+      }
+    },
+    "harness:judge (Gate)": {
+      "agents": 1,
+      "requests": 5,
+      "input": 10,
+      "output": 3308,
+      "cacheRead": 39938,
+      "cacheWrite": 10181,
+      "costUSD": 0.1250926,
+      "models": {
+        "claude-opus-5-5": 5
+      }
+    },
+    "workflow:Integrate": {
+      "agents": 1,
+      "requests": 4,
+      "input": 8,
+      "output": 1307,
+      "cacheRead": 45587,
+      "cacheWrite": 8900,
+      "costUSD": 0.0797894,
+      "models": {
+        "claude-opus-5-5": 4
+      }
+    },
+    "workflow:Plan": {
+      "agents": 1,
+      "requests": 4,
+      "input": 8,
+      "output": 6420,
+      "cacheRead": 51734,
+      "cacheWrite": 12293,
+      "costUSD": 0.20024380000000003,
+      "models": {
+        "claude-opus-5-5": 4
+      }
+    },
+    "main": {
+      "agents": 1,
+      "requests": 6,
+      "input": 12,
+      "output": 3537,
+      "cacheRead": 148116,
+      "cacheWrite": 15917,
+      "costUSD": 0.2277472,
+      "models": {
+        "claude-opus-5-5": 6
+      }
+    }
+  },
+  "agentCount": 9,
+  "workflows": [
+    {
+      "runId": "wf_946d538d-c08",
+      "name": "ship",
+      "status": "completed",
+      "durationMs": 477324,
+      "agentCount": 9,
+      "totalTokens": 162038,
+      "totalToolCalls": 52,
+      "args": {
+        "task": "Add per-API-key rate limiting to the HTTP server in src/server.js. Put the limiter in a new module, src/rate-limit.js.\n\nRequired behaviour:\n\n1. createServer(options) accepts options.rateLimit = { limit, windowMs }. The default is { limit: 60, windowMs: 60000 }. All timing uses the existing options.now() clock, never Date.now() directly.\n2. The limiter runs before routing and authentication, so every request is limited, including ones that would get a 401 or 404. A request's key is its x-api-key header. Requests without that header share the key \"anonymous\".\n3. Fixed windows per key: a key's window starts at the first request in that window and lasts windowMs. Within a window the first `limit` requests are allowed and the rest are rejected. Once now >= windowStart + windowMs, the next request from that key starts a new window at that moment.\n4. A rejected request gets status 429, a Retry-After header holding the whole number of seconds until the current window ends (rounded up, at least 1), and the JSON body {\"error\":\"rate_limited\",\"retryAfter\":<the same number>}.\n5. Every response to a limited request, allowed or rejected, has an X-RateLimit-Limit header (the limit) and an X-RateLimit-Remaining header (requests still allowed in the current window after this one, never below 0).\n6. GET /health is exempt: it is never rejected, never counts toward any key's limit, and has no rate-limit headers.\n7. Add tests in test/rate-limit.test.js and document the behaviour in README.md.\n\nThe existing test suite (npm test) must keep passing.",
+        "buildModel": "claude-haiku-5-5",
+        "refuteLenses": [
+          "correctness",
+          "edges-and-regressions"
+        ],
+        "refuteEffort": "medium",
+        "gateModel": "claude-opus-5-5"
+      },
+      "logs": [
+        "Planning: Add per-API-key rate limiting to the HTTP server in src/server.js. Put the limiter in a new module, src/rate-limit.js.\n\nRequired behaviour:\n",
+        "2 unit(s) on base main: u1, u2",
+        "2 passed, 0 failed or unbuilt"
+      ],
+      "ship": {
+        "verdict": "PASS",
+        "gate": {
+          "verdict": "PASS",
+          "confidence": "high",
+          "blocking": [],
+          "summary": "The change adds a fixed-window rate limiter per API key in src/rate-limit.js and hooks it into createServer before routing and auth. GET /health is exempt, and the 429 response, Retry-After and X-RateLimit-* headers all behave as specified. My own boundary, fractional-clock and invalid-option probes matched every numbered requirement, the README matches the implementation, and all 44 tests pass. One thing to fix later, not blocking: the limiter's per-key map is never pruned, so memory grows with every distinct key."
+        },
+        "integration": {
+          "merged": [
+            "worktree-wf_946d538d-c08-2",
+            "worktree-wf_946d538d-c08-3"
+          ],
+          "skipped": [],
+          "conflicts": [],
+          "checks": {
+            "ran": true,
+            "passed": true,
+            "commands": [
+              "npm test"
+            ],
+            "notes": "npm test (node --test) ran 44 tests: 44 passed, 0 failed. The repo has no type check or lint configured: no tsconfig or eslint/prettier config, and package.json has only a test script. Before merging, main was clean apart from the untracked .claude/ directory, which holds the worktrees. I left it untouched. Both merges were clean --no-ff merges with no conflicts. The merge commits are 2e4e500 for u1 and 41eacb0 for u2. Nothing was pushed."
+          }
+        },
+        "units": [
+          {
+            "id": "u1",
+            "title": "Rate limiter module, server wiring and tests",
+            "status": "passed",
+            "refuted_by": "0/2",
+            "findings": 0
+          },
+          {
+            "id": "u2",
+            "title": "Document rate limiting in README",
+            "status": "passed",
+            "refuted_by": "0/2",
+            "findings": 3
+          }
+        ]
+      }
+    }
+  ],
+  "ship": {
+    "runs": 1,
+    "verdict": "PASS",
+    "gateVerdict": "PASS",
+    "units": 2,
+    "unitsPassed": 2,
+    "unitsFailed": 0,
+    "fixRounds": 0,
+    "unitStatuses": [
+      "u1:passed:0/2",
+      "u2:passed:0/2"
+    ],
+    "merged": [
+      "worktree-wf_946d538d-c08-2",
+      "worktree-wf_946d538d-c08-3"
+    ],
+    "integrationChecks": {
+      "ran": true,
+      "passed": true,
+      "commands": [
+        "npm test"
+      ],
+      "notes": "npm test (node --test) ran 44 tests: 44 passed, 0 failed. The repo has no type check or lint configured: no tsconfig or eslint/prettier config, and package.json has only a test script. Before merging, main was clean apart from the untracked .claude/ directory, which holds the worktrees. I left it untouched. Both merges were clean --no-ff merges with no conflicts. The merge commits are 2e4e500 for u1 and 41eacb0 for u2. Nothing was pushed."
+    },
+    "firstPassRefutedApprox": 0
+  },
+  "decisionGate": null,
+  "hooks": {
+    "SessionStart:started": 1,
+    "SessionStart:success": 1,
+    "Stop:started": 2,
+    "Stop:success": 2
+  },
+  "stopBlocks": [],
+  "toolUses": {
+    "Workflow": 1,
+    "Bash": 4
+  },
+  "agentSpawns": [],
+  "workflowCalls": [
+    {
+      "name": "harness:ship",
+      "scriptPath": null,
+      "args": "{\"task\":\"Add per-API-key rate limiting to the HTTP server in src/server.js. Put the limiter in a new module, src/rate-limit.js.\\n\\nRequired behaviour:\\n\\n1. createServer(options) accepts options.rateLimit = { limit, windowMs }. The default is { limit: 60, windowMs: 60000 }. All timing uses the exist"
+    }
+  ],
+  "testCommands": 1,
+  "permissionDenials": 0,
+  "errors": [],
+  "contamination": [],
+  "specDelivered": true,
+  "optionsDelivered": true,
+  "changedFiles": [
+    "README.md",
+    "src/rate-limit.js",
+    "src/server.js",
+    "test/rate-limit.test.js",
+    ".claude/worktrees/wf_946d538d-c08-2/",
+    ".claude/worktrees/wf_946d538d-c08-3/"
+  ],
+  "finalMessage": "Rate limiting is in and merged into `main` locally. Nothing was pushed. All 44 tests pass (16 existing, 28 new), and the final review passed it with nothing blocking. Both units passed the Opus reviews first time, so the fix step never ran. As set in your options, Haiku built the units and Opus did the final review, not Fable.\n\n**What changed**\n- **`src/rate-limit.js`** (new): `createRateLimiter({ limit, windowMs, now })` keeps one fixed window per key. It throws an error if `limit` or `windowMs` isn't a positive whole number.\n- **`src/server.js`**: `createServer` accepts `rateLimit` (default `{ limit: 60, windowMs: 60000 }`) and gives the limiter its own `now` clock. The limiter runs on every request except `GET /health`, before routing and auth.\n- **`test/rate-limit.test.js`** and **`README.md`**: tests for the new behaviour and a new \"Rate limiting\" section.\n\n**My own check:** I ran a small script against a live server (limit 2, 2.5 s window, with a fake clock) to test the numbered requirements:\n- 404 responses were counted and had the rate-limit headers, with remaining going 1 then 0.\n- `/health` returned 200 with no rate-limit headers and used none of the allowance.\n- The third request got 429, `Retry-After: 3` and `{\"error\":\"rate_limited\",\"retryAfter\":3}`. One second later it was `2`.\n- Requests without a key used a separate \"anonymous\" allowance.\n- At exactly window start + `windowMs`, a new window opened.\n\n**Worth knowing (none of these block shipping):**\n- **Memory:** the limiter keeps an entry for every key it has seen and never removes any. A client sending random `x-api-key` values could make memory grow without limit. Clearing out expired windows would fix this.\n- **Empty and literal \"anonymous\" keys:** an empty `x-api-key` header, or one set to the text `anonymous`, shares the anonymous allowance. That fits the spec.\n- **`HEAD /health`:** only `GET /health` is exempt, so `HEAD /health` is rate limited, as the spec words it.\n- **Clean-up:** the two build worktrees are still under `.claude/worktrees/` with their branches. You can remove them with `git worktree remove`.",
+  "workDir": "/tmp/harness-bench/2026-10-15-range2/harness-lean/rate-limit/t1"
+}
