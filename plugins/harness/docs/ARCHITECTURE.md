@@ -64,7 +64,8 @@ Plan      Opus, high effort, read-only exploration, returns {base_branch, shared
 Build     per unit: Sonnet in a fresh git worktree (isolation: 'worktree'), commits on its branch,
           returns {branch, worktree_path, files_changed, checks{ran, passed, commands}}
 Refute    per unit: 3 Opus refuters in parallel, lenses = correctness / edges-and-regressions / verification,
-          each returns {refuted, severity, findings[], ran[]}; unit passes on majority (fewer than half refute)
+          each returns {refuted, severity, findings[], ran[]}; unit passes on majority (fewer than half refute).
+          The correctness lens tests a stated rule across every input the code accepts, not only the spec's examples
 Fix       once, for refuted units: the builder role on Opus (fixModel) works inside the same worktree, then Refute runs again
 Integrate Opus in the main checkout: git merge --no-ff each passing branch, resolve conflicts, full suite
 Gate      Fable (or the configured judge model) with the whole evidence trail: {verdict, blocking[], advisory[], verified[]}
@@ -72,6 +73,7 @@ Gate      Fable (or the configured judge model) with the whole evidence trail: {
 
 Design choices worth knowing:
 
+- Every stage looks past the request's examples. The planner writes acceptance criteria for the whole input range the changed code accepts, builders test at least one case beyond the examples, the correctness refuter checks the rule across that range (with a quick independent reference when cheap), and the gate tries a few such inputs. The benchmark showed why: on a rounding fix whose examples used whole percents, every reviewer passed code that was a cent low on fractional ones.
 - Units go through Build → Refute → Fix as a pipeline, so unit B can be in review while unit A is still building. Integration is the only barrier.
 - Majority rule rather than "any refuter can veto". Refuters are prompted to attack; a single over-eager objection should not sink a unit, two of three should. Dissenting findings on passing units are still surfaced to the judge and to you.
 - One fix round, not a loop. If a unit cannot pass after one round, a human should look at it.

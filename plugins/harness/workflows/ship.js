@@ -160,7 +160,7 @@ Do this:
 1. Explore the repository enough to understand where the change lands. Use Glob, Grep and targeted Read. Stay focused.
 2. Record the current branch name as base_branch (run: git branch --show-current).
 3. Split the task into at most ${MAX_UNITS} INDEPENDENT units. Independent means a unit can be implemented, tested and merged without another unit's changes existing, and no two units edit the same file. If the task cannot be split safely, return exactly one unit.
-4. For each unit: a stable id (u1, u2, ...), a short title, a precise spec (what to change, where, how, following the repository's conventions), the files it will touch, and acceptance criteria a reviewer can check (tests that must pass, behaviours that must hold).
+4. For each unit: a stable id (u1, u2, ...), a short title, a precise spec (what to change, where, how, following the repository's conventions), the files it will touch, and acceptance criteria a reviewer can check (tests that must pass, behaviours that must hold). When the task states a rule, the criteria say it must hold for every input the changed code accepts (find the range from its types, its validation and its callers), not only for the task's examples, and name the cases the examples leave out that apply here: boundaries, zero, non-integers, negatives, very large or empty values.
 5. In shared_context, write the facts every builder needs: conventions, how to run the tests, how to run the type checker or linter, gotchas you found.
 
 Do not implement anything.`
@@ -180,6 +180,8 @@ ${u.acceptance.map(a => `- ${a}`).join('\n')}
 
 SHARED CONTEXT FROM THE PLANNER
 ${shared}
+
+Make the change hold for every input the code accepts, not only the examples in the spec, and test at least one case beyond them.
 
 When done: run the relevant checks, commit your work on the current branch with a clear message, then report. Fill unit_id with "${u.id}", branch with the output of "git branch --show-current", worktree_path with the output of "git rev-parse --show-toplevel", and checks with exactly what you ran and whether it passed. Never claim a check passed that you did not run.`
 
@@ -244,13 +246,13 @@ ${results.filter(r => r.status === 'passed').flatMap(r => r.refutation.votes.fil
 INTEGRATION
 ${integration ? `merged: ${integration.merged.join(', ') || 'none'}; skipped: ${integration.skipped.join(', ') || 'none'}; conflicts: ${(integration.conflicts || []).join('; ') || 'none'}\nchecks: ${integration.checks.commands.join('; ') || 'none'} -> ran=${integration.checks.ran}, passed=${integration.checks.passed}\n${integration.summary}` : 'Integration was skipped; passing units remain on their worktree branches.'}
 
-The integrated change is on branch ${base} in your current directory (git log, git diff ${base}@{1}..${base} or git show for the merge commits). Start from the diff and the evidence above. Re-run only the decisive check. FAIL if the request is not fully met, if something that worked is now broken, or if a claim that matters cannot be verified. List blocking issues with evidence and what must change; list advisories separately; list what you verified yourself.`
+The integrated change is on branch ${base} in your current directory (git log, git diff ${base}@{1}..${base} or git show for the merge commits). Start from the diff and the evidence above. Re-run only the decisive check, and when the request states a rule, try it on a few inputs the code accepts beyond the request's examples (boundaries, non-integers, extremes). FAIL if the request is not fully met, if something that worked is now broken, or if a claim that matters cannot be verified. List blocking issues with evidence and what must change; list advisories separately; list what you verified yourself.`
 
 // ---------------------------------------------------------------------------
 // Stages
 // ---------------------------------------------------------------------------
 const ALL_LENSES = [
-  ['correctness', 'Does the code do what the spec says for real inputs? Trace the logic and execute it where you can.'],
+  ['correctness', 'Does the code do what the spec says for every input it accepts, not only the examples in the spec? Find the accepted range from the types, the validation and the callers, and test the rule across it: boundaries, zero, non-integers, negatives, very large or empty values. Where the spec states a rule, compare the code with a simple independent reference over many inputs (a quick loop) when that is cheap. Trace the logic and execute it.'],
   ['edges-and-regressions', 'Hunt edge cases, error paths, concurrency, and existing callers or tests this change breaks.'],
   ['verification', 'Did the builder actually verify this? Re-run the claimed checks and look for acceptance criteria with no test behind them.'],
 ]
